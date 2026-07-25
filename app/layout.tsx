@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import Sidebar from "@/components/Sidebar";
-import { CompaniesProvider } from "@/lib/companies-context";
 import "./globals.css";
 
 const inter = Inter({
@@ -21,14 +19,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko" className={`${inter.variable} h-full antialiased`}>
-      <body className="min-h-full bg-background text-foreground">
-        <CompaniesProvider>
-          <div className="flex min-h-screen">
-            <Sidebar />
-            <main className="min-w-0 flex-1">{children}</main>
-          </div>
-        </CompaniesProvider>
-      </body>
+      <body className="min-h-full bg-background text-foreground">{children}</body>
     </html>
   );
 }

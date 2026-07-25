@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 
 const NAV_ITEMS = [
   { label: "대시보드", href: "/" },
@@ -11,6 +12,14 @@ const NAV_ITEMS = [
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+
+  async function handleLogout() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/login");
+    router.refresh();
+  }
 
   return (
     <aside className="sticky top-0 flex h-screen w-60 shrink-0 flex-col border-r border-border bg-card">
@@ -46,6 +55,15 @@ export default function Sidebar() {
           );
         })}
       </nav>
+      <div className="mt-auto px-3 py-6">
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="w-full rounded-[10px] px-3 py-2 text-left text-sm font-medium text-secondary transition-colors duration-150 hover:bg-background hover:text-foreground"
+        >
+          로그아웃
+        </button>
+      </div>
     </aside>
   );
 }

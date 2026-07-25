@@ -1,8 +1,13 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-// 세션 토큰 갱신 전용 헬퍼.
-// 로그인 화면이 아직 없으므로 인증 여부에 따른 리다이렉트 등 접근 제어는 하지 않는다.
+const PUBLIC_PATH_PREFIXES = ["/login", "/auth"];
+
+function isPublicPath(pathname: string) {
+  return PUBLIC_PATH_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+}
+
+// 세션 토큰 갱신 + 로그인 여부에 따른 접근 제어를 함께 수행한다.
 export async function updateSession(request: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabasePublishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
@@ -31,7 +36,23 @@ export async function updateSession(request: NextRequest) {
   });
 
   // getUser() 호출 자체가 만료된 세션 토큰을 갱신하고 쿠키에 반영한다.
-  await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const pathname = request.nextUrl.pathname;
+
+  if (!user && !isPublicPath(pathname)) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/login";
+    return NextResponse.redirect(url);
+  }
+
+  if (user && pathname.startsWith("/login")) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/";
+    return NextResponse.redirect(url);
+  }
 
   return supabaseResponse;
 }
