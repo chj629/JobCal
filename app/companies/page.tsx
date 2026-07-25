@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import StatusBadge from "@/components/StatusBadge";
 import { MOCK_COMPANIES, COMPANY_STATUSES, STEP_TYPES } from "@/lib/companies";
 
@@ -84,7 +85,11 @@ export default function CompaniesPage() {
           <tbody className="divide-y divide-border">
             {filteredCompanies.map((company) => (
               <tr key={company.id} className="cursor-pointer hover:bg-background">
-                <td className="px-6 py-3 font-medium text-primary">{company.name}</td>
+                <td className="px-6 py-3 font-medium">
+                  <Link href={`/companies/${company.id}`} className="text-primary hover:underline">
+                    {company.name}
+                  </Link>
+                </td>
                 <td className="px-6 py-3 text-foreground">{company.currentStep}</td>
                 <td className="px-6 py-3">
                   <StatusBadge status={company.status} />
