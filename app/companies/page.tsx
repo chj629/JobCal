@@ -3,16 +3,20 @@
 import { useState } from "react";
 import Link from "next/link";
 import StatusBadge from "@/components/StatusBadge";
-import { MOCK_COMPANIES, COMPANY_STATUSES, STEP_TYPES } from "@/lib/companies";
+import CompanyForm from "@/components/CompanyForm";
+import { COMPANY_STATUSES, STEP_TYPES, createEmptyCompanyFormValues } from "@/lib/companies";
+import { useCompanies } from "@/lib/companies-context";
 
 const ALL = "전체";
 
 export default function CompaniesPage() {
+  const { companies, addCompany } = useCompanies();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>(ALL);
   const [stepFilter, setStepFilter] = useState<string>(ALL);
+  const [isAddOpen, setIsAddOpen] = useState(false);
 
-  const filteredCompanies = MOCK_COMPANIES.filter((company) => {
+  const filteredCompanies = companies.filter((company) => {
     const matchesSearch = company.name
       .toLowerCase()
       .includes(search.trim().toLowerCase());
@@ -64,6 +68,7 @@ export default function CompaniesPage() {
         </select>
         <button
           type="button"
+          onClick={() => setIsAddOpen(true)}
           className="ml-auto h-10 rounded-[10px] bg-primary px-4 text-sm font-medium text-white"
         >
           기업 추가
@@ -110,6 +115,18 @@ export default function CompaniesPage() {
           </p>
         )}
       </div>
+
+      {isAddOpen && (
+        <CompanyForm
+          title="기업 추가"
+          initialValues={createEmptyCompanyFormValues()}
+          onCancel={() => setIsAddOpen(false)}
+          onSubmit={(values) => {
+            addCompany(values);
+            setIsAddOpen(false);
+          }}
+        />
+      )}
     </div>
   );
 }

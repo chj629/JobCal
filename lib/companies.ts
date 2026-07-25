@@ -36,6 +36,45 @@ export const STEP_TYPES = [
   "입사",
 ];
 
+export const PRIORITIES: Priority[] = ["높음", "보통", "낮음"];
+
+export interface CompanyFormValues {
+  name: string;
+  status: CompanyStatus;
+  currentStep: string;
+  priority: Priority;
+  nextSchedule: string;
+  websiteUrl: string;
+  mypageUrl: string;
+  memo: string;
+}
+
+export function createEmptyCompanyFormValues(): CompanyFormValues {
+  return {
+    name: "",
+    status: "진행 중",
+    currentStep: STEP_TYPES[0],
+    priority: "보통",
+    nextSchedule: "",
+    websiteUrl: "",
+    mypageUrl: "",
+    memo: "",
+  };
+}
+
+export function companyToFormValues(company: Company): CompanyFormValues {
+  return {
+    name: company.name,
+    status: company.status,
+    currentStep: company.currentStep,
+    priority: company.priority,
+    nextSchedule: company.nextSchedule ?? "",
+    websiteUrl: company.websiteUrl,
+    mypageUrl: company.mypageUrl,
+    memo: company.memo,
+  };
+}
+
 export const MOCK_COMPANIES: Company[] = [
   {
     id: "1",
