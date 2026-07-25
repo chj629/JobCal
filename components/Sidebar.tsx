@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 const NAV_ITEMS = [
   { label: "대시보드", href: "/" },
   { label: "기업 관리", href: "/companies" },
-  { label: "일정 관리", href: null },
+  { label: "일정 관리", href: "/calendar" },
 ];
 
 export default function Sidebar() {
