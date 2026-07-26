@@ -1,14 +1,38 @@
-import type { CompanyStatus } from "@/components/StatusBadge";
+// docs/database.md의 companies.overall_status와 1:1로 대응하는 영문 slug.
+// DB에는 이 slug를 저장하고, 화면 표시용 한글 라벨은 OVERALL_STATUS_LABELS로 변환한다.
+export type OverallStatus = "in_progress" | "offer" | "joined" | "rejected" | "cancelled";
 
-export type Priority = "높음" | "보통" | "낮음";
+export const OVERALL_STATUSES: OverallStatus[] = [
+  "in_progress",
+  "offer",
+  "joined",
+  "rejected",
+  "cancelled",
+];
+
+export const OVERALL_STATUS_LABELS: Record<OverallStatus, string> = {
+  in_progress: "진행 중",
+  offer: "내정",
+  joined: "입사",
+  rejected: "불합격",
+  cancelled: "지원 취소",
+};
+
+// docs/database.md의 companies.priority와 1:1로 대응하는 영문 slug.
+export type Priority = "high" | "medium" | "low";
+
+export const PRIORITIES: Priority[] = ["high", "medium", "low"];
+
+export const PRIORITY_LABELS: Record<Priority, string> = {
+  high: "높음",
+  medium: "보통",
+  low: "낮음",
+};
 
 export interface Company {
   id: string;
   name: string;
-  currentStep: string;
-  status: CompanyStatus;
-  nextSchedule: string | null;
-  nextScheduleTime: string | null;
+  overallStatus: OverallStatus;
   priority: Priority;
   updatedAt: string;
   websiteUrl: string;
@@ -16,50 +40,10 @@ export interface Company {
   memo: string;
 }
 
-export const COMPANY_STATUSES: CompanyStatus[] = [
-  "진행 중",
-  "내정",
-  "입사",
-  "불합격",
-  "지원 취소",
-];
-
-export const STEP_TYPES = [
-  "엔트리",
-  "설명회",
-  "ES",
-  "Web 테스트",
-  "코딩 테스트",
-  "1차 면접",
-  "2차 면접",
-  "최종 면접",
-  "내정",
-  "입사",
-];
-
-export const PRIORITIES: Priority[] = ["높음", "보통", "낮음"];
-
-// Dashboard의 "오늘 해야 할 일"에서 전형 단계를 자연스러운 작업 문구로 바꿔 보여줄 때 사용한다.
-export const STEP_TASK_LABELS: Record<string, string> = {
-  "엔트리": "오늘 엔트리 마감",
-  "설명회": "오늘 설명회 참석",
-  ES: "오늘 ES 제출",
-  "Web 테스트": "오늘 Web 테스트 응시",
-  "코딩 테스트": "오늘 코딩 테스트 응시",
-  "1차 면접": "오늘 1차 면접",
-  "2차 면접": "오늘 2차 면접",
-  "최종 면접": "오늘 최종 면접",
-  내정: "오늘 결과 확인",
-  입사: "오늘 입사",
-};
-
 export interface CompanyFormValues {
   name: string;
-  status: CompanyStatus;
-  currentStep: string;
+  overallStatus: OverallStatus;
   priority: Priority;
-  nextSchedule: string;
-  nextScheduleTime: string;
   websiteUrl: string;
   mypageUrl: string;
   memo: string;
@@ -68,11 +52,8 @@ export interface CompanyFormValues {
 export function createEmptyCompanyFormValues(): CompanyFormValues {
   return {
     name: "",
-    status: "진행 중",
-    currentStep: STEP_TYPES[0],
-    priority: "보통",
-    nextSchedule: "",
-    nextScheduleTime: "",
+    overallStatus: "in_progress",
+    priority: "medium",
     websiteUrl: "",
     mypageUrl: "",
     memo: "",
@@ -82,11 +63,8 @@ export function createEmptyCompanyFormValues(): CompanyFormValues {
 export function companyToFormValues(company: Company): CompanyFormValues {
   return {
     name: company.name,
-    status: company.status,
-    currentStep: company.currentStep,
+    overallStatus: company.overallStatus,
     priority: company.priority,
-    nextSchedule: company.nextSchedule ?? "",
-    nextScheduleTime: company.nextScheduleTime ?? "",
     websiteUrl: company.websiteUrl,
     mypageUrl: company.mypageUrl,
     memo: company.memo,
@@ -98,11 +76,8 @@ export interface CompanyRow {
   id: string;
   user_id: string;
   name: string;
-  status: CompanyStatus;
-  current_step: string;
+  overall_status: OverallStatus;
   priority: Priority;
-  next_schedule: string | null;
-  next_schedule_time: string | null;
   website_url: string;
   mypage_url: string;
   memo: string;
@@ -114,10 +89,7 @@ export function rowToCompany(row: CompanyRow): Company {
   return {
     id: row.id,
     name: row.name,
-    currentStep: row.current_step,
-    status: row.status,
-    nextSchedule: row.next_schedule,
-    nextScheduleTime: row.next_schedule_time,
+    overallStatus: row.overall_status,
     priority: row.priority,
     updatedAt: row.updated_at.slice(0, 10),
     websiteUrl: row.website_url,
@@ -129,12 +101,8 @@ export function rowToCompany(row: CompanyRow): Company {
 export function companyFormValuesToRow(values: CompanyFormValues) {
   return {
     name: values.name.trim(),
-    status: values.status,
-    current_step: values.currentStep,
+    overall_status: values.overallStatus,
     priority: values.priority,
-    next_schedule: values.nextSchedule.trim() === "" ? null : values.nextSchedule,
-    next_schedule_time:
-      values.nextScheduleTime.trim() === "" ? null : values.nextScheduleTime.trim(),
     website_url: values.websiteUrl.trim(),
     mypage_url: values.mypageUrl.trim(),
     memo: values.memo.trim(),

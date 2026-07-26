@@ -3,20 +3,27 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useCompanies } from "@/lib/companies-context";
+import { useApplicationSteps } from "@/lib/application-steps-context";
+import { useEvents } from "@/lib/events-context";
 import { createEmptyCompanyFormValues } from "@/lib/companies";
 import CompanyForm from "@/components/CompanyForm";
 import DashboardGreeting from "@/components/dashboard/DashboardGreeting";
 import TodayChecklist from "@/components/dashboard/TodayChecklist";
 import TodayTimetable from "@/components/dashboard/TodayTimetable";
-import SevenDayStrip from "@/components/dashboard/SevenDayStrip";
-import PriorityHighlights from "@/components/dashboard/PriorityHighlights";
-import RecentCompanies from "@/components/dashboard/RecentCompanies";
+import TodayResults from "@/components/dashboard/TodayResults";
+import UpcomingDDay from "@/components/dashboard/UpcomingDDay";
+import UpcomingDeadlines from "@/components/dashboard/UpcomingDeadlines";
 import PipelineOverview from "@/components/dashboard/PipelineOverview";
+import RecentCompanies from "@/components/dashboard/RecentCompanies";
 
 export default function DashboardPage() {
-  const { companies, addCompany, loading, error } = useCompanies();
+  const { companies, addCompany, loading: companiesLoading, error } = useCompanies();
+  const { steps, loading: stepsLoading, refresh: refreshSteps } = useApplicationSteps();
+  const { events, loading: eventsLoading } = useEvents();
   const [userName, setUserName] = useState<string | null>(null);
   const [isAddOpen, setIsAddOpen] = useState(false);
+
+  const loading = companiesLoading || stepsLoading || eventsLoading;
 
   useEffect(() => {
     const supabase = createClient();
@@ -70,14 +77,15 @@ export default function DashboardPage() {
 
       <div className="flex flex-col gap-6">
         <div className="grid gap-6 lg:grid-cols-2">
-          <TodayChecklist companies={companies} />
-          <TodayTimetable companies={companies} />
+          <TodayChecklist companies={companies} events={events} />
+          <TodayTimetable companies={companies} events={events} />
         </div>
 
-        <SevenDayStrip companies={companies} />
-        <PriorityHighlights companies={companies} />
-        <RecentCompanies companies={companies} />
-        <PipelineOverview companies={companies} />
+        <TodayResults companies={companies} events={events} />
+        <UpcomingDDay companies={companies} events={events} />
+        <UpcomingDeadlines companies={companies} events={events} />
+        <PipelineOverview companies={companies} steps={steps} />
+        <RecentCompanies companies={companies} steps={steps} />
       </div>
 
       {isAddOpen && (
@@ -87,7 +95,10 @@ export default function DashboardPage() {
           onCancel={() => setIsAddOpen(false)}
           onSubmit={async (values) => {
             const ok = await addCompany(values);
-            if (ok) setIsAddOpen(false);
+            if (ok) {
+              setIsAddOpen(false);
+              refreshSteps();
+            }
           }}
         />
       )}

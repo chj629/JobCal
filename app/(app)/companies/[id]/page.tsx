@@ -5,16 +5,26 @@ import Link from "next/link";
 import { notFound, useParams, useRouter } from "next/navigation";
 import StatusBadge from "@/components/StatusBadge";
 import CompanyForm from "@/components/CompanyForm";
-import { STEP_TYPES, companyToFormValues } from "@/lib/companies";
+import StepTimeline from "@/components/companies/StepTimeline";
+import StepDetailPanel from "@/components/companies/StepDetailPanel";
+import { PRIORITY_LABELS, companyToFormValues, type Company } from "@/lib/companies";
 import { useCompanies } from "@/lib/companies-context";
+import { useApplicationSteps } from "@/lib/application-steps-context";
+import { getCurrentStep } from "@/lib/applicationSteps";
+import { useEvents } from "@/lib/events-context";
+import { getNextEvent } from "@/lib/events";
+
+const NO_STEP_LABEL = "등록된 전형 없음";
 
 export default function CompanyDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { companies, updateCompany, deleteCompany, loading, error } = useCompanies();
-  const [isEditOpen, setIsEditOpen] = useState(false);
+  const { companies, deleteCompany, loading: companiesLoading, error } = useCompanies();
+  const { loading: stepsLoading } = useApplicationSteps();
+  const { loading: eventsLoading } = useEvents();
   const [isDeleting, setIsDeleting] = useState(false);
 
+  const loading = companiesLoading || stepsLoading || eventsLoading;
   const company = companies.find((c) => c.id === id);
 
   if (loading) {
@@ -36,8 +46,6 @@ export default function CompanyDetailPage() {
     notFound();
   }
 
-  const currentIndex = STEP_TYPES.indexOf(company.currentStep);
-
   async function handleDelete() {
     if (window.confirm(`'${company!.name}' 기업을 삭제하시겠습니까?`)) {
       setIsDeleting(true);
@@ -49,6 +57,31 @@ export default function CompanyDetailPage() {
       }
     }
   }
+
+  // company.id로 key를 주어, 다른 기업 상세로 이동할 때(같은 라우트 재사용 시)
+  // selectedStepId 등 아래 컴포넌트의 로컬 상태가 확실히 초기화되도록 한다.
+  return <CompanyDetailView key={company.id} company={company} error={error} onDelete={handleDelete} />;
+}
+
+interface CompanyDetailViewProps {
+  company: Company;
+  error: string | null;
+  onDelete: () => void;
+}
+
+function CompanyDetailView({ company, error, onDelete }: CompanyDetailViewProps) {
+  const { updateCompany } = useCompanies();
+  const { steps } = useApplicationSteps();
+  const { events } = useEvents();
+  const [isEditOpen, setIsEditOpen] = useState(false);
+
+  const companySteps = steps.filter((step) => step.companyId === company.id);
+  const currentStep = getCurrentStep(companySteps);
+  const companyEvents = events.filter((event) => event.companyId === company.id);
+  const nextEvent = getNextEvent(companyEvents);
+  const nextEventAt = nextEvent ? (nextEvent.startsAt ?? nextEvent.dueAt) : null;
+
+  const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
 
   return (
     <div className="mx-auto max-w-[1200px] px-8 py-8">
@@ -66,7 +99,7 @@ export default function CompanyDetailPage() {
           </button>
           <button
             type="button"
-            onClick={handleDelete}
+            onClick={onDelete}
             className="h-10 rounded-[10px] border border-error px-4 text-sm font-medium text-error"
           >
             삭제
@@ -77,7 +110,7 @@ export default function CompanyDetailPage() {
       <header className="mt-4 mb-8">
         <h1 className="text-[28px] font-semibold text-foreground">{company.name}</h1>
         <div className="mt-2">
-          <StatusBadge status={company.status} />
+          <StatusBadge status={company.overallStatus} />
         </div>
       </header>
 
@@ -87,89 +120,77 @@ export default function CompanyDetailPage() {
         </p>
       )}
 
-      <section className="mb-8 rounded-[10px] border border-border bg-card p-6">
-        <h2 className="mb-4 text-[16px] font-semibold text-foreground">기본 정보</h2>
-        <dl className="grid grid-cols-2 gap-x-6 gap-y-4 text-sm">
-          <div>
-            <dt className="text-secondary">현재 전형 단계</dt>
-            <dd className="mt-1 text-foreground">{company.currentStep}</dd>
-          </div>
-          <div>
-            <dt className="text-secondary">지원 우선순위</dt>
-            <dd className="mt-1 text-foreground">{company.priority}</dd>
-          </div>
-          <div>
-            <dt className="text-secondary">다음 일정</dt>
-            <dd className="mt-1 text-foreground">
-              {company.nextSchedule
-                ? `${company.nextSchedule}${
-                    company.nextScheduleTime ? ` ${company.nextScheduleTime}` : ""
-                  }`
-                : "예정 없음"}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-secondary">기업 홈페이지</dt>
-            <dd className="mt-1">
-              <a
-                href={company.websiteUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-primary hover:underline"
-              >
-                {company.websiteUrl}
-              </a>
-            </dd>
-          </div>
-          <div>
-            <dt className="text-secondary">마이페이지 URL</dt>
-            <dd className="mt-1">
-              <a
-                href={company.mypageUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-primary hover:underline"
-              >
-                {company.mypageUrl}
-              </a>
-            </dd>
-          </div>
-        </dl>
-      </section>
-
-      <section className="mb-8 rounded-[10px] border border-border bg-card p-6">
-        <h2 className="mb-4 text-[16px] font-semibold text-foreground">전형 타임라인</h2>
-        <ol className="flex flex-col gap-4">
-          {STEP_TYPES.map((step, index) => {
-            const state =
-              index < currentIndex ? "완료" : index === currentIndex ? "진행 중" : "예정";
-
-            return (
-              <li key={step} className="flex items-center gap-3">
-                <span
-                  className={
-                    "h-2.5 w-2.5 shrink-0 rounded-full " +
-                    (state === "예정" ? "bg-border" : "bg-primary")
-                  }
-                />
-                <span
-                  className={
-                    "text-sm " +
-                    (state === "진행 중"
-                      ? "font-semibold text-primary"
-                      : state === "완료"
-                        ? "text-foreground"
-                        : "text-secondary")
-                  }
+      <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <section className="rounded-[10px] border border-border bg-card p-6">
+          <h2 className="mb-4 text-[16px] font-semibold text-foreground">기본 정보</h2>
+          <dl className="grid grid-cols-2 gap-x-6 gap-y-4 text-sm">
+            <div>
+              <dt className="text-secondary">현재 전형 단계</dt>
+              <dd className="mt-1 text-foreground">{currentStep?.name ?? NO_STEP_LABEL}</dd>
+            </div>
+            <div>
+              <dt className="text-secondary">지원 우선순위</dt>
+              <dd className="mt-1 text-foreground">{PRIORITY_LABELS[company.priority]}</dd>
+            </div>
+            <div className="col-span-2">
+              <dt className="text-secondary">다음 일정</dt>
+              <dd className="mt-1 text-foreground">
+                {nextEventAt && nextEvent
+                  ? `${nextEvent.title} · ${new Date(nextEventAt).toLocaleString("ko-KR", {
+                      year: "numeric",
+                      month: "2-digit",
+                      day: "2-digit",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}`
+                  : "예정 없음"}
+              </dd>
+            </div>
+            <div className="col-span-2">
+              <dt className="text-secondary">기업 홈페이지</dt>
+              <dd className="mt-1">
+                <a
+                  href={company.websiteUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline"
                 >
-                  {step}
-                </span>
-                <span className="ml-auto text-xs text-secondary">{state}</span>
-              </li>
-            );
-          })}
-        </ol>
-      </section>
+                  {company.websiteUrl}
+                </a>
+              </dd>
+            </div>
+          </dl>
+        </section>
+
+        <section className="rounded-[10px] border border-border bg-card p-6">
+          <h2 className="mb-4 text-[16px] font-semibold text-foreground">마이페이지</h2>
+          {company.mypageUrl ? (
+            <a
+              href={company.mypageUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm text-primary hover:underline"
+            >
+              {company.mypageUrl}
+            </a>
+          ) : (
+            <p className="text-sm text-secondary">등록된 마이페이지 URL이 없습니다.</p>
+          )}
+        </section>
+      </div>
+
+      <StepTimeline
+        companyId={company.id}
+        selectedStepId={selectedStepId}
+        onSelect={setSelectedStepId}
+      />
+      {selectedStepId && (
+        <StepDetailPanel
+          companyId={company.id}
+          selectedStepId={selectedStepId}
+          onClose={() => setSelectedStepId(null)}
+        />
+      )}
 
       <section className="rounded-[10px] border border-border bg-card p-6">
         <h2 className="mb-4 text-[16px] font-semibold text-foreground">메모</h2>

@@ -10,3 +10,8 @@ export function formatDateKey(date: Date): string {
 export function todayKey(): string {
   return formatDateKey(new Date());
 }
+
+// timestamptz(ISO 문자열)를 로컬 타임존 기준 "YYYY-MM-DD" 키로 변환한다.
+export function dateKeyOf(iso: string): string {
+  return formatDateKey(new Date(iso));
+}

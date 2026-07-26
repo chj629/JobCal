@@ -4,18 +4,48 @@ import { useState } from "react";
 import Link from "next/link";
 import StatusBadge from "@/components/StatusBadge";
 import CompanyForm from "@/components/CompanyForm";
-import { COMPANY_STATUSES, STEP_TYPES, PRIORITIES, createEmptyCompanyFormValues } from "@/lib/companies";
+import {
+  OVERALL_STATUSES,
+  OVERALL_STATUS_LABELS,
+  PRIORITIES,
+  PRIORITY_LABELS,
+  createEmptyCompanyFormValues,
+} from "@/lib/companies";
 import { useCompanies } from "@/lib/companies-context";
+import { useApplicationSteps } from "@/lib/application-steps-context";
+import { DEFAULT_STEP_NAMES, getCurrentStep } from "@/lib/applicationSteps";
+import { useEvents } from "@/lib/events-context";
+import { getNextEvent } from "@/lib/events";
+import { dateKeyOf } from "@/lib/date";
 
 const ALL = "전체";
+const NO_STEP_LABEL = "등록된 전형 없음";
 
 export default function CompaniesPage() {
-  const { companies, addCompany, loading, error } = useCompanies();
+  const { companies, addCompany, loading: companiesLoading, error } = useCompanies();
+  const { steps, loading: stepsLoading, refresh: refreshSteps } = useApplicationSteps();
+  const { events, loading: eventsLoading } = useEvents();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>(ALL);
   const [priorityFilter, setPriorityFilter] = useState<string>(ALL);
   const [stepFilter, setStepFilter] = useState<string>(ALL);
   const [isAddOpen, setIsAddOpen] = useState(false);
+
+  const loading = companiesLoading || stepsLoading || eventsLoading;
+
+  // application_steps/events를 직접 사용해 기업별 "현재 전형"과 "다음 일정"을 계산한다.
+  const companyRows = companies.map((company) => {
+    const companySteps = steps.filter((step) => step.companyId === company.id);
+    const companyEvents = events.filter((event) => event.companyId === company.id);
+    const nextEvent = getNextEvent(companyEvents);
+    const nextEventAt = nextEvent ? (nextEvent.startsAt ?? nextEvent.dueAt) : null;
+
+    return {
+      company,
+      currentStepName: getCurrentStep(companySteps)?.name ?? NO_STEP_LABEL,
+      nextScheduleDate: nextEventAt ? dateKeyOf(nextEventAt) : null,
+    };
+  });
 
   const isFiltering =
     search.trim() !== "" ||
@@ -30,13 +60,13 @@ export default function CompaniesPage() {
     setStepFilter(ALL);
   }
 
-  const filteredCompanies = companies.filter((company) => {
+  const filteredCompanyRows = companyRows.filter(({ company, currentStepName }) => {
     const matchesSearch = company.name
       .toLowerCase()
       .includes(search.trim().toLowerCase());
-    const matchesStatus = statusFilter === ALL || company.status === statusFilter;
+    const matchesStatus = statusFilter === ALL || company.overallStatus === statusFilter;
     const matchesPriority = priorityFilter === ALL || company.priority === priorityFilter;
-    const matchesStep = stepFilter === ALL || company.currentStep === stepFilter;
+    const matchesStep = stepFilter === ALL || currentStepName === stepFilter;
     return matchesSearch && matchesStatus && matchesPriority && matchesStep;
   });
 
@@ -62,10 +92,10 @@ export default function CompaniesPage() {
           onChange={(e) => setStatusFilter(e.target.value)}
           className="h-10 rounded-[10px] border border-border bg-card px-3 text-sm text-foreground focus:border-primary focus:outline-none"
         >
-          <option value={ALL}>전체 상태</option>
-          {COMPANY_STATUSES.map((status) => (
+          <option value={ALL}>전체 결과</option>
+          {OVERALL_STATUSES.map((status) => (
             <option key={status} value={status}>
-              {status}
+              {OVERALL_STATUS_LABELS[status]}
             </option>
           ))}
         </select>
@@ -77,7 +107,7 @@ export default function CompaniesPage() {
           <option value={ALL}>전체 우선순위</option>
           {PRIORITIES.map((priority) => (
             <option key={priority} value={priority}>
-              {priority}
+              {PRIORITY_LABELS[priority]}
             </option>
           ))}
         </select>
@@ -87,7 +117,7 @@ export default function CompaniesPage() {
           className="h-10 rounded-[10px] border border-border bg-card px-3 text-sm text-foreground focus:border-primary focus:outline-none"
         >
           <option value={ALL}>전체 단계</option>
-          {STEP_TYPES.map((step) => (
+          {DEFAULT_STEP_NAMES.map((step) => (
             <option key={step} value={step}>
               {step}
             </option>
@@ -112,7 +142,7 @@ export default function CompaniesPage() {
       </div>
 
       <p className="mb-4 text-sm text-secondary">
-        총 <span className="font-medium text-foreground">{filteredCompanies.length}</span>건
+        총 <span className="font-medium text-foreground">{filteredCompanyRows.length}</span>건
       </p>
 
       {error && (
@@ -132,35 +162,35 @@ export default function CompaniesPage() {
               <tr className="border-b border-border text-left text-secondary">
                 <th className="px-6 py-3 font-medium">기업명</th>
                 <th className="px-6 py-3 font-medium">현재 전형 단계</th>
-                <th className="px-6 py-3 font-medium">상태</th>
                 <th className="px-6 py-3 font-medium">다음 일정</th>
                 <th className="px-6 py-3 font-medium">우선순위</th>
                 <th className="px-6 py-3 font-medium">최종 수정일</th>
+                <th className="px-6 py-3 font-medium">결과</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {filteredCompanies.map((company) => (
+              {filteredCompanyRows.map(({ company, currentStepName, nextScheduleDate }) => (
                 <tr key={company.id} className="cursor-pointer hover:bg-background">
                   <td className="px-6 py-3 font-medium">
                     <Link href={`/companies/${company.id}`} className="text-primary hover:underline">
                       {company.name}
                     </Link>
                   </td>
-                  <td className="px-6 py-3 text-foreground">{company.currentStep}</td>
-                  <td className="px-6 py-3">
-                    <StatusBadge status={company.status} />
-                  </td>
+                  <td className="px-6 py-3 text-foreground">{currentStepName}</td>
                   <td className="px-6 py-3 text-secondary">
-                    {company.nextSchedule ?? "예정 없음"}
+                    {nextScheduleDate ?? "예정 없음"}
                   </td>
-                  <td className="px-6 py-3 text-foreground">{company.priority}</td>
+                  <td className="px-6 py-3 text-foreground">{PRIORITY_LABELS[company.priority]}</td>
                   <td className="px-6 py-3 text-secondary">{company.updatedAt}</td>
+                  <td className="px-6 py-3">
+                    <StatusBadge status={company.overallStatus} />
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
 
-          {filteredCompanies.length === 0 && (
+          {filteredCompanyRows.length === 0 && (
             <p className="px-6 py-10 text-center text-sm text-secondary">
               검색 조건에 맞는 기업이 없습니다
             </p>
@@ -175,7 +205,12 @@ export default function CompaniesPage() {
           onCancel={() => setIsAddOpen(false)}
           onSubmit={async (values) => {
             const ok = await addCompany(values);
-            if (ok) setIsAddOpen(false);
+            if (ok) {
+              setIsAddOpen(false);
+              // 기본 8개 전형은 DB 트리거가 생성하므로, 방금 만든 기업의 전형이
+              // 클라이언트 상태에 보이도록 한 번 더 불러온다.
+              refreshSteps();
+            }
           }}
         />
       )}

@@ -3,17 +3,23 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import { todayKey } from "@/lib/date";
-import { STEP_TASK_LABELS, type Company } from "@/lib/companies";
+import { todayKey, dateKeyOf } from "@/lib/date";
+import type { Company } from "@/lib/companies";
+import type { AppEvent } from "@/lib/events";
 
 interface TodayChecklistProps {
   companies: Company[];
+  events: AppEvent[];
 }
 
-export default function TodayChecklist({ companies }: TodayChecklistProps) {
+export default function TodayChecklist({ companies, events }: TodayChecklistProps) {
   const supabase = useMemo(() => createClient(), []);
   const today = todayKey();
-  const todayCompanies = companies.filter((company) => company.nextSchedule === today);
+
+  const todayDeadlines = events
+    .filter((event) => event.eventType === "deadline" && event.dueAt !== null)
+    .filter((event) => dateKeyOf(event.dueAt as string) === today)
+    .sort((a, b) => new Date(a.dueAt as string).getTime() - new Date(b.dueAt as string).getTime());
 
   const [userId, setUserId] = useState<string | null>(null);
   const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set());
@@ -37,17 +43,14 @@ export default function TodayChecklist({ companies }: TodayChecklistProps) {
 
       setUserId(user.id);
 
-      const { data, error } = await supabase
-        .from("task_completions")
-        .select("company_id")
-        .eq("schedule_date", today);
+      const { data, error } = await supabase.from("event_completions").select("event_id");
 
       if (!isMounted) return;
 
       if (error) {
         setTaskError(error.message);
       } else if (data) {
-        setCheckedIds(new Set(data.map((row) => row.company_id as string)));
+        setCheckedIds(new Set(data.map((row) => row.event_id as string)));
       }
 
       // load()는 마운트 시 한 번만 실행되므로, 이 시점 이후로는 toggle()의
@@ -60,44 +63,43 @@ export default function TodayChecklist({ companies }: TodayChecklistProps) {
     return () => {
       isMounted = false;
     };
-  }, [supabase, today]);
+  }, [supabase]);
 
-  async function toggle(companyId: string) {
+  async function toggle(eventId: string) {
     if (!userId || !loaded) return;
     setTaskError(null);
-    const isChecked = checkedIds.has(companyId);
+    const isChecked = checkedIds.has(eventId);
 
     setCheckedIds((prev) => {
       const next = new Set(prev);
       if (isChecked) {
-        next.delete(companyId);
+        next.delete(eventId);
       } else {
-        next.add(companyId);
+        next.add(eventId);
       }
       return next;
     });
 
     if (isChecked) {
       const { error } = await supabase
-        .from("task_completions")
+        .from("event_completions")
         .delete()
-        .eq("company_id", companyId)
-        .eq("schedule_date", today);
+        .eq("event_id", eventId);
 
       if (error) {
         setTaskError(error.message);
-        setCheckedIds((prev) => new Set(prev).add(companyId));
+        setCheckedIds((prev) => new Set(prev).add(eventId));
       }
     } else {
       const { error } = await supabase
-        .from("task_completions")
-        .insert({ user_id: userId, company_id: companyId, schedule_date: today });
+        .from("event_completions")
+        .insert({ user_id: userId, event_id: eventId });
 
       if (error) {
         setTaskError(error.message);
         setCheckedIds((prev) => {
           const next = new Set(prev);
-          next.delete(companyId);
+          next.delete(eventId);
           return next;
         });
       }
@@ -116,24 +118,24 @@ export default function TodayChecklist({ companies }: TodayChecklistProps) {
         </p>
       )}
 
-      {todayCompanies.length === 0 ? (
+      {todayDeadlines.length === 0 ? (
         <p className="px-6 py-10 text-center text-sm text-secondary">
           오늘 예정된 일정이 없습니다 🎉
         </p>
       ) : (
         <ul className="divide-y divide-border">
-          {todayCompanies.map((company) => {
-            const checked = checkedIds.has(company.id);
-            const taskLabel = STEP_TASK_LABELS[company.currentStep] ?? `오늘 ${company.currentStep}`;
+          {todayDeadlines.map((event) => {
+            const company = companies.find((c) => c.id === event.companyId);
+            const checked = checkedIds.has(event.id);
 
             return (
-              <li key={company.id} className="flex items-center gap-3 px-6 py-3">
+              <li key={event.id} className="flex items-center gap-3 px-6 py-3">
                 <button
                   type="button"
-                  onClick={() => toggle(company.id)}
+                  onClick={() => toggle(event.id)}
                   disabled={!loaded}
                   aria-pressed={checked}
-                  aria-label={`${company.name} 완료 표시`}
+                  aria-label={`${event.title} 완료 표시`}
                   className={
                     "flex h-5 w-5 shrink-0 items-center justify-center rounded-[4px] border text-xs disabled:cursor-not-allowed disabled:opacity-50 " +
                     (checked
@@ -144,13 +146,13 @@ export default function TodayChecklist({ companies }: TodayChecklistProps) {
                   ✓
                 </button>
                 <Link
-                  href={`/companies/${company.id}`}
+                  href={`/companies/${event.companyId}`}
                   className={
                     "flex-1 truncate text-sm hover:text-primary " +
                     (checked ? "text-secondary line-through" : "text-foreground")
                   }
                 >
-                  {taskLabel} <span className="text-secondary">· {company.name}</span>
+                  {event.title} <span className="text-secondary">· {company?.name ?? ""}</span>
                 </Link>
               </li>
             );

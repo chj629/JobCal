@@ -1,14 +1,17 @@
 import Link from "next/link";
-import { formatDateKey } from "@/lib/date";
+import { formatDateKey, dateKeyOf } from "@/lib/date";
 import type { Company } from "@/lib/companies";
+import { EVENT_TYPE_BADGE_CLASS, type AppEvent } from "@/lib/events";
 
 interface SevenDayStripProps {
   companies: Company[];
+  events: AppEvent[];
 }
 
 const WEEKDAY_LABELS = ["일", "월", "화", "수", "목", "금", "토"];
+const MAX_VISIBLE_EVENTS = 3;
 
-export default function SevenDayStrip({ companies }: SevenDayStripProps) {
+export default function SevenDayStrip({ companies, events }: SevenDayStripProps) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -16,11 +19,22 @@ export default function SevenDayStrip({ companies }: SevenDayStripProps) {
     const date = new Date(today);
     date.setDate(today.getDate() + i);
     const dateKey = formatDateKey(date);
+    const dayEvents = events
+      .filter((event) => {
+        const at = event.startsAt ?? event.dueAt;
+        return at !== null && dateKeyOf(at) === dateKey;
+      })
+      .sort((a, b) => {
+        const atA = (a.startsAt ?? a.dueAt) as string;
+        const atB = (b.startsAt ?? b.dueAt) as string;
+        return new Date(atA).getTime() - new Date(atB).getTime();
+      });
+
     return {
       date,
       dateKey,
       isToday: i === 0,
-      dayCompanies: companies.filter((company) => company.nextSchedule === dateKey),
+      dayEvents,
     };
   });
 
@@ -47,16 +61,27 @@ export default function SevenDayStrip({ companies }: SevenDayStripProps) {
               <span className="text-xs text-secondary">{day.date.getDate()}일</span>
             </div>
             <div className="flex flex-1 flex-col gap-1">
-              {day.dayCompanies.map((company) => (
-                <Link
-                  key={company.id}
-                  href={`/companies/${company.id}`}
-                  title={`${company.name} · ${company.currentStep}`}
-                  className="truncate rounded-[4px] bg-primary/10 px-1.5 py-1 text-[11px] text-primary hover:bg-primary/20"
-                >
-                  {company.name}
-                </Link>
-              ))}
+              {day.dayEvents.slice(0, MAX_VISIBLE_EVENTS).map((event) => {
+                const company = companies.find((c) => c.id === event.companyId);
+                return (
+                  <Link
+                    key={event.id}
+                    href={`/companies/${event.companyId}`}
+                    title={`${company?.name ?? ""} · ${event.title}`}
+                    className={
+                      "truncate rounded-[4px] px-1.5 py-1 text-[11px] hover:opacity-80 " +
+                      EVENT_TYPE_BADGE_CLASS[event.eventType]
+                    }
+                  >
+                    {company?.name ?? ""}
+                  </Link>
+                );
+              })}
+              {day.dayEvents.length > MAX_VISIBLE_EVENTS && (
+                <span className="px-1.5 text-[11px] text-secondary">
+                  +{day.dayEvents.length - MAX_VISIBLE_EVENTS}개
+                </span>
+              )}
             </div>
           </div>
         ))}

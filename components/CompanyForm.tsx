@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import type { CompanyStatus } from "@/components/StatusBadge";
 import {
-  COMPANY_STATUSES,
-  STEP_TYPES,
+  OVERALL_STATUSES,
+  OVERALL_STATUS_LABELS,
   PRIORITIES,
+  PRIORITY_LABELS,
   type CompanyFormValues,
+  type OverallStatus,
   type Priority,
 } from "@/lib/companies";
 
@@ -57,38 +58,21 @@ export default function CompanyForm({
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className={labelClass}>상태</label>
+              <label className={labelClass}>결과</label>
               <select
-                value={values.status}
+                value={values.overallStatus}
                 onChange={(e) =>
-                  setValues({ ...values, status: e.target.value as CompanyStatus })
+                  setValues({ ...values, overallStatus: e.target.value as OverallStatus })
                 }
                 className={fieldClass}
               >
-                {COMPANY_STATUSES.map((status) => (
+                {OVERALL_STATUSES.map((status) => (
                   <option key={status} value={status}>
-                    {status}
+                    {OVERALL_STATUS_LABELS[status]}
                   </option>
                 ))}
               </select>
             </div>
-            <div>
-              <label className={labelClass}>전형 단계</label>
-              <select
-                value={values.currentStep}
-                onChange={(e) => setValues({ ...values, currentStep: e.target.value })}
-                className={fieldClass}
-              >
-                {STEP_TYPES.map((step) => (
-                  <option key={step} value={step}>
-                    {step}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
             <div>
               <label className={labelClass}>우선순위</label>
               <select
@@ -100,32 +84,11 @@ export default function CompanyForm({
               >
                 {PRIORITIES.map((priority) => (
                   <option key={priority} value={priority}>
-                    {priority}
+                    {PRIORITY_LABELS[priority]}
                   </option>
                 ))}
               </select>
             </div>
-            <div>
-              <label className={labelClass}>다음 일정</label>
-              <input
-                type="date"
-                value={values.nextSchedule}
-                onChange={(e) => setValues({ ...values, nextSchedule: e.target.value })}
-                className={fieldClass}
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className={labelClass}>
-              일정 시간 <span className="text-secondary">(선택)</span>
-            </label>
-            <input
-              type="time"
-              value={values.nextScheduleTime}
-              onChange={(e) => setValues({ ...values, nextScheduleTime: e.target.value })}
-              className={fieldClass}
-            />
           </div>
 
           <div>
