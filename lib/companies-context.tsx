@@ -1,53 +1,145 @@
 "use client";
 
-import { createContext, useContext, useState, type ReactNode } from "react";
-import { MOCK_COMPANIES, type Company, type CompanyFormValues } from "@/lib/companies";
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createClient } from "@/lib/supabase/client";
+import {
+  rowToCompany,
+  companyFormValuesToRow,
+  type Company,
+  type CompanyFormValues,
+  type CompanyRow,
+} from "@/lib/companies";
 
 interface CompaniesContextValue {
   companies: Company[];
-  addCompany: (values: CompanyFormValues) => void;
-  updateCompany: (id: string, values: CompanyFormValues) => void;
-  deleteCompany: (id: string) => void;
+  loading: boolean;
+  error: string | null;
+  addCompany: (values: CompanyFormValues) => Promise<boolean>;
+  updateCompany: (id: string, values: CompanyFormValues) => Promise<boolean>;
+  deleteCompany: (id: string) => Promise<boolean>;
 }
 
 const CompaniesContext = createContext<CompaniesContextValue | null>(null);
 
-function toCompanyFields(values: CompanyFormValues) {
-  return {
-    name: values.name.trim(),
-    status: values.status,
-    currentStep: values.currentStep,
-    priority: values.priority,
-    nextSchedule: values.nextSchedule.trim() === "" ? null : values.nextSchedule,
-    websiteUrl: values.websiteUrl.trim(),
-    mypageUrl: values.mypageUrl.trim(),
-    memo: values.memo.trim(),
-    updatedAt: new Date().toISOString().slice(0, 10),
-  };
-}
-
 export function CompaniesProvider({ children }: { children: ReactNode }) {
-  const [companies, setCompanies] = useState<Company[]>(MOCK_COMPANIES);
+  const supabase = useMemo(() => createClient(), []);
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
 
-  function addCompany(values: CompanyFormValues) {
-    setCompanies((prev) => {
-      const nextId = (Math.max(0, ...prev.map((c) => Number(c.id))) + 1).toString();
-      return [...prev, { id: nextId, ...toCompanyFields(values) }];
+  useEffect(() => {
+    let isMounted = true;
+
+    async function load() {
+      setLoading(true);
+      setError(null);
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!isMounted) return;
+
+      if (!user) {
+        setUserId(null);
+        setCompanies([]);
+        setLoading(false);
+        return;
+      }
+
+      setUserId(user.id);
+
+      const { data, error: fetchError } = await supabase
+        .from("companies")
+        .select("*")
+        .order("created_at", { ascending: true });
+
+      if (!isMounted) return;
+
+      if (fetchError) {
+        setError(fetchError.message);
+        setLoading(false);
+        return;
+      }
+
+      setCompanies(((data ?? []) as CompanyRow[]).map(rowToCompany));
+      setLoading(false);
+    }
+
+    load();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(() => {
+      load();
     });
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
+  }, [supabase]);
+
+  async function addCompany(values: CompanyFormValues) {
+    if (!userId) return false;
+
+    const { data, error: insertError } = await supabase
+      .from("companies")
+      .insert({ user_id: userId, ...companyFormValuesToRow(values) })
+      .select()
+      .single();
+
+    if (insertError) {
+      setError(insertError.message);
+      return false;
+    }
+
+    setError(null);
+    setCompanies((prev) => [...prev, rowToCompany(data as CompanyRow)]);
+    return true;
   }
 
-  function updateCompany(id: string, values: CompanyFormValues) {
-    setCompanies((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, ...toCompanyFields(values) } : c))
-    );
+  async function updateCompany(id: string, values: CompanyFormValues) {
+    if (!userId) return false;
+
+    const { data, error: updateError } = await supabase
+      .from("companies")
+      .update(companyFormValuesToRow(values))
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (updateError) {
+      setError(updateError.message);
+      return false;
+    }
+
+    setError(null);
+    const updated = rowToCompany(data as CompanyRow);
+    setCompanies((prev) => prev.map((c) => (c.id === id ? updated : c)));
+    return true;
   }
 
-  function deleteCompany(id: string) {
+  async function deleteCompany(id: string) {
+    if (!userId) return false;
+
+    const { error: deleteError } = await supabase.from("companies").delete().eq("id", id);
+
+    if (deleteError) {
+      setError(deleteError.message);
+      return false;
+    }
+
+    setError(null);
     setCompanies((prev) => prev.filter((c) => c.id !== id));
+    return true;
   }
 
   return (
-    <CompaniesContext.Provider value={{ companies, addCompany, updateCompany, deleteCompany }}>
+    <CompaniesContext.Provider
+      value={{ companies, loading, error, addCompany, updateCompany, deleteCompany }}
+    >
       {children}
     </CompaniesContext.Provider>
   );

@@ -10,7 +10,7 @@ import { useCompanies } from "@/lib/companies-context";
 const ALL = "전체";
 
 export default function CompaniesPage() {
-  const { companies, addCompany } = useCompanies();
+  const { companies, addCompany, loading, error } = useCompanies();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>(ALL);
   const [stepFilter, setStepFilter] = useState<string>(ALL);
@@ -75,55 +75,67 @@ export default function CompaniesPage() {
         </button>
       </div>
 
-      <div className="overflow-x-auto rounded-[10px] border border-border bg-card">
-        <table className="w-full min-w-[880px] border-collapse text-sm">
-          <thead>
-            <tr className="border-b border-border text-left text-secondary">
-              <th className="px-6 py-3 font-medium">기업명</th>
-              <th className="px-6 py-3 font-medium">현재 전형 단계</th>
-              <th className="px-6 py-3 font-medium">상태</th>
-              <th className="px-6 py-3 font-medium">다음 일정</th>
-              <th className="px-6 py-3 font-medium">우선순위</th>
-              <th className="px-6 py-3 font-medium">최종 수정일</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {filteredCompanies.map((company) => (
-              <tr key={company.id} className="cursor-pointer hover:bg-background">
-                <td className="px-6 py-3 font-medium">
-                  <Link href={`/companies/${company.id}`} className="text-primary hover:underline">
-                    {company.name}
-                  </Link>
-                </td>
-                <td className="px-6 py-3 text-foreground">{company.currentStep}</td>
-                <td className="px-6 py-3">
-                  <StatusBadge status={company.status} />
-                </td>
-                <td className="px-6 py-3 text-secondary">
-                  {company.nextSchedule ?? "예정 없음"}
-                </td>
-                <td className="px-6 py-3 text-foreground">{company.priority}</td>
-                <td className="px-6 py-3 text-secondary">{company.updatedAt}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      {error && (
+        <p className="mb-4 rounded-[10px] border border-error/40 bg-error/10 px-4 py-3 text-sm text-error">
+          {error}
+        </p>
+      )}
 
-        {filteredCompanies.length === 0 && (
-          <p className="px-6 py-10 text-center text-sm text-secondary">
-            검색 결과가 없습니다.
-          </p>
-        )}
-      </div>
+      {loading ? (
+        <div className="rounded-[10px] border border-border bg-card px-6 py-10 text-center text-sm text-secondary">
+          불러오는 중입니다...
+        </div>
+      ) : (
+        <div className="overflow-x-auto rounded-[10px] border border-border bg-card">
+          <table className="w-full min-w-[880px] border-collapse text-sm">
+            <thead>
+              <tr className="border-b border-border text-left text-secondary">
+                <th className="px-6 py-3 font-medium">기업명</th>
+                <th className="px-6 py-3 font-medium">현재 전형 단계</th>
+                <th className="px-6 py-3 font-medium">상태</th>
+                <th className="px-6 py-3 font-medium">다음 일정</th>
+                <th className="px-6 py-3 font-medium">우선순위</th>
+                <th className="px-6 py-3 font-medium">최종 수정일</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {filteredCompanies.map((company) => (
+                <tr key={company.id} className="cursor-pointer hover:bg-background">
+                  <td className="px-6 py-3 font-medium">
+                    <Link href={`/companies/${company.id}`} className="text-primary hover:underline">
+                      {company.name}
+                    </Link>
+                  </td>
+                  <td className="px-6 py-3 text-foreground">{company.currentStep}</td>
+                  <td className="px-6 py-3">
+                    <StatusBadge status={company.status} />
+                  </td>
+                  <td className="px-6 py-3 text-secondary">
+                    {company.nextSchedule ?? "예정 없음"}
+                  </td>
+                  <td className="px-6 py-3 text-foreground">{company.priority}</td>
+                  <td className="px-6 py-3 text-secondary">{company.updatedAt}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          {filteredCompanies.length === 0 && (
+            <p className="px-6 py-10 text-center text-sm text-secondary">
+              검색 결과가 없습니다.
+            </p>
+          )}
+        </div>
+      )}
 
       {isAddOpen && (
         <CompanyForm
           title="기업 추가"
           initialValues={createEmptyCompanyFormValues()}
           onCancel={() => setIsAddOpen(false)}
-          onSubmit={(values) => {
-            addCompany(values);
-            setIsAddOpen(false);
+          onSubmit={async (values) => {
+            const ok = await addCompany(values);
+            if (ok) setIsAddOpen(false);
           }}
         />
       )}

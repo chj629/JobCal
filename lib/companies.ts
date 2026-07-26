@@ -75,117 +75,46 @@ export function companyToFormValues(company: Company): CompanyFormValues {
   };
 }
 
-export const MOCK_COMPANIES: Company[] = [
-  {
-    id: "1",
-    name: "株式会社レコモット",
-    currentStep: "1차 면접",
-    status: "진행 중",
-    nextSchedule: "2026-07-28",
-    priority: "높음",
-    updatedAt: "2026-07-20",
-    websiteUrl: "https://www.recomo.jp",
-    mypageUrl: "https://mypage.recomo.jp/login",
-    memo: "1차 면접에서 최근 프로젝트 경험 위주로 질문받음. 자기소개 1분 준비.",
-  },
-  {
-    id: "2",
-    name: "株式会社ソルクシーズ",
-    currentStep: "ES",
-    status: "진행 중",
-    nextSchedule: "2026-07-25",
-    priority: "보통",
-    updatedAt: "2026-07-18",
-    websiteUrl: "https://www.solxyz.co.jp",
-    mypageUrl: "https://mypage.solxyz.co.jp",
-    memo: "ES 제출 마감 임박. 지원 동기 항목 재검토 필요.",
-  },
-  {
-    id: "3",
-    name: "株式会社ネオジャパン",
-    currentStep: "최종 면접",
-    status: "진행 중",
-    nextSchedule: "2026-07-25",
-    priority: "높음",
-    updatedAt: "2026-07-22",
-    websiteUrl: "https://www.neo.co.jp",
-    mypageUrl: "https://saiyo.neo.co.jp/mypage",
-    memo: "최종 면접 결과는 당일 저녁 발표 예정.",
-  },
-  {
-    id: "4",
-    name: "株式会社オービック",
-    currentStep: "내정",
-    status: "내정",
-    nextSchedule: null,
-    priority: "보통",
-    updatedAt: "2026-07-10",
-    websiteUrl: "https://www.obic.co.jp",
-    mypageUrl: "https://mypage.obic.co.jp",
-    memo: "내정 승낙 여부 회신 마감일 확인 필요.",
-  },
-  {
-    id: "5",
-    name: "株式会社TKC",
-    currentStep: "Web 테스트",
-    status: "진행 중",
-    nextSchedule: "2026-07-27",
-    priority: "낮음",
-    updatedAt: "2026-07-15",
-    websiteUrl: "https://www.tkc.jp",
-    mypageUrl: "https://saiyo.tkc.jp/mypage",
-    memo: "Web 테스트는 자택에서 응시, 제한시간 60분.",
-  },
-  {
-    id: "6",
-    name: "株式会社サイバーエージェント",
-    currentStep: "2차 면접",
-    status: "불합격",
-    nextSchedule: null,
-    priority: "보통",
-    updatedAt: "2026-06-30",
-    websiteUrl: "https://www.cyberagent.co.jp",
-    mypageUrl: "https://mypage.cyberagent.co.jp",
-    memo: "2차 면접에서 불합격 통보 받음.",
-  },
-  {
-    id: "7",
-    name: "楽天グループ株式会社",
-    currentStep: "입사",
-    status: "입사",
-    nextSchedule: null,
-    priority: "높음",
-    updatedAt: "2026-05-01",
-    websiteUrl: "https://www.rakuten.co.jp",
-    mypageUrl: "https://mypage.rakuten-recruit.jp",
-    memo: "입사 예정. 입사 서류 제출 완료.",
-  },
-  {
-    id: "8",
-    name: "株式会社リクルート",
-    currentStep: "엔트리",
-    status: "지원 취소",
-    nextSchedule: null,
-    priority: "낮음",
-    updatedAt: "2026-06-01",
-    websiteUrl: "https://www.recruit.co.jp",
-    mypageUrl: "https://mypage.recruit.co.jp",
-    memo: "개인 사정으로 지원 취소함.",
-  },
-  {
-    id: "9",
-    name: "日本電気株式会社",
-    currentStep: "설명회",
-    status: "진행 중",
-    nextSchedule: "2026-08-02",
-    priority: "보통",
-    updatedAt: "2026-07-23",
-    websiteUrl: "https://www.nec.com/ja",
-    mypageUrl: "https://mypage.nec-saiyo.jp",
-    memo: "설명회 참가 신청 완료, 사전 질문 준비.",
-  },
-];
+// Supabase companies 테이블의 컬럼(snake_case)과 1:1로 대응한다.
+export interface CompanyRow {
+  id: string;
+  user_id: string;
+  name: string;
+  status: CompanyStatus;
+  current_step: string;
+  priority: Priority;
+  next_schedule: string | null;
+  website_url: string;
+  mypage_url: string;
+  memo: string;
+  created_at: string;
+  updated_at: string;
+}
 
-export function getCompanyById(id: string): Company | undefined {
-  return MOCK_COMPANIES.find((company) => company.id === id);
+export function rowToCompany(row: CompanyRow): Company {
+  return {
+    id: row.id,
+    name: row.name,
+    currentStep: row.current_step,
+    status: row.status,
+    nextSchedule: row.next_schedule,
+    priority: row.priority,
+    updatedAt: row.updated_at.slice(0, 10),
+    websiteUrl: row.website_url,
+    mypageUrl: row.mypage_url,
+    memo: row.memo,
+  };
+}
+
+export function companyFormValuesToRow(values: CompanyFormValues) {
+  return {
+    name: values.name.trim(),
+    status: values.status,
+    current_step: values.currentStep,
+    priority: values.priority,
+    next_schedule: values.nextSchedule.trim() === "" ? null : values.nextSchedule,
+    website_url: values.websiteUrl.trim(),
+    mypage_url: values.mypageUrl.trim(),
+    memo: values.memo.trim(),
+  };
 }

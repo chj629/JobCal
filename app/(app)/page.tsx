@@ -14,7 +14,7 @@ const TODAY_LABEL = new Intl.DateTimeFormat("ko-KR", {
 }).format(new Date());
 
 export default function DashboardPage() {
-  const { companies } = useCompanies();
+  const { companies, loading, error } = useCompanies();
 
   const todayKey = new Date().toISOString().slice(0, 10);
 
@@ -36,12 +36,26 @@ export default function DashboardPage() {
     (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
   );
 
+  if (loading) {
+    return (
+      <div className="mx-auto max-w-[1200px] px-8 py-8 text-sm text-secondary">
+        불러오는 중입니다...
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto max-w-[1200px] px-8 py-8">
       <header className="mb-8">
         <h1 className="text-[28px] font-semibold text-foreground">대시보드</h1>
         <p className="mt-1 text-sm text-secondary">{TODAY_LABEL}</p>
       </header>
+
+      {error && (
+        <p className="mb-8 rounded-[10px] border border-error/40 bg-error/10 px-4 py-3 text-sm text-error">
+          {error}
+        </p>
+      )}
 
       <section className="mb-8 grid grid-cols-4 gap-4">
         <SummaryCard label="전체 기업" value={summary.total} />

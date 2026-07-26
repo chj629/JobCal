@@ -11,11 +11,19 @@ import { useCompanies } from "@/lib/companies-context";
 export default function CompanyDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { companies, updateCompany, deleteCompany } = useCompanies();
+  const { companies, updateCompany, deleteCompany, loading, error } = useCompanies();
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
   const company = companies.find((c) => c.id === id);
+
+  if (loading) {
+    return (
+      <div className="mx-auto max-w-[1200px] px-8 py-8 text-sm text-secondary">
+        불러오는 중입니다...
+      </div>
+    );
+  }
 
   if (!company) {
     // Deleting removes this company from context, which re-renders this
@@ -30,11 +38,15 @@ export default function CompanyDetailPage() {
 
   const currentIndex = STEP_TYPES.indexOf(company.currentStep);
 
-  function handleDelete() {
+  async function handleDelete() {
     if (window.confirm(`'${company!.name}' 기업을 삭제하시겠습니까?`)) {
       setIsDeleting(true);
-      deleteCompany(company!.id);
-      router.push("/companies");
+      const ok = await deleteCompany(company!.id);
+      if (ok) {
+        router.push("/companies");
+      } else {
+        setIsDeleting(false);
+      }
     }
   }
 
@@ -68,6 +80,12 @@ export default function CompanyDetailPage() {
           <StatusBadge status={company.status} />
         </div>
       </header>
+
+      {error && (
+        <p className="mb-8 rounded-[10px] border border-error/40 bg-error/10 px-4 py-3 text-sm text-error">
+          {error}
+        </p>
+      )}
 
       <section className="mb-8 rounded-[10px] border border-border bg-card p-6">
         <h2 className="mb-4 text-[16px] font-semibold text-foreground">기본 정보</h2>
@@ -157,9 +175,9 @@ export default function CompanyDetailPage() {
           title="기업 수정"
           initialValues={companyToFormValues(company)}
           onCancel={() => setIsEditOpen(false)}
-          onSubmit={(values) => {
-            updateCompany(company.id, values);
-            setIsEditOpen(false);
+          onSubmit={async (values) => {
+            const ok = await updateCompany(company.id, values);
+            if (ok) setIsEditOpen(false);
           }}
         />
       )}

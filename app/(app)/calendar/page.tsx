@@ -19,7 +19,7 @@ function startOfMonth(year: number, month: number) {
 }
 
 export default function CalendarPage() {
-  const { companies } = useCompanies();
+  const { companies, loading, error } = useCompanies();
   const today = useMemo(() => new Date(), []);
   const [viewDate, setViewDate] = useState(() =>
     startOfMonth(today.getFullYear(), today.getMonth())
@@ -97,65 +97,77 @@ export default function CalendarPage() {
         </span>
       </div>
 
-      <div className="overflow-x-auto rounded-[10px] border border-border bg-card">
-        <div className="min-w-[880px]">
-          <div className="grid grid-cols-7 border-b border-border">
-            {WEEKDAYS.map((day) => (
-              <div
-                key={day}
-                className="px-3 py-2 text-center text-sm font-medium text-secondary"
-              >
-                {day}
-              </div>
-            ))}
-          </div>
-          <div className="grid grid-cols-7">
-            {days.map((date) => {
-              const dateKey = formatDateKey(date);
-              const isCurrentMonth = date.getMonth() === month;
-              const isToday = dateKey === todayKey;
-              const events = eventsByDate[dateKey] ?? [];
+      {error && (
+        <p className="mb-6 rounded-[10px] border border-error/40 bg-error/10 px-4 py-3 text-sm text-error">
+          {error}
+        </p>
+      )}
 
-              return (
+      {loading ? (
+        <div className="rounded-[10px] border border-border bg-card px-6 py-10 text-center text-sm text-secondary">
+          불러오는 중입니다...
+        </div>
+      ) : (
+        <div className="overflow-x-auto rounded-[10px] border border-border bg-card">
+          <div className="min-w-[880px]">
+            <div className="grid grid-cols-7 border-b border-border">
+              {WEEKDAYS.map((day) => (
                 <div
-                  key={dateKey}
-                  className={
-                    "min-h-[110px] border-b border-r border-border p-2 [&:nth-child(7n)]:border-r-0 " +
-                    (isCurrentMonth ? "" : "bg-background/60")
-                  }
+                  key={day}
+                  className="px-3 py-2 text-center text-sm font-medium text-secondary"
                 >
-                  <span
+                  {day}
+                </div>
+              ))}
+            </div>
+            <div className="grid grid-cols-7">
+              {days.map((date) => {
+                const dateKey = formatDateKey(date);
+                const isCurrentMonth = date.getMonth() === month;
+                const isToday = dateKey === todayKey;
+                const events = eventsByDate[dateKey] ?? [];
+
+                return (
+                  <div
+                    key={dateKey}
                     className={
-                      "inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium " +
-                      (isToday
-                        ? "bg-primary text-white"
-                        : isCurrentMonth
-                          ? "text-foreground"
-                          : "text-secondary")
+                      "min-h-[110px] border-b border-r border-border p-2 [&:nth-child(7n)]:border-r-0 " +
+                      (isCurrentMonth ? "" : "bg-background/60")
                     }
                   >
-                    {date.getDate()}
-                  </span>
-                  <div className="mt-1 flex flex-col gap-1">
-                    {events.map((company) => (
-                      <Link
-                        key={company.id}
-                        href={`/companies/${company.id}`}
-                        className="block rounded-[6px] bg-primary/10 px-1.5 py-1 text-xs text-primary hover:bg-primary/20"
-                      >
-                        <span className="block truncate font-medium">{company.name}</span>
-                        <span className="block truncate text-primary/80">
-                          {company.currentStep}
-                        </span>
-                      </Link>
-                    ))}
+                    <span
+                      className={
+                        "inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium " +
+                        (isToday
+                          ? "bg-primary text-white"
+                          : isCurrentMonth
+                            ? "text-foreground"
+                            : "text-secondary")
+                      }
+                    >
+                      {date.getDate()}
+                    </span>
+                    <div className="mt-1 flex flex-col gap-1">
+                      {events.map((company) => (
+                        <Link
+                          key={company.id}
+                          href={`/companies/${company.id}`}
+                          className="block rounded-[6px] bg-primary/10 px-1.5 py-1 text-xs text-primary hover:bg-primary/20"
+                        >
+                          <span className="block truncate font-medium">{company.name}</span>
+                          <span className="block truncate text-primary/80">
+                            {company.currentStep}
+                          </span>
+                        </Link>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
