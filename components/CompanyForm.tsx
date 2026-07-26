@@ -117,6 +117,18 @@ export default function CompanyForm({
           </div>
 
           <div>
+            <label className={labelClass}>
+              일정 시간 <span className="text-secondary">(선택)</span>
+            </label>
+            <input
+              type="time"
+              value={values.nextScheduleTime}
+              onChange={(e) => setValues({ ...values, nextScheduleTime: e.target.value })}
+              className={fieldClass}
+            />
+          </div>
+
+          <div>
             <label className={labelClass}>기업 홈페이지</label>
             <input
               type="text"

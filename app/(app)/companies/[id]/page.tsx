@@ -100,7 +100,13 @@ export default function CompanyDetailPage() {
           </div>
           <div>
             <dt className="text-secondary">다음 일정</dt>
-            <dd className="mt-1 text-foreground">{company.nextSchedule ?? "예정 없음"}</dd>
+            <dd className="mt-1 text-foreground">
+              {company.nextSchedule
+                ? `${company.nextSchedule}${
+                    company.nextScheduleTime ? ` ${company.nextScheduleTime}` : ""
+                  }`
+                : "예정 없음"}
+            </dd>
           </div>
           <div>
             <dt className="text-secondary">기업 홈페이지</dt>
