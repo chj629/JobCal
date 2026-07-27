@@ -2,6 +2,7 @@ import Sidebar from "@/components/Sidebar";
 import { CompaniesProvider } from "@/lib/companies-context";
 import { ApplicationStepsProvider } from "@/lib/application-steps-context";
 import { EventsProvider } from "@/lib/events-context";
+import { CompanyNotesProvider } from "@/lib/company-notes-context";
 
 export default function AppLayout({
   children,
@@ -12,10 +13,12 @@ export default function AppLayout({
     <CompaniesProvider>
       <ApplicationStepsProvider>
         <EventsProvider>
-          <div className="flex min-h-screen">
-            <Sidebar />
-            <main className="min-w-0 flex-1">{children}</main>
-          </div>
+          <CompanyNotesProvider>
+            <div className="flex min-h-screen">
+              <Sidebar />
+              <main className="min-w-0 flex-1">{children}</main>
+            </div>
+          </CompanyNotesProvider>
         </EventsProvider>
       </ApplicationStepsProvider>
     </CompaniesProvider>

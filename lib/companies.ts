@@ -37,7 +37,6 @@ export interface Company {
   updatedAt: string;
   websiteUrl: string;
   mypageUrl: string;
-  memo: string;
 }
 
 export interface CompanyFormValues {
@@ -46,7 +45,6 @@ export interface CompanyFormValues {
   priority: Priority;
   websiteUrl: string;
   mypageUrl: string;
-  memo: string;
 }
 
 export function createEmptyCompanyFormValues(): CompanyFormValues {
@@ -56,7 +54,6 @@ export function createEmptyCompanyFormValues(): CompanyFormValues {
     priority: "medium",
     websiteUrl: "",
     mypageUrl: "",
-    memo: "",
   };
 }
 
@@ -67,11 +64,11 @@ export function companyToFormValues(company: Company): CompanyFormValues {
     priority: company.priority,
     websiteUrl: company.websiteUrl,
     mypageUrl: company.mypageUrl,
-    memo: company.memo,
   };
 }
 
 // Supabase companies 테이블의 컬럼(snake_case)과 1:1로 대응한다.
+// memo 컬럼은 company_notes로 대체되어 더 이상 앱에서 다루지 않는다(컬럼 자체는 DB에 보존됨).
 export interface CompanyRow {
   id: string;
   user_id: string;
@@ -80,7 +77,6 @@ export interface CompanyRow {
   priority: Priority;
   website_url: string;
   mypage_url: string;
-  memo: string;
   created_at: string;
   updated_at: string;
 }
@@ -94,7 +90,6 @@ export function rowToCompany(row: CompanyRow): Company {
     updatedAt: row.updated_at.slice(0, 10),
     websiteUrl: row.website_url,
     mypageUrl: row.mypage_url,
-    memo: row.memo,
   };
 }
 
@@ -105,6 +100,5 @@ export function companyFormValuesToRow(values: CompanyFormValues) {
     priority: values.priority,
     website_url: values.websiteUrl.trim(),
     mypage_url: values.mypageUrl.trim(),
-    memo: values.memo.trim(),
   };
 }

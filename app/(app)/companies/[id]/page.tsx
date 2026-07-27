@@ -7,6 +7,7 @@ import StatusBadge from "@/components/StatusBadge";
 import CompanyForm from "@/components/CompanyForm";
 import StepTimeline from "@/components/companies/StepTimeline";
 import StepDetailPanel from "@/components/companies/StepDetailPanel";
+import CompanyNotes from "@/components/companies/CompanyNotes";
 import { PRIORITY_LABELS, companyToFormValues, type Company } from "@/lib/companies";
 import { useCompanies } from "@/lib/companies-context";
 import { useApplicationSteps } from "@/lib/application-steps-context";
@@ -192,10 +193,7 @@ function CompanyDetailView({ company, error, onDelete }: CompanyDetailViewProps)
         />
       )}
 
-      <section className="rounded-[10px] border border-border bg-card p-6">
-        <h2 className="mb-4 text-[16px] font-semibold text-foreground">메모</h2>
-        <p className="text-sm text-foreground">{company.memo}</p>
-      </section>
+      <CompanyNotes companyId={company.id} />
 
       {isEditOpen && (
         <CompanyForm

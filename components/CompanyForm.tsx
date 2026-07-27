@@ -111,16 +111,6 @@ export default function CompanyForm({
             />
           </div>
 
-          <div>
-            <label className={labelClass}>메모</label>
-            <textarea
-              value={values.memo}
-              onChange={(e) => setValues({ ...values, memo: e.target.value })}
-              rows={3}
-              className="w-full rounded-[10px] border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none"
-            />
-          </div>
-
           <div className="mt-2 flex justify-end gap-2">
             <button
               type="button"
