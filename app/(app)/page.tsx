@@ -1,72 +1,72 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { useState } from "react";
+import { Award, Briefcase, Building2, CalendarDays } from "lucide-react";
 import { useCompanies } from "@/lib/companies-context";
 import { useApplicationSteps } from "@/lib/application-steps-context";
 import { useEvents } from "@/lib/events-context";
 import { createEmptyCompanyFormValues } from "@/lib/companies";
+import { dateKeyOf, todayKey } from "@/lib/date";
 import CompanyForm from "@/components/CompanyForm";
-import DashboardGreeting from "@/components/dashboard/DashboardGreeting";
-import TodayChecklist from "@/components/dashboard/TodayChecklist";
-import TodayTimetable from "@/components/dashboard/TodayTimetable";
-import TodayResults from "@/components/dashboard/TodayResults";
-import UpcomingDDay from "@/components/dashboard/UpcomingDDay";
-import UpcomingDeadlines from "@/components/dashboard/UpcomingDeadlines";
+import TodaySchedule from "@/components/dashboard/TodaySchedule";
+import UpcomingSchedule from "@/components/dashboard/UpcomingSchedule";
+import FocusCompanies from "@/components/dashboard/FocusCompanies";
 import PipelineOverview from "@/components/dashboard/PipelineOverview";
-import RecentCompanies from "@/components/dashboard/RecentCompanies";
+
+function isWithinNext7Days(dateKey: string, fromKey: string) {
+  const from = new Date(`${fromKey}T00:00:00`);
+  const target = new Date(`${dateKey}T00:00:00`);
+  const diffDays = Math.round((target.getTime() - from.getTime()) / (1000 * 60 * 60 * 24));
+  return diffDays >= 0 && diffDays <= 6;
+}
 
 export default function DashboardPage() {
   const { companies, addCompany, loading: companiesLoading, error } = useCompanies();
   const { steps, loading: stepsLoading, refresh: refreshSteps } = useApplicationSteps();
   const { events, loading: eventsLoading } = useEvents();
-  const [userName, setUserName] = useState<string | null>(null);
   const [isAddOpen, setIsAddOpen] = useState(false);
 
   const loading = companiesLoading || stepsLoading || eventsLoading;
 
-  useEffect(() => {
-    const supabase = createClient();
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) return;
-      const name =
-        (user.user_metadata?.full_name as string | undefined) ??
-        (user.user_metadata?.name as string | undefined) ??
-        user.email?.split("@")[0] ??
-        null;
-      setUserName(name);
-    });
-  }, []);
+  const today = todayKey();
+  const inProgressCount = companies.filter((c) => c.overallStatus === "in_progress").length;
+  const offerCount = companies.filter((c) => c.overallStatus === "offer").length;
+  const thisWeekEventCount = events.filter((event) => {
+    const at = event.startsAt ?? event.dueAt;
+    return at !== null && isWithinNext7Days(dateKeyOf(at), today);
+  }).length;
+
+  const kpiTiles = [
+    { label: "전체 기업", value: companies.length, icon: Building2, colorClass: "bg-primary/10 text-primary" },
+    { label: "진행 중", value: inProgressCount, icon: Briefcase, colorClass: "bg-success/10 text-success" },
+    { label: "이번 주 일정", value: thisWeekEventCount, icon: CalendarDays, colorClass: "bg-joined/10 text-joined" },
+    { label: "내정", value: offerCount, icon: Award, colorClass: "bg-warning/10 text-warning" },
+  ];
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-[1200px] px-4 py-8 text-sm text-secondary sm:px-8">
+      <div className="mx-auto max-w-[960px] px-7 pt-7 pb-8 text-sm text-secondary">
         불러오는 중입니다...
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-[1200px] px-4 py-8 sm:px-8">
+    <div className="mx-auto max-w-[960px] px-7 pt-7 pb-8">
       <div className="mb-8 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
-        <DashboardGreeting userName={userName} />
-        <div className="flex shrink-0 gap-2">
-          <button
-            type="button"
-            onClick={() => setIsAddOpen(true)}
-            className="h-10 rounded-[10px] bg-primary px-4 text-sm font-medium text-white"
-          >
-            + 기업 추가
-          </button>
-          <button
-            type="button"
-            disabled
-            title="준비 중입니다"
-            className="h-10 cursor-not-allowed rounded-[10px] border border-border px-4 text-sm font-medium text-secondary opacity-70"
-          >
-            🤖 AI Assistant
-          </button>
+        <div>
+          <h1 className="text-[24px] font-bold text-foreground">대시보드</h1>
+          <p className="mt-1 text-[13px] text-secondary">
+            오늘도 취업 활동을 차근차근 관리해보세요.
+          </p>
         </div>
+        <button
+          type="button"
+          onClick={() => setIsAddOpen(true)}
+          className="h-9 shrink-0 rounded-[8px] border border-border bg-card px-3.5 text-[13px] font-medium text-foreground transition-colors duration-150 hover:bg-background"
+        >
+          + 기업 추가
+        </button>
       </div>
 
       {error && (
@@ -76,16 +76,38 @@ export default function DashboardPage() {
       )}
 
       <div className="flex flex-col gap-6">
-        <div className="grid gap-6 lg:grid-cols-2">
-          <TodayChecklist companies={companies} events={events} />
-          <TodayTimetable companies={companies} events={events} />
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          {kpiTiles.map(({ label, value, icon: Icon, colorClass }) => (
+            <div
+              key={label}
+              className="flex h-[164px] flex-col rounded-[10px] border border-border bg-card p-6"
+            >
+              <div className="flex items-start gap-3">
+                <span
+                  className={
+                    "flex h-14 w-14 shrink-0 items-center justify-center rounded-full " + colorClass
+                  }
+                >
+                  <Icon size={24} />
+                </span>
+                <div className="flex flex-col gap-2">
+                  <span className="text-[16px] font-bold text-secondary">{label}</span>
+                  <p className="text-[38px] font-bold text-foreground">{value}</p>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
 
-        <TodayResults companies={companies} events={events} />
-        <UpcomingDDay companies={companies} events={events} />
-        <UpcomingDeadlines companies={companies} events={events} />
-        <PipelineOverview companies={companies} steps={steps} />
-        <RecentCompanies companies={companies} steps={steps} />
+        <div className="grid gap-6 lg:grid-cols-2">
+          <TodaySchedule companies={companies} events={events} steps={steps} />
+          <PipelineOverview companies={companies} steps={steps} />
+        </div>
+
+        <div className="grid gap-6 lg:grid-cols-[3fr_2fr]">
+          <UpcomingSchedule companies={companies} events={events} steps={steps} />
+          <FocusCompanies companies={companies} events={events} steps={steps} />
+        </div>
       </div>
 
       {isAddOpen && (

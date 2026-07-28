@@ -35,18 +35,15 @@ export default function RecentCompanies({ companies, steps }: RecentCompaniesPro
               <li key={company.id}>
                 <Link
                   href={`/companies/${company.id}`}
-                  className="flex items-center gap-4 px-6 py-3 hover:bg-background"
+                  className="flex items-center gap-3 px-6 py-3 transition-colors duration-150 hover:bg-background"
                 >
-                  <span className="flex-1 truncate text-sm font-medium text-foreground">
-                    {company.name}
-                  </span>
-                  <span className="hidden text-sm text-secondary sm:inline">
-                    {currentStepName}
-                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-foreground">{company.name}</p>
+                    <p className="mt-1 truncate text-xs text-secondary">
+                      {currentStepName} · {company.updatedAt}
+                    </p>
+                  </div>
                   <StatusBadge status={company.overallStatus} />
-                  <span className="hidden w-24 text-right text-sm text-secondary sm:inline">
-                    {company.updatedAt}
-                  </span>
                 </Link>
               </li>
             );

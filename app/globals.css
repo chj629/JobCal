@@ -13,6 +13,10 @@
   --color-offer: #2563eb;
   --color-joined: #8b5cf6;
   --color-cancelled: #9ca3af;
+  --color-sidebar: #0f172a;
+  --color-sidebar-hover: #1e293b;
+  --color-sidebar-border: #1f2937;
+  --color-sidebar-foreground: #94a3b8;
   --font-sans: var(--font-sans-app);
 }
 

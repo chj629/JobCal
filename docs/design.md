@@ -1,34 +1,66 @@
 # Design System
 
-## Concept
-Professional productivity tool for managing Japanese job applications.
+# Concept
 
-일본 취업 준비생이 많은 기업을 빠르고 정확하게 관리할 수 있도록 설계된 생산성 중심 UI.
+JobCal is a professional productivity tool for managing Japanese job applications.
 
-## Style
+일본 취업 준비생이 많은 기업을 빠르고 정확하게 관리할 수 있도록 설계된 생산성 중심 SaaS.
+
+---
+
+# Design Philosophy
+
+- Information First
+- Productivity Over Decoration
+- Clean & Minimal
+- Fast Navigation
+- Consistent Experience
+- Desktop First
+
+원칙
+
+- 정보 전달이 디자인보다 우선이다.
+- 클릭 수를 최소화한다.
+- 반복 작업을 줄인다.
+- 필요한 정보를 빠르게 찾을 수 있어야 한다.
+- 일관된 UI를 유지한다.
+- 모든 화면은 실제 업무에 사용하는 SaaS처럼 설계한다.
+
+---
+
+# Visual Style
+
+Inspired by
+
+- Linear
+- Notion
+- Raycast
+- Stripe Dashboard
+
+Style
 
 - Clean
 - Minimal
 - Modern
-- Notion + Linear Inspired
-- Information-first
-- Desktop-first
-- Responsive
+- Calm
+- Professional
 
-원칙
-- 장식보다 정보 전달
-- 클릭 수 최소화
-- 반복 작업 최소화
-- 빠른 탐색
-- 일관된 UI
+Avoid
 
-## Colors
+- 과도한 Gradient
+- Glassmorphism
+- 큰 Shadow
+- 불필요한 애니메이션
+
+---
+
+# Colors
 
 | Role | Color |
 |---|---|
 | Primary | #2563EB |
 | Background | #F8FAFC |
-| Card | #FFFFFF |
+| Surface | #FFFFFF |
 | Border | #E5E7EB |
 | Text | #111827 |
 | Secondary Text | #6B7280 |
@@ -39,17 +71,29 @@ Professional productivity tool for managing Japanese job applications.
 | Joined | #8B5CF6 |
 | Cancelled | #9CA3AF |
 
-### Status Rules
+---
 
-- 진행 중 → Primary
-- 내정 → Offer
-- 입사 → Joined
-- 불합격 → Error
-- 지원 취소 → Cancelled
+# Status Colors
 
-항상 색상과 Badge를 함께 사용한다.
+| Status | Color |
+|---|---|
+| 진행 중 | Primary |
+| 내정 | Offer |
+| 입사 | Joined |
+| 불합격 | Error |
+| 지원 취소 | Cancelled |
 
-## Typography
+Status는 항상
+
+- Badge
+- Text
+- Color
+
+를 함께 사용한다.
+
+---
+
+# Typography
 
 Fonts
 
@@ -57,126 +101,332 @@ Fonts
 - Pretendard
 - Noto Sans JP
 
-Scale
+Font Scale
 
-- Page Title : 28px
-- Section Title : 20px
-- Card Title : 16px
-- Body : 14px
-- Small : 12px
+Page Title
 
-## Spacing
+28px
 
-8px Grid
+Section Title
 
-4 / 8 / 12 / 16 / 24 / 32 / 48 / 64
+20px
 
-## Radius
+Card Title
+
+16px
+
+Body
+
+14px
+
+Caption
+
+12px
+
+Font Weight
+
+Regular
+
+Medium
+
+Semibold
+
+Bold
+
+---
+
+# Spacing
+
+Use 8px Grid.
+
+Available spacing
+
+4
+
+8
+
+12
+
+16
+
+24
+
+32
+
+48
+
+64
+
+---
+
+# Radius
 
 10px
 
-## Shadow
+---
 
-- Border를 우선 사용
-- Shadow는 최소 사용
-- Modal, Drawer, Dropdown만 강조
+# Border
 
-## Icons
+Border를 Shadow보다 우선한다.
+
+Default
+
+1px solid Border Color
+
+---
+
+# Shadow
+
+Use only when necessary.
+
+Allowed
+
+- Modal
+- Drawer
+- Dropdown
+
+Avoid
+
+- Floating Cards
+- Large Shadows
+
+---
+
+# Icons
 
 Lucide Icons
 
-## Layout
+Size
 
-- Desktop First
-- App Max Width : 1440px
-- Content Max Width : 1200px
-- Sidebar : 240px
-- Desktop : Table
-- Mobile : Card
+16
 
-## Components
+18
 
-- Cards
-- Table
+20
+
+24
+
+Use consistent icon size within the same component.
+
+---
+
+# Layout
+
+Desktop First
+
+Authenticated Layout
+
+Sidebar
+
+240px
+
+Main Content
+
+Fluid
+
+Content Max Width
+
+1200px
+
+Overall Max Width
+
+1440px
+
+AI Assistant
+
+Right Drawer
+
+Closed by default
+
+Must not permanently reduce content width.
+
+---
+
+# Navigation
+
+Sidebar contains only
+
+- Dashboard
+- Companies
+- Schedule
+- Settings
+
+No additional navigation unless required.
+
+---
+
+# Components
+
+Core Components
+
+- Card
+- Button
 - Badge
+- Table
 - Timeline
+- Input
+- Select
 - Modal
 - Drawer
 - Dialog
 - Tabs
-- Button
-- Input
-- Select
-- Date Picker
 - Dropdown
+- Date Picker
 - Tooltip
 - Empty State
 - Skeleton
 
-## Buttons
+---
+
+# Buttons
+
+Variants
 
 - Primary
 - Secondary
-- Danger
 - Ghost
+- Danger
 
-Height : 40px
+Height
 
-## Inputs
+40px
 
-Height : 40px
+Radius
 
-Radius : 10px
+10px
 
-Focus : Primary Color
+---
 
-## Table
+# Inputs
 
-- Hover
-- Badge
-- 기업명 링크
-- 모바일에서는 컬럼 축소
+Height
 
-## Timeline
+40px
 
-- 단계
-- 상태
-- 일정
-- 결과 발표
-- 메모
+Radius
 
-현재 단계를 가장 강조한다.
+10px
 
-## Responsive
+Focus
+
+Primary Color
+
+---
+
+# Tables
+
+Desktop uses Table layout.
+
+Table Rules
+
+- Hover Row
+- Clickable Company Name
+- Badge for Status
+- Compact spacing
+- Horizontal scroll allowed on smaller screens
+
+---
+
+# Timeline
+
+Timeline contains
+
+- Step
+- Status
+- Schedule
+- Result
+- Memo
+
+Current step must be visually emphasized.
+
+---
+
+# Responsive
 
 Desktop
-- Sidebar + Table
+
+Sidebar + Table
 
 Tablet
-- Sidebar 축소
+
+Collapsed Sidebar
 
 Mobile
-- Card 중심
 
-## UX
+Card Layout
 
-- 최대 3클릭
-- 입력 최소화
-- 저장 피드백
-- Empty State
-- Skeleton
+---
 
-## Animation
+# Motion
 
-150~200ms
+Duration
 
-- subtle animation
-- Bounce 금지
-- 과도한 Scale 금지
+150ms ~ 200ms
 
-## Design Principles
+Rules
 
-1. 정보가 디자인보다 중요하다.
-2. 반복 작업을 줄인다.
-3. 빠르게 찾을 수 있어야 한다.
-4. 단순하지만 강력한 UI를 만든다.
+- Fade
+- Slide
+- Subtle Scale
+
+Avoid
+
+- Bounce
+- Elastic
+- Excessive motion
+
+---
+
+# Landing Page
+
+Landing page should
+
+- Clearly explain the service within 3 seconds.
+- Show the real product UI.
+- Contain a strong CTA.
+- Focus on conversion rather than decoration.
+
+---
+
+# AI Assistant
+
+Current Status
+
+Planned Feature
+
+UI
+
+Right Drawer
+
+Default
+
+Closed
+
+Current MVP
+
+Do not implement AI functionality.
+
+Only prepare reusable UI structure if needed.
+
+---
+
+# Implementation Rules
+
+- Existing functionality has higher priority than visual fidelity.
+- Do not change working business logic for UI purposes.
+- Do not modify Supabase schema unless explicitly requested.
+- Reuse existing components whenever possible.
+- Avoid unnecessary abstractions.
+- Build one screen at a time.
+- Run TypeScript, ESLint, and Build after each screen.
+
+---
+
+# Design Principles
+
+1. Information is more important than decoration.
+2. Productivity is more important than visual effects.
+3. Reduce repetitive work.
+4. Every page should feel like a professional SaaS.
+5. Consistency is more important than creativity.
+6. Simple UI creates a better user experience.

@@ -1,31 +1,32 @@
 import Link from "next/link";
-import { todayKey, dateKeyOf } from "@/lib/date";
+import { ChevronRight } from "lucide-react";
+import { diffInDays, todayKey, dateKeyOf } from "@/lib/date";
 import type { Company } from "@/lib/companies";
 import type { AppEvent } from "@/lib/events";
 
-interface UpcomingDeadlinesProps {
-  companies: Company[];
-  events: AppEvent[];
-}
-
-function diffInDays(fromKey: string, toKey: string) {
-  const from = new Date(`${fromKey}T00:00:00`);
-  const to = new Date(`${toKey}T00:00:00`);
-  return Math.round((to.getTime() - from.getTime()) / (1000 * 60 * 60 * 24));
-}
-
-export default function UpcomingDeadlines({ companies, events }: UpcomingDeadlinesProps) {
+// 오늘 마감은 "오늘 해야 할 일"에서 이미 다루므로, 여기서는 내일 이후만 표시한다.
+// UpcomingDeadlines와 통합 뷰(UpcomingSchedule)가 재사용한다.
+export function getUpcomingDeadlinesList(events: AppEvent[]) {
   const today = todayKey();
   const now = new Date().getTime();
 
-  // 오늘 마감은 "오늘 해야 할 일"에서 이미 다루므로, 여기서는 내일 이후만 표시한다.
-  const upcoming = events
+  return events
     .filter((event) => event.eventType === "deadline" && event.dueAt !== null)
     .filter((event) => {
       const dueAt = event.dueAt as string;
       return new Date(dueAt).getTime() >= now && dateKeyOf(dueAt) !== today;
     })
     .sort((a, b) => new Date(a.dueAt as string).getTime() - new Date(b.dueAt as string).getTime());
+}
+
+interface UpcomingDeadlinesProps {
+  companies: Company[];
+  events: AppEvent[];
+}
+
+export default function UpcomingDeadlines({ companies, events }: UpcomingDeadlinesProps) {
+  const today = todayKey();
+  const upcoming = getUpcomingDeadlinesList(events);
 
   return (
     <section className="rounded-[10px] border border-border bg-card">
@@ -47,13 +48,18 @@ export default function UpcomingDeadlines({ companies, events }: UpcomingDeadlin
               <li key={event.id}>
                 <Link
                   href={`/companies/${event.companyId}`}
-                  className="flex items-center gap-4 px-6 py-3 hover:bg-background"
+                  className="flex items-center gap-4 px-6 py-3 transition-colors duration-150 hover:bg-background"
                 >
                   <span className="w-14 shrink-0 text-sm font-semibold text-warning">
                     D-{diffInDays(today, dueKey)}
                   </span>
-                  <span className="text-sm font-medium text-foreground">{company?.name ?? ""}</span>
-                  <span className="text-sm text-secondary">{event.title}</span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-foreground">
+                      {company?.name ?? ""}
+                    </p>
+                    <p className="truncate text-xs text-secondary">{event.title}</p>
+                  </div>
+                  <ChevronRight size={16} className="shrink-0 text-secondary" />
                 </Link>
               </li>
             );

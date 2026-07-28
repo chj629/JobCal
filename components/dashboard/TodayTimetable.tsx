@@ -1,28 +1,28 @@
 import Link from "next/link";
-import { todayKey, dateKeyOf } from "@/lib/date";
+import { ChevronRight } from "lucide-react";
+import { todayKey, dateKeyOf, formatTimeOfDay } from "@/lib/date";
 import type { Company } from "@/lib/companies";
-import type { AppEvent } from "@/lib/events";
+import { EVENT_TYPE_BADGE_CLASS, EVENT_TYPE_LABELS, type AppEvent } from "@/lib/events";
+
+// 오늘 시간이 등록된 일정만 추린다. TodayTimetable과 통합 뷰(TodaySchedule)가 재사용한다.
+export function getTodaySchedules(events: AppEvent[]) {
+  const today = todayKey();
+
+  return events
+    .filter((event) => event.eventType === "schedule" && event.startsAt !== null)
+    .filter((event) => dateKeyOf(event.startsAt as string) === today)
+    .sort(
+      (a, b) => new Date(a.startsAt as string).getTime() - new Date(b.startsAt as string).getTime()
+    );
+}
 
 interface TodayTimetableProps {
   companies: Company[];
   events: AppEvent[];
 }
 
-function formatTime(iso: string) {
-  const date = new Date(iso);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${pad(date.getHours())}:${pad(date.getMinutes())}`;
-}
-
 export default function TodayTimetable({ companies, events }: TodayTimetableProps) {
-  const today = todayKey();
-
-  const todaySchedules = events
-    .filter((event) => event.eventType === "schedule" && event.startsAt !== null)
-    .filter((event) => dateKeyOf(event.startsAt as string) === today)
-    .sort(
-      (a, b) => new Date(a.startsAt as string).getTime() - new Date(b.startsAt as string).getTime()
-    );
+  const todaySchedules = getTodaySchedules(events);
 
   return (
     <section className="rounded-[10px] border border-border bg-card">
@@ -43,13 +43,26 @@ export default function TodayTimetable({ companies, events }: TodayTimetableProp
               <li key={event.id}>
                 <Link
                   href={`/companies/${event.companyId}`}
-                  className="flex items-center gap-3 px-6 py-3 hover:bg-background"
+                  className="flex items-center gap-3 px-6 py-3 transition-colors duration-150 hover:bg-background"
                 >
                   <span className="w-14 shrink-0 text-sm font-semibold text-primary">
-                    {formatTime(event.startsAt as string)}
+                    {formatTimeOfDay(event.startsAt as string)}
                   </span>
-                  <span className="text-sm font-medium text-foreground">{company?.name ?? ""}</span>
-                  <span className="text-sm text-secondary">{event.title}</span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-foreground">
+                      {company?.name ?? ""}
+                    </p>
+                    <p className="truncate text-xs text-secondary">{event.title}</p>
+                  </div>
+                  <span
+                    className={
+                      "shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium " +
+                      EVENT_TYPE_BADGE_CLASS.schedule
+                    }
+                  >
+                    {EVENT_TYPE_LABELS.schedule}
+                  </span>
+                  <ChevronRight size={16} className="shrink-0 text-secondary" />
                 </Link>
               </li>
             );

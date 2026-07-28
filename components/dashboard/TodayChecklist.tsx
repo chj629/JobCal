@@ -5,14 +5,11 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { todayKey, dateKeyOf } from "@/lib/date";
 import type { Company } from "@/lib/companies";
-import type { AppEvent } from "@/lib/events";
+import { EVENT_TYPE_BADGE_CLASS, EVENT_TYPE_LABELS, type AppEvent } from "@/lib/events";
 
-interface TodayChecklistProps {
-  companies: Company[];
-  events: AppEvent[];
-}
-
-export default function TodayChecklist({ companies, events }: TodayChecklistProps) {
+// 오늘 마감 체크리스트의 데이터/토글 로직. TodayChecklist와 통합 뷰(TodaySchedule)가
+// 함께 재사용할 수 있도록 훅으로 분리했다. 계산/저장 방식은 이전과 동일하다.
+export function useTodayChecklist(events: AppEvent[]) {
   const supabase = useMemo(() => createClient(), []);
   const today = todayKey();
 
@@ -106,6 +103,17 @@ export default function TodayChecklist({ companies, events }: TodayChecklistProp
     }
   }
 
+  return { todayDeadlines, checkedIds, loaded, toggle, taskError };
+}
+
+interface TodayChecklistProps {
+  companies: Company[];
+  events: AppEvent[];
+}
+
+export default function TodayChecklist({ companies, events }: TodayChecklistProps) {
+  const { todayDeadlines, checkedIds, loaded, toggle, taskError } = useTodayChecklist(events);
+
   return (
     <section className="rounded-[10px] border border-border bg-card">
       <h2 className="border-b border-border px-6 py-4 text-[16px] font-semibold text-foreground">
@@ -129,7 +137,10 @@ export default function TodayChecklist({ companies, events }: TodayChecklistProp
             const checked = checkedIds.has(event.id);
 
             return (
-              <li key={event.id} className="flex items-center gap-3 px-6 py-3">
+              <li
+                key={event.id}
+                className="flex items-center gap-3 px-6 py-3 transition-colors duration-150 hover:bg-background"
+              >
                 <button
                   type="button"
                   onClick={() => toggle(event.id)}
@@ -147,13 +158,26 @@ export default function TodayChecklist({ companies, events }: TodayChecklistProp
                 </button>
                 <Link
                   href={`/companies/${event.companyId}`}
+                  className="flex min-w-0 flex-1 items-center gap-2"
+                >
+                  <span
+                    className={
+                      "truncate text-sm " +
+                      (checked ? "text-secondary line-through" : "text-foreground")
+                    }
+                  >
+                    {event.title}
+                  </span>
+                  <span className="truncate text-xs text-secondary">· {company?.name ?? ""}</span>
+                </Link>
+                <span
                   className={
-                    "flex-1 truncate text-sm hover:text-primary " +
-                    (checked ? "text-secondary line-through" : "text-foreground")
+                    "shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium " +
+                    EVENT_TYPE_BADGE_CLASS.deadline
                   }
                 >
-                  {event.title} <span className="text-secondary">· {company?.name ?? ""}</span>
-                </Link>
+                  {EVENT_TYPE_LABELS.deadline}
+                </span>
               </li>
             );
           })}
