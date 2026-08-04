@@ -1,0 +1,160 @@
+"use client";
+
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createClient } from "@/lib/supabase/client";
+import {
+  rowToCompanyContact,
+  contactFormValuesToRow,
+  type CompanyContact,
+  type CompanyContactRow,
+  type ContactFormValues,
+} from "@/lib/companyContacts";
+
+interface CompanyContactsContextValue {
+  contacts: CompanyContact[];
+  loading: boolean;
+  error: string | null;
+  refresh: () => Promise<void>;
+  addContact: (companyId: string, values: ContactFormValues) => Promise<boolean>;
+  updateContact: (id: string, values: ContactFormValues) => Promise<boolean>;
+  deleteContact: (id: string) => Promise<boolean>;
+}
+
+const CompanyContactsContext = createContext<CompanyContactsContextValue | null>(null);
+
+export function CompanyContactsProvider({ children }: { children: ReactNode }) {
+  const supabase = useMemo(() => createClient(), []);
+  const [contacts, setContacts] = useState<CompanyContact[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+
+  async function load() {
+    setLoading(true);
+    setError(null);
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      setUserId(null);
+      setContacts([]);
+      setLoading(false);
+      return;
+    }
+
+    setUserId(user.id);
+
+    const { data, error: fetchError } = await supabase
+      .from("company_contacts")
+      .select("*")
+      .order("created_at", { ascending: true });
+
+    if (fetchError) {
+      setError(fetchError.message);
+      setLoading(false);
+      return;
+    }
+
+    setContacts(((data ?? []) as CompanyContactRow[]).map(rowToCompanyContact));
+    setLoading(false);
+  }
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function initialLoad() {
+      await load();
+    }
+
+    initialLoad();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(() => {
+      if (isMounted) load();
+    });
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [supabase]);
+
+  async function addContact(companyId: string, values: ContactFormValues) {
+    if (!userId) return false;
+
+    const { data, error: insertError } = await supabase
+      .from("company_contacts")
+      .insert({
+        user_id: userId,
+        company_id: companyId,
+        ...contactFormValuesToRow(values),
+      })
+      .select()
+      .single();
+
+    if (insertError) {
+      setError(insertError.message);
+      return false;
+    }
+
+    setError(null);
+    setContacts((prev) => [...prev, rowToCompanyContact(data as CompanyContactRow)]);
+    return true;
+  }
+
+  async function updateContact(id: string, values: ContactFormValues) {
+    if (!userId) return false;
+
+    const { data, error: updateError } = await supabase
+      .from("company_contacts")
+      .update(contactFormValuesToRow(values))
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (updateError) {
+      setError(updateError.message);
+      return false;
+    }
+
+    setError(null);
+    const updated = rowToCompanyContact(data as CompanyContactRow);
+    setContacts((prev) => prev.map((contact) => (contact.id === id ? updated : contact)));
+    return true;
+  }
+
+  async function deleteContact(id: string) {
+    if (!userId) return false;
+
+    const { error: deleteError } = await supabase.from("company_contacts").delete().eq("id", id);
+
+    if (deleteError) {
+      setError(deleteError.message);
+      return false;
+    }
+
+    setError(null);
+    setContacts((prev) => prev.filter((contact) => contact.id !== id));
+    return true;
+  }
+
+  return (
+    <CompanyContactsContext.Provider
+      value={{ contacts, loading, error, refresh: load, addContact, updateContact, deleteContact }}
+    >
+      {children}
+    </CompanyContactsContext.Provider>
+  );
+}
+
+export function useCompanyContacts() {
+  const context = useContext(CompanyContactsContext);
+  if (!context) {
+    throw new Error("useCompanyContacts must be used within a CompanyContactsProvider");
+  }
+  return context;
+}

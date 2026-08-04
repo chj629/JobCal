@@ -102,6 +102,11 @@ function toDatetimeLocal(isoString: string): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
+// AI 추출 결과처럼 값이 없을 수 있는 ISO 문자열을 <input type="datetime-local"> 문자열로 변환한다.
+export function isoToDatetimeLocal(isoString: string | null): string {
+  return isoString ? toDatetimeLocal(isoString) : "";
+}
+
 export function eventToFormValues(event: AppEvent): EventFormValues {
   return {
     eventType: event.eventType,
@@ -116,6 +121,7 @@ export function eventToFormValues(event: AppEvent): EventFormValues {
 }
 
 // docs/database.md 필드 사용 규칙: event_type에 따라 사용하는 필드만 채우고 나머지는 null로 저장한다.
+// online_url은 예외적으로 모든 타입에 허용한다 (마감 제출 링크, 결과 확인 링크 등).
 export function eventFormValuesToRow(values: EventFormValues) {
   const isSchedule = values.eventType === "schedule";
   const isDeadlineOrResult =
@@ -128,7 +134,7 @@ export function eventFormValuesToRow(values: EventFormValues) {
     ends_at: isSchedule && values.endsAt ? new Date(values.endsAt).toISOString() : null,
     due_at: isDeadlineOrResult && values.dueAt ? new Date(values.dueAt).toISOString() : null,
     location: isSchedule && values.location.trim() ? values.location.trim() : null,
-    online_url: isSchedule && values.onlineUrl.trim() ? values.onlineUrl.trim() : null,
+    online_url: values.onlineUrl.trim() ? values.onlineUrl.trim() : null,
     memo: values.memo.trim() ? values.memo.trim() : null,
   };
 }

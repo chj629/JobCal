@@ -14,7 +14,7 @@ interface CompaniesContextValue {
   companies: Company[];
   loading: boolean;
   error: string | null;
-  addCompany: (values: CompanyFormValues) => Promise<boolean>;
+  addCompany: (values: CompanyFormValues) => Promise<Company | null>;
   updateCompany: (id: string, values: CompanyFormValues) => Promise<boolean>;
   deleteCompany: (id: string) => Promise<boolean>;
 }
@@ -82,7 +82,7 @@ export function CompaniesProvider({ children }: { children: ReactNode }) {
   }, [supabase]);
 
   async function addCompany(values: CompanyFormValues) {
-    if (!userId) return false;
+    if (!userId) return null;
 
     const { data, error: insertError } = await supabase
       .from("companies")
@@ -92,12 +92,13 @@ export function CompaniesProvider({ children }: { children: ReactNode }) {
 
     if (insertError) {
       setError(insertError.message);
-      return false;
+      return null;
     }
 
     setError(null);
-    setCompanies((prev) => [...prev, rowToCompany(data as CompanyRow)]);
-    return true;
+    const created = rowToCompany(data as CompanyRow);
+    setCompanies((prev) => [...prev, created]);
+    return created;
   }
 
   async function updateCompany(id: string, values: CompanyFormValues) {

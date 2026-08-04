@@ -7,6 +7,7 @@ import StatusBadge from "@/components/StatusBadge";
 import CompanyForm from "@/components/CompanyForm";
 import StepTimeline from "@/components/companies/StepTimeline";
 import StepDetailPanel from "@/components/companies/StepDetailPanel";
+import CompanyContacts from "@/components/companies/CompanyContacts";
 import CompanyNotes from "@/components/companies/CompanyNotes";
 import { PRIORITY_LABELS, companyToFormValues, type Company } from "@/lib/companies";
 import { useCompanies } from "@/lib/companies-context";
@@ -192,6 +193,10 @@ function CompanyDetailView({ company, error, onDelete }: CompanyDetailViewProps)
           onClose={() => setSelectedStepId(null)}
         />
       )}
+
+      <div className="mb-8">
+        <CompanyContacts companyId={company.id} />
+      </div>
 
       <CompanyNotes companyId={company.id} />
 

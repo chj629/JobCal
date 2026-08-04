@@ -13,8 +13,8 @@ interface ApplicationStepsContextValue {
   steps: ApplicationStep[];
   loading: boolean;
   error: string | null;
-  refresh: () => Promise<void>;
-  addStep: (companyId: string, name: string) => Promise<boolean>;
+  refresh: () => Promise<ApplicationStep[]>;
+  addStep: (companyId: string, name: string) => Promise<ApplicationStep | null>;
   deleteStep: (id: string) => Promise<boolean>;
   renameStep: (id: string, name: string) => Promise<boolean>;
   updateStepStatus: (id: string, status: StepStatus) => Promise<boolean>;
@@ -42,7 +42,7 @@ export function ApplicationStepsProvider({ children }: { children: ReactNode }) 
       setUserId(null);
       setSteps([]);
       setLoading(false);
-      return;
+      return [];
     }
 
     setUserId(user.id);
@@ -55,11 +55,13 @@ export function ApplicationStepsProvider({ children }: { children: ReactNode }) 
     if (fetchError) {
       setError(fetchError.message);
       setLoading(false);
-      return;
+      return [];
     }
 
-    setSteps(((data ?? []) as ApplicationStepRow[]).map(rowToApplicationStep));
+    const mapped = ((data ?? []) as ApplicationStepRow[]).map(rowToApplicationStep);
+    setSteps(mapped);
     setLoading(false);
+    return mapped;
   }
 
   useEffect(() => {
@@ -85,7 +87,7 @@ export function ApplicationStepsProvider({ children }: { children: ReactNode }) 
   }, [supabase]);
 
   async function addStep(companyId: string, name: string) {
-    if (!userId) return false;
+    if (!userId) return null;
 
     const companySteps = steps.filter((step) => step.companyId === companyId);
     const nextOrder =
@@ -105,12 +107,13 @@ export function ApplicationStepsProvider({ children }: { children: ReactNode }) 
 
     if (insertError) {
       setError(insertError.message);
-      return false;
+      return null;
     }
 
     setError(null);
-    setSteps((prev) => [...prev, rowToApplicationStep(data as ApplicationStepRow)]);
-    return true;
+    const created = rowToApplicationStep(data as ApplicationStepRow);
+    setSteps((prev) => [...prev, created]);
+    return created;
   }
 
   async function deleteStep(id: string) {

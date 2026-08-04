@@ -112,17 +112,31 @@ export default function EventForm({ title, initialValues, onCancel, onSubmit }: 
           )}
 
           {isDeadlineOrResult && (
-            <div>
-              <label className={labelClass}>
-                {values.eventType === "deadline" ? "마감 일시" : "결과 발표 예정 일시"}
-              </label>
-              <input
-                type="datetime-local"
-                value={values.dueAt}
-                onChange={(e) => setValues({ ...values, dueAt: e.target.value })}
-                className={fieldClass}
-              />
-            </div>
+            <>
+              <div>
+                <label className={labelClass}>
+                  {values.eventType === "deadline" ? "마감 일시" : "결과 발표 예정 일시"}
+                </label>
+                <input
+                  type="datetime-local"
+                  value={values.dueAt}
+                  onChange={(e) => setValues({ ...values, dueAt: e.target.value })}
+                  className={fieldClass}
+                />
+              </div>
+              <div>
+                <label className={labelClass}>
+                  {values.eventType === "deadline" ? "제출 링크" : "결과 확인 링크"}{" "}
+                  <span className="text-secondary">(선택)</span>
+                </label>
+                <input
+                  type="text"
+                  value={values.onlineUrl}
+                  onChange={(e) => setValues({ ...values, onlineUrl: e.target.value })}
+                  className={fieldClass}
+                />
+              </div>
+            </>
           )}
 
           <div>
