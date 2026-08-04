@@ -3,9 +3,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { useT } from "@/lib/locale-context";
 
 export default function AuthConfirmedPage() {
   const router = useRouter();
+  const t = useT();
   const [isLoading, setIsLoading] = useState(false);
 
   async function handleGoToLogin() {
@@ -34,14 +36,14 @@ export default function AuthConfirmedPage() {
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="w-full max-w-sm rounded-[10px] border border-border bg-card p-8 text-center">
         <h1 className="text-[28px] font-semibold text-foreground">
-          メールアドレスの確認が完了しました
+          {t("auth.confirmed.title")}
         </h1>
         <p className="mt-4 text-sm text-secondary">
-          JobCalへようこそ。
+          {t("auth.confirmed.messageLine1")}
           <br />
-          アカウントの作成が完了しました。
+          {t("auth.confirmed.messageLine2")}
           <br />
-          ログインして就職活動の管理を始めましょう。
+          {t("auth.confirmed.messageLine3")}
         </p>
 
         <button
@@ -50,7 +52,7 @@ export default function AuthConfirmedPage() {
           disabled={isLoading}
           className="mt-8 h-10 w-full rounded-[10px] bg-primary text-sm font-medium text-white disabled:opacity-60"
         >
-          {isLoading ? "処理中..." : "ログインする"}
+          {isLoading ? t("auth.confirmed.buttonLoading") : t("auth.confirmed.button")}
         </button>
       </div>
     </div>

@@ -7,6 +7,7 @@ import { useApplicationSteps } from "@/lib/application-steps-context";
 import { useEvents } from "@/lib/events-context";
 import { createEmptyCompanyFormValues } from "@/lib/companies";
 import { dateKeyOf, todayKey } from "@/lib/date";
+import { useT } from "@/lib/locale-context";
 import CompanyForm from "@/components/CompanyForm";
 import TodaySchedule from "@/components/dashboard/TodaySchedule";
 import UpcomingSchedule from "@/components/dashboard/UpcomingSchedule";
@@ -21,6 +22,7 @@ function isWithinNext7Days(dateKey: string, fromKey: string) {
 }
 
 export default function DashboardPage() {
+  const t = useT();
   const { companies, addCompany, loading: companiesLoading, error } = useCompanies();
   const { steps, loading: stepsLoading, refresh: refreshSteps } = useApplicationSteps();
   const { events, loading: eventsLoading } = useEvents();
@@ -37,16 +39,36 @@ export default function DashboardPage() {
   }).length;
 
   const kpiTiles = [
-    { label: "전체 기업", value: companies.length, icon: Building2, colorClass: "bg-primary/10 text-primary" },
-    { label: "진행 중", value: inProgressCount, icon: Briefcase, colorClass: "bg-success/10 text-success" },
-    { label: "이번 주 일정", value: thisWeekEventCount, icon: CalendarDays, colorClass: "bg-joined/10 text-joined" },
-    { label: "내정", value: offerCount, icon: Award, colorClass: "bg-warning/10 text-warning" },
+    {
+      label: t("dashboard.kpi.totalCompanies"),
+      value: companies.length,
+      icon: Building2,
+      colorClass: "bg-primary/10 text-primary",
+    },
+    {
+      label: t("dashboard.kpi.inProgress"),
+      value: inProgressCount,
+      icon: Briefcase,
+      colorClass: "bg-success/10 text-success",
+    },
+    {
+      label: t("dashboard.kpi.thisWeekSchedule"),
+      value: thisWeekEventCount,
+      icon: CalendarDays,
+      colorClass: "bg-joined/10 text-joined",
+    },
+    {
+      label: t("dashboard.kpi.offer"),
+      value: offerCount,
+      icon: Award,
+      colorClass: "bg-warning/10 text-warning",
+    },
   ];
 
   if (loading) {
     return (
       <div className="mx-auto max-w-[960px] px-7 pt-7 pb-8 text-sm text-secondary">
-        불러오는 중입니다...
+        {t("dashboard.loading")}
       </div>
     );
   }
@@ -55,17 +77,15 @@ export default function DashboardPage() {
     <div className="mx-auto max-w-[960px] px-7 pt-7 pb-8">
       <div className="mb-8 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
         <div>
-          <h1 className="text-[24px] font-bold text-foreground">대시보드</h1>
-          <p className="mt-1 text-[13px] text-secondary">
-            오늘도 취업 활동을 차근차근 관리해보세요.
-          </p>
+          <h1 className="text-[24px] font-bold text-foreground">{t("dashboard.title")}</h1>
+          <p className="mt-1 text-[13px] text-secondary">{t("dashboard.description")}</p>
         </div>
         <button
           type="button"
           onClick={() => setIsAddOpen(true)}
           className="h-9 shrink-0 rounded-[8px] border border-border bg-card px-3.5 text-[13px] font-medium text-foreground transition-colors duration-150 hover:bg-background"
         >
-          + 기업 추가
+          {t("dashboard.addCompany")}
         </button>
       </div>
 
@@ -112,7 +132,7 @@ export default function DashboardPage() {
 
       {isAddOpen && (
         <CompanyForm
-          title="기업 추가"
+          title={t("dashboard.addCompanyModalTitle")}
           initialValues={createEmptyCompanyFormValues()}
           onCancel={() => setIsAddOpen(false)}
           onSubmit={async (values) => {

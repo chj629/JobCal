@@ -9,6 +9,7 @@ import {
   type NoteFormValues,
 } from "@/lib/companyNotes";
 import { dateKeyOf } from "@/lib/date";
+import { useT } from "@/lib/locale-context";
 import NoteForm from "@/components/companies/NoteForm";
 
 interface CompanyNotesProps {
@@ -16,6 +17,7 @@ interface CompanyNotesProps {
 }
 
 export default function CompanyNotes({ companyId }: CompanyNotesProps) {
+  const t = useT();
   const { notes, error, addNote, updateNote, deleteNote } = useCompanyNotes();
   const [formState, setFormState] = useState<{ note: CompanyNote | null } | null>(null);
 
@@ -24,7 +26,8 @@ export default function CompanyNotes({ companyId }: CompanyNotesProps) {
     .sort((a, b) => a.position - b.position);
 
   async function handleDelete(note: CompanyNote) {
-    if (window.confirm(`'${note.title || "이 메모"}'을(를) 삭제하시겠습니까?`)) {
+    const fallbackTitle = t("companies.notes.deleteConfirmFallbackTitle");
+    if (window.confirm(t("companies.notes.deleteConfirm", { title: note.title || fallbackTitle }))) {
       await deleteNote(note.id);
     }
   }
@@ -39,13 +42,13 @@ export default function CompanyNotes({ companyId }: CompanyNotesProps) {
   return (
     <section className="rounded-[10px] border border-border bg-card p-6">
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-[16px] font-semibold text-foreground">메모</h2>
+        <h2 className="text-[16px] font-semibold text-foreground">{t("companies.notes.heading")}</h2>
         <button
           type="button"
           onClick={() => setFormState({ note: null })}
           className="text-xs font-medium text-primary hover:underline"
         >
-          + 메모 추가
+          {t("companies.notes.addButton")}
         </button>
       </div>
 
@@ -56,14 +59,14 @@ export default function CompanyNotes({ companyId }: CompanyNotesProps) {
       )}
 
       {companyNotes.length === 0 ? (
-        <p className="py-6 text-center text-sm text-secondary">등록된 메모가 없습니다.</p>
+        <p className="py-6 text-center text-sm text-secondary">{t("companies.notes.empty")}</p>
       ) : (
         <div className="flex flex-col gap-3">
           {companyNotes.map((note) => (
             <div key={note.id} className="rounded-[10px] border border-border p-4">
               <div className="flex items-start justify-between gap-2">
                 <h3 className="text-sm font-semibold text-foreground">
-                  {note.title || "제목 없음"}
+                  {note.title || t("companies.notes.untitled")}
                 </h3>
                 <div className="flex shrink-0 gap-2 text-xs">
                   <button
@@ -71,14 +74,14 @@ export default function CompanyNotes({ companyId }: CompanyNotesProps) {
                     onClick={() => setFormState({ note })}
                     className="text-secondary hover:text-primary hover:underline"
                   >
-                    수정
+                    {t("common.edit")}
                   </button>
                   <button
                     type="button"
                     onClick={() => handleDelete(note)}
                     className="text-secondary hover:text-error hover:underline"
                   >
-                    삭제
+                    {t("common.delete")}
                   </button>
                 </div>
               </div>
@@ -93,7 +96,9 @@ export default function CompanyNotes({ companyId }: CompanyNotesProps) {
 
       {formState && (
         <NoteForm
-          title={formState.note ? "메모 수정" : "메모 추가"}
+          title={
+            formState.note ? t("companies.notes.editModalTitle") : t("companies.notes.addModalTitle")
+          }
           initialValues={formState.note ? noteToFormValues(formState.note) : createEmptyNoteFormValues()}
           onCancel={() => setFormState(null)}
           onSubmit={handleSubmit}

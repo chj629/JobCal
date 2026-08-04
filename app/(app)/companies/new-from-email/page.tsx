@@ -8,10 +8,12 @@ import CompanyMatchPicker from "@/components/companies/CompanyMatchPicker";
 import EmailAnalysisReview from "@/components/companies/EmailAnalysisReview";
 import type { Company } from "@/lib/companies";
 import type { EmailAnalysisResult } from "@/lib/ai/emailAnalysis";
+import { useT } from "@/lib/locale-context";
 
 type Step = "paste" | "match" | "review";
 
 export default function NewFromEmailPage() {
+  const t = useT();
   const router = useRouter();
   const [step, setStep] = useState<Step>("paste");
   const [analyzing, setAnalyzing] = useState(false);
@@ -33,7 +35,12 @@ export default function NewFromEmailPage() {
       const json = await response.json();
 
       if (!response.ok) {
-        setAnalyzeError(json.error ?? "분석에 실패했습니다.");
+        // API가 돌려준 에러 코드/상세 문구를 그대로 화면에 노출하지 않고,
+        // 개발 환경에서만 콘솔로 원인을 확인할 수 있게 한다(이메일 원문 등 민감정보는 남기지 않음).
+        if (process.env.NODE_ENV === "development") {
+          console.error("[new-from-email] 분석 요청 실패:", json.error);
+        }
+        setAnalyzeError(t("aiEmail.paste.analyzeFailed"));
         setAnalyzing(false);
         return;
       }
@@ -41,8 +48,11 @@ export default function NewFromEmailPage() {
       setAnalysis(json as EmailAnalysisResult);
       setAnalyzing(false);
       setStep("match");
-    } catch {
-      setAnalyzeError("분석 요청 중 오류가 발생했습니다.");
+    } catch (err) {
+      if (process.env.NODE_ENV === "development") {
+        console.error("[new-from-email] 분석 요청 중 예외:", err);
+      }
+      setAnalyzeError(t("aiEmail.paste.networkError"));
       setAnalyzing(false);
     }
   }
@@ -51,7 +61,7 @@ export default function NewFromEmailPage() {
     <div>
       <div className="mx-auto max-w-[720px] px-8 pt-8">
         <Link href="/companies" className="text-sm text-secondary hover:text-foreground">
-          ← 기업 목록으로
+          {t("companies.detail.backToList")}
         </Link>
       </div>
 

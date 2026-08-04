@@ -9,16 +9,16 @@ import StepTimeline from "@/components/companies/StepTimeline";
 import StepDetailPanel from "@/components/companies/StepDetailPanel";
 import CompanyContacts from "@/components/companies/CompanyContacts";
 import CompanyNotes from "@/components/companies/CompanyNotes";
-import { PRIORITY_LABELS, companyToFormValues, type Company } from "@/lib/companies";
+import { companyToFormValues, type Company } from "@/lib/companies";
 import { useCompanies } from "@/lib/companies-context";
 import { useApplicationSteps } from "@/lib/application-steps-context";
 import { getCurrentStep } from "@/lib/applicationSteps";
 import { useEvents } from "@/lib/events-context";
 import { getNextEvent } from "@/lib/events";
-
-const NO_STEP_LABEL = "등록된 전형 없음";
+import { useLocale, useT } from "@/lib/locale-context";
 
 export default function CompanyDetailPage() {
+  const t = useT();
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { companies, deleteCompany, loading: companiesLoading, error } = useCompanies();
@@ -32,7 +32,7 @@ export default function CompanyDetailPage() {
   if (loading) {
     return (
       <div className="mx-auto max-w-[1200px] px-8 py-8 text-sm text-secondary">
-        불러오는 중입니다...
+        {t("companies.detail.loading")}
       </div>
     );
   }
@@ -49,7 +49,7 @@ export default function CompanyDetailPage() {
   }
 
   async function handleDelete() {
-    if (window.confirm(`'${company!.name}' 기업을 삭제하시겠습니까?`)) {
+    if (window.confirm(t("companies.list.deleteConfirm", { name: company!.name }))) {
       setIsDeleting(true);
       const ok = await deleteCompany(company!.id);
       if (ok) {
@@ -72,6 +72,8 @@ interface CompanyDetailViewProps {
 }
 
 function CompanyDetailView({ company, error, onDelete }: CompanyDetailViewProps) {
+  const t = useT();
+  const { locale } = useLocale();
   const { updateCompany } = useCompanies();
   const { steps } = useApplicationSteps();
   const { events } = useEvents();
@@ -89,7 +91,7 @@ function CompanyDetailView({ company, error, onDelete }: CompanyDetailViewProps)
     <div className="mx-auto max-w-[1200px] px-8 py-8">
       <div className="flex items-center justify-between">
         <Link href="/companies" className="text-sm text-secondary hover:text-foreground">
-          ← 기업 목록으로
+          {t("companies.detail.backToList")}
         </Link>
         <div className="flex gap-2">
           <button
@@ -97,14 +99,14 @@ function CompanyDetailView({ company, error, onDelete }: CompanyDetailViewProps)
             onClick={() => setIsEditOpen(true)}
             className="h-10 rounded-[10px] border border-border px-4 text-sm font-medium text-foreground"
           >
-            수정
+            {t("common.edit")}
           </button>
           <button
             type="button"
             onClick={onDelete}
             className="h-10 rounded-[10px] border border-error px-4 text-sm font-medium text-error"
           >
-            삭제
+            {t("common.delete")}
           </button>
         </div>
       </div>
@@ -124,32 +126,41 @@ function CompanyDetailView({ company, error, onDelete }: CompanyDetailViewProps)
 
       <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
         <section className="rounded-[10px] border border-border bg-card p-6">
-          <h2 className="mb-4 text-[16px] font-semibold text-foreground">기본 정보</h2>
+          <h2 className="mb-4 text-[16px] font-semibold text-foreground">
+            {t("companies.detail.basicInfo")}
+          </h2>
           <dl className="grid grid-cols-2 gap-x-6 gap-y-4 text-sm">
             <div>
-              <dt className="text-secondary">현재 전형 단계</dt>
-              <dd className="mt-1 text-foreground">{currentStep?.name ?? NO_STEP_LABEL}</dd>
+              <dt className="text-secondary">{t("companies.detail.currentStep")}</dt>
+              <dd className="mt-1 text-foreground">
+                {currentStep?.name ?? t("dashboard.noStepLabel")}
+              </dd>
             </div>
             <div>
-              <dt className="text-secondary">지원 우선순위</dt>
-              <dd className="mt-1 text-foreground">{PRIORITY_LABELS[company.priority]}</dd>
-            </div>
-            <div className="col-span-2">
-              <dt className="text-secondary">다음 일정</dt>
+              <dt className="text-secondary">{t("companies.detail.priority")}</dt>
               <dd className="mt-1 text-foreground">
-                {nextEventAt && nextEvent
-                  ? `${nextEvent.title} · ${new Date(nextEventAt).toLocaleString("ko-KR", {
-                      year: "numeric",
-                      month: "2-digit",
-                      day: "2-digit",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}`
-                  : "예정 없음"}
+                {t(`companies.list.priority.${company.priority}`)}
               </dd>
             </div>
             <div className="col-span-2">
-              <dt className="text-secondary">기업 홈페이지</dt>
+              <dt className="text-secondary">{t("companies.detail.nextSchedule")}</dt>
+              <dd className="mt-1 text-foreground">
+                {nextEventAt && nextEvent
+                  ? `${nextEvent.title} · ${new Date(nextEventAt).toLocaleString(
+                      locale === "ja" ? "ja-JP" : "ko-KR",
+                      {
+                        year: "numeric",
+                        month: "2-digit",
+                        day: "2-digit",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      }
+                    )}`
+                  : t("companies.detail.noSchedule")}
+              </dd>
+            </div>
+            <div className="col-span-2">
+              <dt className="text-secondary">{t("companies.detail.homepage")}</dt>
               <dd className="mt-1">
                 <a
                   href={company.websiteUrl}
@@ -165,7 +176,9 @@ function CompanyDetailView({ company, error, onDelete }: CompanyDetailViewProps)
         </section>
 
         <section className="rounded-[10px] border border-border bg-card p-6">
-          <h2 className="mb-4 text-[16px] font-semibold text-foreground">마이페이지</h2>
+          <h2 className="mb-4 text-[16px] font-semibold text-foreground">
+            {t("companies.detail.mypage")}
+          </h2>
           {company.mypageUrl ? (
             <a
               href={company.mypageUrl}
@@ -176,7 +189,7 @@ function CompanyDetailView({ company, error, onDelete }: CompanyDetailViewProps)
               {company.mypageUrl}
             </a>
           ) : (
-            <p className="text-sm text-secondary">등록된 마이페이지 URL이 없습니다.</p>
+            <p className="text-sm text-secondary">{t("companies.detail.mypageEmpty")}</p>
           )}
         </section>
       </div>
@@ -202,7 +215,7 @@ function CompanyDetailView({ company, error, onDelete }: CompanyDetailViewProps)
 
       {isEditOpen && (
         <CompanyForm
-          title="기업 수정"
+          title={t("companies.list.editCompanyModalTitle")}
           initialValues={companyToFormValues(company)}
           onCancel={() => setIsEditOpen(false)}
           onSubmit={async (values) => {

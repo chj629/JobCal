@@ -3,13 +3,12 @@
 import { useState, type FormEvent } from "react";
 import {
   OVERALL_STATUSES,
-  OVERALL_STATUS_LABELS,
   PRIORITIES,
-  PRIORITY_LABELS,
   type CompanyFormValues,
   type OverallStatus,
   type Priority,
 } from "@/lib/companies";
+import { useT } from "@/lib/locale-context";
 
 interface CompanyFormProps {
   title: string;
@@ -22,19 +21,30 @@ const fieldClass =
   "h-10 w-full rounded-[10px] border border-border bg-card px-3 text-sm text-foreground focus:border-primary focus:outline-none";
 const labelClass = "mb-1 block text-sm text-secondary";
 
+// docs/database.md의 overall_status 내부 값은 그대로 두고, 표시 라벨만
+// companies.list.status.*를 재사용해 번역한다(기업 목록 화면과 동일한 상태 개념).
+const STATUS_LABEL_KEYS: Record<OverallStatus, string> = {
+  in_progress: "companies.list.status.inProgress",
+  offer: "companies.list.status.offer",
+  joined: "companies.list.status.joined",
+  rejected: "companies.list.status.rejected",
+  cancelled: "companies.list.status.cancelled",
+};
+
 export default function CompanyForm({
   title,
   initialValues,
   onCancel,
   onSubmit,
 }: CompanyFormProps) {
+  const t = useT();
   const [values, setValues] = useState<CompanyFormValues>(initialValues);
   const [error, setError] = useState("");
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
     if (!values.name.trim()) {
-      setError("기업명을 입력해 주세요.");
+      setError(t("companies.form.nameRequired"));
       return;
     }
     onSubmit(values);
@@ -46,7 +56,7 @@ export default function CompanyForm({
         <h2 className="mb-4 text-[16px] font-semibold text-foreground">{title}</h2>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
-            <label className={labelClass}>기업명</label>
+            <label className={labelClass}>{t("companies.form.name")}</label>
             <input
               type="text"
               value={values.name}
@@ -58,7 +68,7 @@ export default function CompanyForm({
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className={labelClass}>결과</label>
+              <label className={labelClass}>{t("companies.form.status")}</label>
               <select
                 value={values.overallStatus}
                 onChange={(e) =>
@@ -68,13 +78,13 @@ export default function CompanyForm({
               >
                 {OVERALL_STATUSES.map((status) => (
                   <option key={status} value={status}>
-                    {OVERALL_STATUS_LABELS[status]}
+                    {t(STATUS_LABEL_KEYS[status])}
                   </option>
                 ))}
               </select>
             </div>
             <div>
-              <label className={labelClass}>우선순위</label>
+              <label className={labelClass}>{t("companies.form.priorityLabel")}</label>
               <select
                 value={values.priority}
                 onChange={(e) =>
@@ -84,7 +94,7 @@ export default function CompanyForm({
               >
                 {PRIORITIES.map((priority) => (
                   <option key={priority} value={priority}>
-                    {PRIORITY_LABELS[priority]}
+                    {t(`companies.list.priority.${priority}`)}
                   </option>
                 ))}
               </select>
@@ -92,7 +102,7 @@ export default function CompanyForm({
           </div>
 
           <div>
-            <label className={labelClass}>기업 홈페이지</label>
+            <label className={labelClass}>{t("companies.form.websiteUrl")}</label>
             <input
               type="text"
               value={values.websiteUrl}
@@ -102,7 +112,7 @@ export default function CompanyForm({
           </div>
 
           <div>
-            <label className={labelClass}>마이페이지 URL</label>
+            <label className={labelClass}>{t("companies.form.mypageUrl")}</label>
             <input
               type="text"
               value={values.mypageUrl}
@@ -117,13 +127,13 @@ export default function CompanyForm({
               onClick={onCancel}
               className="h-10 rounded-[10px] border border-border px-4 text-sm font-medium text-secondary"
             >
-              취소
+              {t("common.cancel")}
             </button>
             <button
               type="submit"
               className="h-10 rounded-[10px] bg-primary px-4 text-sm font-medium text-white"
             >
-              저장
+              {t("common.save")}
             </button>
           </div>
         </form>

@@ -3,8 +3,10 @@
 import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { useT } from "@/lib/locale-context";
 
 export default function ForgotPasswordPage() {
+  const t = useT();
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -16,8 +18,9 @@ export default function ForgotPasswordPage() {
     const params = new URLSearchParams(window.location.search);
     if (params.get("error") === "reset_failed") {
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setErrorMessage("재설정 링크가 유효하지 않거나 만료되었습니다. 다시 시도해 주세요.");
+      setErrorMessage(t("auth.errors.resetFailed"));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function handleSubmit(event: FormEvent) {
@@ -25,7 +28,7 @@ export default function ForgotPasswordPage() {
     setErrorMessage("");
 
     if (!email.trim()) {
-      setErrorMessage("이메일을 입력해 주세요.");
+      setErrorMessage(t("auth.errors.emailRequired"));
       return;
     }
 
@@ -45,7 +48,7 @@ export default function ForgotPasswordPage() {
           name: error.name,
         });
       }
-      setErrorMessage("재설정 메일을 보내지 못했습니다. 잠시 후 다시 시도해 주세요.");
+      setErrorMessage(t("auth.errors.resetSendFailed"));
       setIsLoading(false);
       return;
     }
@@ -58,15 +61,17 @@ export default function ForgotPasswordPage() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background px-4">
         <div className="w-full max-w-sm rounded-[10px] border border-border bg-card p-8 text-center">
-          <h1 className="text-[28px] font-semibold text-foreground">메일을 확인해 주세요</h1>
+          <h1 className="text-[28px] font-semibold text-foreground">
+            {t("auth.forgotPassword.sentTitle")}
+          </h1>
           <p className="mt-2 text-sm text-secondary">
-            {email}로 비밀번호 재설정 메일을 보냈습니다. 메일함에서 링크를 눌러 새 비밀번호를 설정해 주세요.
+            {t("auth.forgotPassword.sentMessage", { email })}
           </p>
           <Link
             href="/login"
             className="mt-8 inline-block text-sm font-medium text-primary hover:underline"
           >
-            로그인 페이지로 이동
+            {t("auth.forgotPassword.backToLoginFromSent")}
           </Link>
         </div>
       </div>
@@ -76,14 +81,18 @@ export default function ForgotPasswordPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="w-full max-w-sm rounded-[10px] border border-border bg-card p-8">
-        <h1 className="text-center text-[28px] font-semibold text-foreground">비밀번호 재설정</h1>
+        <h1 className="text-center text-[28px] font-semibold text-foreground">
+          {t("auth.forgotPassword.title")}
+        </h1>
         <p className="mt-2 text-center text-sm text-secondary">
-          가입하신 이메일로 재설정 링크를 보내드립니다.
+          {t("auth.forgotPassword.description")}
         </p>
 
         <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-4">
           <div>
-            <label className="mb-1 block text-sm text-secondary">이메일</label>
+            <label className="mb-1 block text-sm text-secondary">
+              {t("auth.forgotPassword.email")}
+            </label>
             <input
               type="email"
               value={email}
@@ -99,13 +108,13 @@ export default function ForgotPasswordPage() {
             disabled={isLoading}
             className="mt-2 h-10 w-full rounded-[10px] bg-primary text-sm font-medium text-white disabled:opacity-60"
           >
-            {isLoading ? "전송 중..." : "재설정 메일 보내기"}
+            {isLoading ? t("auth.forgotPassword.submitLoading") : t("auth.forgotPassword.submit")}
           </button>
         </form>
 
         <p className="mt-6 text-center text-sm text-secondary">
           <Link href="/login" className="font-medium text-primary hover:underline">
-            로그인 페이지로 돌아가기
+            {t("auth.forgotPassword.backToLogin")}
           </Link>
         </p>
       </div>

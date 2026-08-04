@@ -5,6 +5,7 @@ import { Calendar, ChevronRight } from "lucide-react";
 import { useTodayChecklist } from "@/components/dashboard/TodayChecklist";
 import { getTodaySchedules } from "@/components/dashboard/TodayTimetable";
 import { formatTimeOfDay } from "@/lib/date";
+import { useT } from "@/lib/locale-context";
 import type { Company } from "@/lib/companies";
 import { EVENT_TYPE_BADGE_CLASS, type AppEvent } from "@/lib/events";
 import type { ApplicationStep } from "@/lib/applicationSteps";
@@ -30,6 +31,7 @@ function findNextItem(items: ScheduleItem[]): ScheduleItem | undefined {
 // 01-dashboard.png의 "오늘의 일정" 카드. 데이터는 TodayChecklist(마감 체크리스트)와
 // TodayTimetable(오늘 일정)의 기존 훅/계산을 그대로 재사용해 시간순으로 합쳐 보여준다.
 export default function TodaySchedule({ companies, events, steps }: TodayScheduleProps) {
+  const t = useT();
   const { todayDeadlines, checkedIds, loaded, toggle, taskError } = useTodayChecklist(events);
   const todaySchedules = getTodaySchedules(events);
 
@@ -46,10 +48,12 @@ export default function TodaySchedule({ companies, events, steps }: TodaySchedul
       <div className="flex items-center justify-between border-b border-border px-6 py-4">
         <div className="flex items-center gap-2">
           <Calendar size={18} className="text-secondary" />
-          <h2 className="text-[16px] font-semibold text-foreground">오늘의 일정</h2>
+          <h2 className="text-[16px] font-semibold text-foreground">
+            {t("dashboard.todaySchedule.title")}
+          </h2>
         </div>
         <Link href="/calendar" className="text-xs font-medium text-primary hover:underline">
-          전체 일정 보기 →
+          {t("dashboard.todaySchedule.viewAll")}
         </Link>
       </div>
 
@@ -61,7 +65,7 @@ export default function TodaySchedule({ companies, events, steps }: TodaySchedul
 
       {items.length === 0 ? (
         <p className="flex flex-1 items-center justify-center px-6 py-10 text-center text-sm text-secondary">
-          오늘 예정된 일정이 없습니다 🎉
+          {t("dashboard.todaySchedule.empty")}
         </p>
       ) : (
         <ul className="flex-1 overflow-y-auto">
@@ -86,7 +90,9 @@ export default function TodaySchedule({ companies, events, steps }: TodaySchedul
                         onClick={() => toggle(event.id)}
                         disabled={!loaded}
                         aria-pressed={checked}
-                        aria-label={`${event.title} 완료 표시`}
+                        aria-label={t("dashboard.todaySchedule.completeLabel", {
+                          title: event.title,
+                        })}
                         className={
                           "flex h-5 w-5 shrink-0 items-center justify-center rounded-[4px] border text-xs disabled:cursor-not-allowed disabled:opacity-50 " +
                           (checked

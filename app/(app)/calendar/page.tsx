@@ -4,17 +4,27 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useCompanies } from "@/lib/companies-context";
 import { useEvents } from "@/lib/events-context";
-import { EVENT_TYPE_BADGE_CLASS, EVENT_TYPE_LABELS, type AppEvent } from "@/lib/events";
+import { EVENT_TYPE_BADGE_CLASS, EVENT_TYPES, type AppEvent, type EventType } from "@/lib/events";
 import { formatDateKey, dateKeyOf } from "@/lib/date";
+import { useLocale, useT } from "@/lib/locale-context";
 
-const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 const MAX_VISIBLE_EVENTS = 3;
+
+// lib/events.ts의 EVENT_TYPE_LABELS(한국어 고정)는 그대로 두고, 기업 상세 단계에서 만든
+// companies.events.types.* 키를 재사용해 표시 라벨만 번역한다.
+const EVENT_TYPE_LABEL_KEYS: Record<EventType, string> = {
+  schedule: "companies.events.types.schedule",
+  deadline: "companies.events.types.deadline",
+  result_announcement: "companies.events.types.resultAnnouncement",
+};
 
 function startOfMonth(year: number, month: number) {
   return new Date(year, month, 1);
 }
 
 export default function CalendarPage() {
+  const t = useT();
+  const { locale } = useLocale();
   const { companies, loading: companiesLoading, error } = useCompanies();
   const { events, loading: eventsLoading } = useEvents();
   const loading = companiesLoading || eventsLoading;
@@ -25,6 +35,18 @@ export default function CalendarPage() {
 
   const year = viewDate.getFullYear();
   const month = viewDate.getMonth();
+
+  // 요일/월 표기는 Intl.DateTimeFormat으로 locale에 맞게 생성한다(날짜 계산 로직과는 무관).
+  const localeCode = locale === "ja" ? "ja-JP" : "ko-KR";
+  const weekdayLabels = useMemo(() => {
+    const formatter = new Intl.DateTimeFormat(localeCode, { weekday: "short" });
+    // 2023-01-01은 일요일이므로 이를 기준으로 일~토 순서의 짧은 요일 이름을 만든다.
+    return Array.from({ length: 7 }, (_, i) => formatter.format(new Date(2023, 0, 1 + i)));
+  }, [localeCode]);
+  const monthLabel = useMemo(
+    () => new Intl.DateTimeFormat(localeCode, { year: "numeric", month: "long" }).format(viewDate),
+    [localeCode, viewDate]
+  );
 
   const eventsByDate = useMemo(() => {
     const map: Record<string, AppEvent[]> = {};
@@ -73,8 +95,8 @@ export default function CalendarPage() {
   return (
     <div className="mx-auto max-w-[1200px] px-8 py-8">
       <header className="mb-8">
-        <h1 className="text-[28px] font-semibold text-foreground">캘린더</h1>
-        <p className="mt-1 text-sm text-secondary">기업별 일정을 한눈에 확인하세요.</p>
+        <h1 className="text-[28px] font-semibold text-foreground">{t("calendar.title")}</h1>
+        <p className="mt-1 text-sm text-secondary">{t("calendar.description")}</p>
       </header>
 
       <div className="mb-6 flex flex-wrap items-center gap-3">
@@ -83,31 +105,29 @@ export default function CalendarPage() {
           onClick={goToPrevMonth}
           className="h-10 rounded-[10px] border border-border px-4 text-sm font-medium text-foreground"
         >
-          이전 달
+          {t("calendar.previousMonth")}
         </button>
         <button
           type="button"
           onClick={goToToday}
           className="h-10 rounded-[10px] border border-border px-4 text-sm font-medium text-foreground"
         >
-          오늘
+          {t("calendar.today")}
         </button>
         <button
           type="button"
           onClick={goToNextMonth}
           className="h-10 rounded-[10px] border border-border px-4 text-sm font-medium text-foreground"
         >
-          다음 달
+          {t("calendar.nextMonth")}
         </button>
-        <span className="ml-2 text-[16px] font-semibold text-foreground">
-          {year}년 {month + 1}월
-        </span>
+        <span className="ml-2 text-[16px] font-semibold text-foreground">{monthLabel}</span>
 
         <div className="ml-auto flex items-center gap-3 text-xs text-secondary">
-          {(Object.keys(EVENT_TYPE_LABELS) as Array<keyof typeof EVENT_TYPE_LABELS>).map((type) => (
+          {EVENT_TYPES.map((type) => (
             <span key={type} className="flex items-center gap-1">
               <span className={"h-2.5 w-2.5 rounded-full " + EVENT_TYPE_BADGE_CLASS[type]} />
-              {EVENT_TYPE_LABELS[type]}
+              {t(EVENT_TYPE_LABEL_KEYS[type])}
             </span>
           ))}
         </div>
@@ -121,15 +141,15 @@ export default function CalendarPage() {
 
       {loading ? (
         <div className="rounded-[10px] border border-border bg-card px-6 py-10 text-center text-sm text-secondary">
-          불러오는 중입니다...
+          {t("calendar.loading")}
         </div>
       ) : (
         <div className="overflow-x-auto rounded-[10px] border border-border bg-card">
           <div className="min-w-[880px]">
             <div className="grid grid-cols-7 border-b border-border">
-              {WEEKDAYS.map((day) => (
+              {weekdayLabels.map((day, index) => (
                 <div
-                  key={day}
+                  key={index}
                   className="px-3 py-2 text-center text-sm font-medium text-secondary"
                 >
                   {day}
@@ -182,7 +202,7 @@ export default function CalendarPage() {
                       })}
                       {dayEvents.length > MAX_VISIBLE_EVENTS && (
                         <span className="px-1.5 text-xs text-secondary">
-                          +{dayEvents.length - MAX_VISIBLE_EVENTS}개
+                          {t("calendar.more", { count: dayEvents.length - MAX_VISIBLE_EVENTS })}
                         </span>
                       )}
                     </div>

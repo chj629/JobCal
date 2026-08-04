@@ -4,20 +4,22 @@ import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { useT } from "@/lib/locale-context";
 
 const MIN_PASSWORD_LENGTH = 6;
 const MIN_NAME_LENGTH = 1;
 const MAX_NAME_LENGTH = 30;
 
-function mapSignUpError(message: string): string {
+function mapSignUpError(t: (key: string) => string, message: string): string {
   if (message.toLowerCase().includes("already registered")) {
-    return "이미 가입된 이메일입니다.";
+    return t("auth.errors.alreadyRegistered");
   }
-  return "회원가입에 실패했습니다. 잠시 후 다시 시도해 주세요.";
+  return t("auth.errors.signupFailed");
 }
 
 export default function SignupPage() {
   const router = useRouter();
+  const t = useT();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -31,19 +33,21 @@ export default function SignupPage() {
     setErrorMessage("");
 
     if (!name.trim() || !email.trim() || !password || !confirmPassword) {
-      setErrorMessage("모든 항목을 입력해 주세요.");
+      setErrorMessage(t("auth.errors.allFieldsRequired"));
       return;
     }
     if (name.trim().length < MIN_NAME_LENGTH || name.trim().length > MAX_NAME_LENGTH) {
-      setErrorMessage(`이름은 ${MIN_NAME_LENGTH}자 이상 ${MAX_NAME_LENGTH}자 이하로 입력해 주세요.`);
+      setErrorMessage(
+        t("auth.errors.nameLength", { min: MIN_NAME_LENGTH, max: MAX_NAME_LENGTH })
+      );
       return;
     }
     if (password.length < MIN_PASSWORD_LENGTH) {
-      setErrorMessage(`비밀번호는 ${MIN_PASSWORD_LENGTH}자 이상이어야 합니다.`);
+      setErrorMessage(t("auth.errors.passwordMinLength", { min: MIN_PASSWORD_LENGTH }));
       return;
     }
     if (password !== confirmPassword) {
-      setErrorMessage("비밀번호가 일치하지 않습니다.");
+      setErrorMessage(t("auth.errors.passwordMismatch"));
       return;
     }
 
@@ -61,7 +65,7 @@ export default function SignupPage() {
     });
 
     if (error) {
-      setErrorMessage(mapSignUpError(error.message));
+      setErrorMessage(mapSignUpError(t, error.message));
       setIsLoading(false);
       return;
     }
@@ -81,15 +85,17 @@ export default function SignupPage() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background px-4">
         <div className="w-full max-w-sm rounded-[10px] border border-border bg-card p-8 text-center">
-          <h1 className="text-[28px] font-semibold text-foreground">이메일을 확인해 주세요</h1>
+          <h1 className="text-[28px] font-semibold text-foreground">
+            {t("auth.signup.confirmedTitle")}
+          </h1>
           <p className="mt-2 text-sm text-secondary">
-            {email}로 확인 메일을 보냈습니다. 메일함에서 링크를 눌러 가입을 완료해 주세요.
+            {t("auth.signup.confirmedMessage", { email })}
           </p>
           <Link
             href="/login"
             className="mt-8 inline-block text-sm font-medium text-primary hover:underline"
           >
-            로그인 페이지로 이동
+            {t("auth.signup.backToLogin")}
           </Link>
         </div>
       </div>
@@ -99,14 +105,14 @@ export default function SignupPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="w-full max-w-sm rounded-[10px] border border-border bg-card p-8">
-        <h1 className="text-center text-[28px] font-semibold text-foreground">회원가입</h1>
-        <p className="mt-2 text-center text-sm text-secondary">
-          JobCal 계정을 만들어 취업 활동을 관리하세요.
-        </p>
+        <h1 className="text-center text-[28px] font-semibold text-foreground">
+          {t("auth.signup.title")}
+        </h1>
+        <p className="mt-2 text-center text-sm text-secondary">{t("auth.signup.description")}</p>
 
         <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-4">
           <div>
-            <label className="mb-1 block text-sm text-secondary">이름</label>
+            <label className="mb-1 block text-sm text-secondary">{t("auth.signup.name")}</label>
             <input
               type="text"
               value={name}
@@ -116,7 +122,7 @@ export default function SignupPage() {
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm text-secondary">이메일</label>
+            <label className="mb-1 block text-sm text-secondary">{t("auth.signup.email")}</label>
             <input
               type="email"
               value={email}
@@ -125,7 +131,7 @@ export default function SignupPage() {
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm text-secondary">비밀번호</label>
+            <label className="mb-1 block text-sm text-secondary">{t("auth.signup.password")}</label>
             <input
               type="password"
               value={password}
@@ -134,7 +140,9 @@ export default function SignupPage() {
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm text-secondary">비밀번호 확인</label>
+            <label className="mb-1 block text-sm text-secondary">
+              {t("auth.signup.confirmPassword")}
+            </label>
             <input
               type="password"
               value={confirmPassword}
@@ -150,14 +158,14 @@ export default function SignupPage() {
             disabled={isLoading}
             className="mt-2 h-10 w-full rounded-[10px] bg-primary text-sm font-medium text-white disabled:opacity-60"
           >
-            {isLoading ? "가입 중..." : "회원가입"}
+            {isLoading ? t("auth.signup.submitLoading") : t("auth.signup.submit")}
           </button>
         </form>
 
         <p className="mt-6 text-center text-sm text-secondary">
-          이미 계정이 있으신가요?{" "}
+          {t("auth.signup.loginPrompt")}{" "}
           <Link href="/login" className="font-medium text-primary hover:underline">
-            로그인
+            {t("auth.signup.loginLink")}
           </Link>
         </p>
       </div>

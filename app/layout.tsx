@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import { LocaleProvider } from "@/lib/locale-context";
 import "./globals.css";
 
 const inter = Inter({
@@ -9,7 +10,7 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: "JobCal",
-  description: "일본 취업 활동 관리 서비스",
+  description: "就職活動の企業・選考・日程をまとめて管理できるJobCal",
 };
 
 export default function RootLayout({
@@ -18,8 +19,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ko" className={`${inter.variable} h-full antialiased`}>
-      <body className="min-h-full bg-background text-foreground">{children}</body>
+    <html lang="ja" className={`${inter.variable} h-full antialiased`}>
+      <body className="min-h-full bg-background text-foreground">
+        <LocaleProvider>{children}</LocaleProvider>
+      </body>
     </html>
   );
 }

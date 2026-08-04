@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { getCurrentStep, DEFAULT_STEP_NAMES, type ApplicationStep } from "@/lib/applicationSteps";
 import type { Company } from "@/lib/companies";
+import { useT } from "@/lib/locale-context";
 
 interface PipelineOverviewProps {
   companies: Company[];
@@ -11,7 +12,6 @@ interface PipelineOverviewProps {
 
 type PipelineFilter = "all" | "high";
 
-const NO_STEP_LABEL = "등록된 전형 없음";
 // 실제 기업에 없는(0건) 기본 전형의 정렬 위치를 정할 때만 쓰는 fallback 순서.
 // application_steps.step_order는 1부터 시작하므로(마이그레이션 기준) 배열 인덱스(0부터)에 +1을 더해 맞춘다.
 const DEFAULT_ORDER_INDEX = new Map(DEFAULT_STEP_NAMES.map((name, index) => [name, index + 1]));
@@ -19,6 +19,7 @@ const DEFAULT_ORDER_INDEX = new Map(DEFAULT_STEP_NAMES.map((name, index) => [nam
 const CHART_MAX_HEIGHT = 160;
 
 export default function PipelineOverview({ companies, steps }: PipelineOverviewProps) {
+  const t = useT();
   const [filter, setFilter] = useState<PipelineFilter>("all");
 
   const filteredCompanies =
@@ -31,7 +32,7 @@ export default function PipelineOverview({ companies, steps }: PipelineOverviewP
   for (const company of filteredCompanies) {
     const companySteps = steps.filter((step) => step.companyId === company.id);
     const currentStep = getCurrentStep(companySteps);
-    const label = currentStep?.name ?? NO_STEP_LABEL;
+    const label = currentStep?.name ?? t("dashboard.noStepLabel");
     stepCounts.set(label, (stepCounts.get(label) ?? 0) + 1);
 
     if (currentStep) {
@@ -58,20 +59,20 @@ export default function PipelineOverview({ companies, steps }: PipelineOverviewP
   return (
     <section className="flex h-[372px] flex-col rounded-[10px] border border-border bg-card p-6">
       <div className="mb-6 flex items-center justify-between">
-        <h2 className="text-[16px] font-semibold text-foreground">전형 단계 현황</h2>
+        <h2 className="text-[16px] font-semibold text-foreground">{t("dashboard.pipeline.title")}</h2>
         <select
           value={filter}
           onChange={(e) => setFilter(e.target.value as PipelineFilter)}
           className="h-8 rounded-[8px] border border-border bg-card px-2 text-xs font-medium text-foreground"
         >
-          <option value="all">전체 기업</option>
-          <option value="high">집중 관리 기업(우선순위 높음)</option>
+          <option value="all">{t("dashboard.pipeline.filterAll")}</option>
+          <option value="high">{t("dashboard.pipeline.filterHigh")}</option>
         </select>
       </div>
 
       {filteredCompanies.length === 0 ? (
         <p className="flex flex-1 items-center justify-center text-sm text-secondary">
-          등록된 기업이 없습니다.
+          {t("dashboard.pipeline.empty")}
         </p>
       ) : (
         <div className="flex flex-1 flex-col justify-end">

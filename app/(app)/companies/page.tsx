@@ -7,9 +7,7 @@ import StatusBadge from "@/components/StatusBadge";
 import CompanyForm from "@/components/CompanyForm";
 import {
   OVERALL_STATUSES,
-  OVERALL_STATUS_LABELS,
   PRIORITIES,
-  PRIORITY_LABELS,
   createEmptyCompanyFormValues,
   companyToFormValues,
   type Company,
@@ -20,11 +18,17 @@ import { DEFAULT_STEP_NAMES, getCurrentStep } from "@/lib/applicationSteps";
 import { useEvents } from "@/lib/events-context";
 import { getNextEvent } from "@/lib/events";
 import { dateKeyOf, diffInDays, formatTimeOfDay, todayKey } from "@/lib/date";
+import { useLocale, useT } from "@/lib/locale-context";
+import type { Locale } from "@/lib/i18n/messages";
 
 const ALL = "전체";
-const NO_STEP_LABEL = "등록된 전형 없음";
 const PAGE_SIZE_OPTIONS = [10, 25, 50];
-const WEEKDAY_LABELS = ["일", "월", "화", "수", "목", "금", "토"];
+
+// components/dashboard/UpcomingSchedule.tsx와 동일한 방식: 요일 약칭만 locale별 배열로 분기.
+const WEEKDAY_LABELS: Record<Locale, string[]> = {
+  ja: ["日", "月", "火", "水", "木", "金", "土"],
+  ko: ["일", "월", "화", "수", "목", "금", "토"],
+};
 
 // design.md 색상 토큰 재사용: 높음=Error, 보통=Warning, 낮음=Success
 const PRIORITY_BADGE_CLASS: Record<string, string> = {
@@ -34,15 +38,16 @@ const PRIORITY_BADGE_CLASS: Record<string, string> = {
 };
 
 // components/dashboard/UpcomingSchedule.tsx의 formatRowDate와 동일한 규칙(오늘/내일/MM.DD (요일)).
-function formatRelativeDate(iso: string) {
+// "오늘"/"내일"은 대시보드와 동일한 개념이라 dashboard.today/tomorrow 키를 그대로 재사용한다.
+function formatRelativeDate(iso: string, t: (key: string) => string, weekdayLabels: string[]) {
   const key = dateKeyOf(iso);
   const diff = diffInDays(todayKey(), key);
-  if (diff === 0) return "오늘";
-  if (diff === 1) return "내일";
+  if (diff === 0) return t("dashboard.today");
+  if (diff === 1) return t("dashboard.tomorrow");
 
   const date = new Date(iso);
   const pad = (n: number) => String(n).padStart(2, "0");
-  return `${pad(date.getMonth() + 1)}.${pad(date.getDate())} (${WEEKDAY_LABELS[date.getDay()]})`;
+  return `${pad(date.getMonth() + 1)}.${pad(date.getDate())} (${weekdayLabels[date.getDay()]})`;
 }
 
 function getInitials(name: string) {
@@ -50,6 +55,22 @@ function getInitials(name: string) {
 }
 
 export default function CompaniesPage() {
+  const t = useT();
+  const { locale } = useLocale();
+  const weekdayLabels = WEEKDAY_LABELS[locale];
+  const statusLabels: Record<string, string> = {
+    in_progress: t("companies.list.status.inProgress"),
+    offer: t("companies.list.status.offer"),
+    joined: t("companies.list.status.joined"),
+    rejected: t("companies.list.status.rejected"),
+    cancelled: t("companies.list.status.cancelled"),
+  };
+  const priorityLabels: Record<string, string> = {
+    high: t("companies.list.priority.high"),
+    medium: t("companies.list.priority.medium"),
+    low: t("companies.list.priority.low"),
+  };
+
   const {
     companies,
     addCompany,
@@ -86,7 +107,7 @@ export default function CompaniesPage() {
 
     return {
       company,
-      currentStepName: getCurrentStep(companySteps)?.name ?? NO_STEP_LABEL,
+      currentStepName: getCurrentStep(companySteps)?.name ?? t("dashboard.noStepLabel"),
       nextEventAt,
       nextEventStepName,
     };
@@ -103,10 +124,10 @@ export default function CompaniesPage() {
   });
 
   const statusTabs = [
-    { key: ALL, label: ALL, count: baseFilteredRows.length },
+    { key: ALL, label: t("companies.list.status.all"), count: baseFilteredRows.length },
     ...OVERALL_STATUSES.map((status) => ({
       key: status,
-      label: OVERALL_STATUS_LABELS[status],
+      label: statusLabels[status],
       count: baseFilteredRows.filter(({ company }) => company.overallStatus === status).length,
     })),
   ];
@@ -151,7 +172,7 @@ export default function CompaniesPage() {
 
   async function handleDelete(company: Company) {
     setActiveMenuId(null);
-    if (window.confirm(`'${company.name}' 기업을 삭제하시겠습니까?`)) {
+    if (window.confirm(t("companies.list.deleteConfirm", { name: company.name }))) {
       await deleteCompany(company.id);
     }
   }
@@ -160,17 +181,17 @@ export default function CompaniesPage() {
     <div className="mx-auto max-w-[1200px] px-8 py-8">
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-[28px] font-semibold text-foreground">기업 목록</h1>
-          <p className="mt-1 text-sm text-secondary">
-            지원한 기업을 한눈에 관리하세요.
-          </p>
+          <h1 className="text-[28px] font-semibold text-foreground">
+            {t("companies.list.title")}
+          </h1>
+          <p className="mt-1 text-sm text-secondary">{t("companies.list.description")}</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="기업명 검색"
+            placeholder={t("companies.list.searchPlaceholder")}
             className="h-10 w-full rounded-[10px] border border-border bg-card px-3 text-sm text-foreground placeholder:text-secondary focus:border-primary focus:outline-none sm:w-64"
           />
           <button
@@ -179,20 +200,20 @@ export default function CompaniesPage() {
             className="flex h-10 items-center gap-2 rounded-[10px] border border-border bg-card px-4 text-sm font-medium text-foreground hover:bg-background"
           >
             <Filter size={16} />
-            필터
+            {t("companies.list.filterButton")}
           </button>
           <Link
             href="/companies/new-from-email"
             className="flex h-10 items-center rounded-[10px] border border-border bg-card px-4 text-sm font-medium text-foreground hover:bg-background"
           >
-            + 메일로 추가
+            {t("companies.list.addFromEmail")}
           </Link>
           <button
             type="button"
             onClick={() => setIsAddOpen(true)}
             className="h-10 rounded-[10px] bg-primary px-4 text-sm font-medium text-white"
           >
-            + 기업 추가
+            {t("companies.list.addCompany")}
           </button>
         </div>
       </div>
@@ -204,10 +225,10 @@ export default function CompaniesPage() {
             onChange={(e) => setPriorityFilter(e.target.value)}
             className="h-10 rounded-[10px] border border-border bg-card px-3 text-sm text-foreground focus:border-primary focus:outline-none"
           >
-            <option value={ALL}>전체 우선순위</option>
+            <option value={ALL}>{t("companies.list.filters.allPriority")}</option>
             {PRIORITIES.map((priority) => (
               <option key={priority} value={priority}>
-                {PRIORITY_LABELS[priority]}
+                {priorityLabels[priority]}
               </option>
             ))}
           </select>
@@ -216,7 +237,7 @@ export default function CompaniesPage() {
             onChange={(e) => setStepFilter(e.target.value)}
             className="h-10 rounded-[10px] border border-border bg-card px-3 text-sm text-foreground focus:border-primary focus:outline-none"
           >
-            <option value={ALL}>전체 단계</option>
+            <option value={ALL}>{t("companies.list.filters.allStep")}</option>
             {DEFAULT_STEP_NAMES.map((step) => (
               <option key={step} value={step}>
                 {step}
@@ -229,7 +250,7 @@ export default function CompaniesPage() {
               onClick={resetFilters}
               className="h-10 rounded-[10px] border border-border px-4 text-sm font-medium text-secondary hover:text-foreground"
             >
-              초기화
+              {t("companies.list.filters.reset")}
             </button>
           )}
         </div>
@@ -261,19 +282,25 @@ export default function CompaniesPage() {
 
       {loading ? (
         <div className="rounded-[10px] border border-border bg-card px-6 py-10 text-center text-sm text-secondary">
-          불러오는 중입니다...
+          {t("companies.list.loading")}
         </div>
       ) : (
         <div className="overflow-x-auto rounded-[10px] border border-border bg-card">
           <table className="w-full min-w-[960px] border-collapse text-sm">
             <thead>
               <tr className="border-b border-border text-left text-secondary">
-                <th className="px-6 py-3 font-medium">기업명</th>
-                <th className="px-6 py-3 font-medium">현재 전형 단계</th>
-                <th className="px-6 py-3 font-medium">상태</th>
-                <th className="px-6 py-3 font-medium">다음 일정</th>
-                <th className="px-6 py-3 font-medium">우선순위</th>
-                <th className="px-6 py-3 font-medium">최종 수정일</th>
+                <th className="px-6 py-3 font-medium">{t("companies.list.columns.company")}</th>
+                <th className="px-6 py-3 font-medium">
+                  {t("companies.list.columns.currentStep")}
+                </th>
+                <th className="px-6 py-3 font-medium">{t("companies.list.columns.status")}</th>
+                <th className="px-6 py-3 font-medium">
+                  {t("companies.list.columns.nextSchedule")}
+                </th>
+                <th className="px-6 py-3 font-medium">{t("companies.list.columns.priority")}</th>
+                <th className="px-6 py-3 font-medium">
+                  {t("companies.list.columns.updatedAt")}
+                </th>
                 <th className="w-10 px-4 py-3" />
               </tr>
             </thead>
@@ -305,12 +332,13 @@ export default function CompaniesPage() {
                     {nextEventAt ? (
                       <div>
                         <p className="text-foreground">
-                          {formatRelativeDate(nextEventAt)} {formatTimeOfDay(nextEventAt)}
+                          {formatRelativeDate(nextEventAt, t, weekdayLabels)}{" "}
+                          {formatTimeOfDay(nextEventAt)}
                         </p>
                         <p className="text-xs text-secondary">{nextEventStepName}</p>
                       </div>
                     ) : (
-                      <span className="text-secondary">예정 없음</span>
+                      <span className="text-secondary">{t("companies.list.noSchedule")}</span>
                     )}
                   </td>
                   <td className="px-6 py-3">
@@ -320,7 +348,7 @@ export default function CompaniesPage() {
                         PRIORITY_BADGE_CLASS[company.priority]
                       }
                     >
-                      {PRIORITY_LABELS[company.priority]}
+                      {priorityLabels[company.priority]}
                     </span>
                   </td>
                   <td className="px-6 py-3 text-secondary">{company.updatedAt}</td>
@@ -331,7 +359,7 @@ export default function CompaniesPage() {
                         setActiveMenuId((id) => (id === company.id ? null : company.id))
                       }
                       className="rounded-[8px] p-1.5 text-secondary hover:bg-background hover:text-foreground"
-                      aria-label={`${company.name} 작업 메뉴`}
+                      aria-label={t("companies.list.actionsMenuLabel", { name: company.name })}
                     >
                       <MoreHorizontal size={16} />
                     </button>
@@ -350,14 +378,14 @@ export default function CompaniesPage() {
                             }}
                             className="block w-full px-3 py-2 text-left text-sm text-foreground hover:bg-background"
                           >
-                            수정
+                            {t("companies.list.actions.edit")}
                           </button>
                           <button
                             type="button"
                             onClick={() => handleDelete(company)}
                             className="block w-full px-3 py-2 text-left text-sm text-error hover:bg-background"
                           >
-                            삭제
+                            {t("companies.list.actions.delete")}
                           </button>
                         </div>
                       </>
@@ -369,7 +397,7 @@ export default function CompaniesPage() {
               {paginatedRows.length === 0 && (
                 <tr>
                   <td colSpan={7} className="px-6 py-10 text-center text-sm text-secondary">
-                    검색 조건에 맞는 기업이 없습니다
+                    {t("companies.list.empty.noResults")}
                   </td>
                 </tr>
               )}
@@ -378,7 +406,9 @@ export default function CompaniesPage() {
 
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-6 py-4">
             <p className="text-sm text-secondary">
-              총 <span className="font-medium text-foreground">{totalCount}</span>개
+              {t("companies.list.pagination.totalPrefix")}{" "}
+              <span className="font-medium text-foreground">{totalCount}</span>
+              {t("companies.list.pagination.totalSuffix")}
             </p>
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-1">
@@ -387,7 +417,7 @@ export default function CompaniesPage() {
                   disabled={page <= 1}
                   onClick={() => setCurrentPage(page - 1)}
                   className="flex h-8 w-8 items-center justify-center rounded-[8px] text-secondary hover:bg-background hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
-                  aria-label="이전 페이지"
+                  aria-label={t("companies.list.pagination.previous")}
                 >
                   ‹
                 </button>
@@ -411,7 +441,7 @@ export default function CompaniesPage() {
                   disabled={page >= totalPages}
                   onClick={() => setCurrentPage(page + 1)}
                   className="flex h-8 w-8 items-center justify-center rounded-[8px] text-secondary hover:bg-background hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
-                  aria-label="다음 페이지"
+                  aria-label={t("companies.list.pagination.next")}
                 >
                   ›
                 </button>
@@ -423,7 +453,7 @@ export default function CompaniesPage() {
               >
                 {PAGE_SIZE_OPTIONS.map((size) => (
                   <option key={size} value={size}>
-                    {size}개씩
+                    {t("companies.list.pagination.perPage", { size })}
                   </option>
                 ))}
               </select>
@@ -434,7 +464,7 @@ export default function CompaniesPage() {
 
       {isAddOpen && (
         <CompanyForm
-          title="기업 추가"
+          title={t("companies.list.addCompanyModalTitle")}
           initialValues={createEmptyCompanyFormValues()}
           onCancel={() => setIsAddOpen(false)}
           onSubmit={async (values) => {
@@ -451,7 +481,7 @@ export default function CompaniesPage() {
 
       {editingCompany && (
         <CompanyForm
-          title="기업 수정"
+          title={t("companies.list.editCompanyModalTitle")}
           initialValues={companyToFormValues(editingCompany)}
           onCancel={() => setEditingCompany(null)}
           onSubmit={async (values) => {

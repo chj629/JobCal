@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import type { ContactFormValues } from "@/lib/companyContacts";
+import { useT } from "@/lib/locale-context";
 
 interface ContactFormProps {
   title: string;
@@ -15,13 +16,14 @@ const fieldClass =
 const labelClass = "mb-1 block text-sm text-secondary";
 
 export default function ContactForm({ title, initialValues, onCancel, onSubmit }: ContactFormProps) {
+  const t = useT();
   const [values, setValues] = useState<ContactFormValues>(initialValues);
   const [error, setError] = useState("");
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
     if (!values.name.trim()) {
-      setError("담당자 이름을 입력해 주세요.");
+      setError(t("companies.contacts.nameRequired"));
       return;
     }
     onSubmit(values);
@@ -33,7 +35,7 @@ export default function ContactForm({ title, initialValues, onCancel, onSubmit }
         <h2 className="mb-4 text-[16px] font-semibold text-foreground">{title}</h2>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
-            <label className={labelClass}>이름</label>
+            <label className={labelClass}>{t("companies.contacts.name")}</label>
             <input
               type="text"
               value={values.name}
@@ -45,7 +47,7 @@ export default function ContactForm({ title, initialValues, onCancel, onSubmit }
 
           <div>
             <label className={labelClass}>
-              소속 또는 역할 <span className="text-secondary">(선택)</span>
+              {t("companies.contacts.role")} <span className="text-secondary">{t("common.optional")}</span>
             </label>
             <input
               type="text"
@@ -58,7 +60,7 @@ export default function ContactForm({ title, initialValues, onCancel, onSubmit }
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className={labelClass}>
-                이메일 <span className="text-secondary">(선택)</span>
+                {t("companies.contacts.email")} <span className="text-secondary">{t("common.optional")}</span>
               </label>
               <input
                 type="text"
@@ -69,7 +71,7 @@ export default function ContactForm({ title, initialValues, onCancel, onSubmit }
             </div>
             <div>
               <label className={labelClass}>
-                전화번호 <span className="text-secondary">(선택)</span>
+                {t("companies.contacts.phone")} <span className="text-secondary">{t("common.optional")}</span>
               </label>
               <input
                 type="text"
@@ -82,7 +84,7 @@ export default function ContactForm({ title, initialValues, onCancel, onSubmit }
 
           <div>
             <label className={labelClass}>
-              메모 <span className="text-secondary">(선택)</span>
+              {t("companies.contacts.memo")} <span className="text-secondary">{t("common.optional")}</span>
             </label>
             <textarea
               value={values.memo}
@@ -98,13 +100,13 @@ export default function ContactForm({ title, initialValues, onCancel, onSubmit }
               onClick={onCancel}
               className="h-10 rounded-[10px] border border-border px-4 text-sm font-medium text-secondary"
             >
-              취소
+              {t("common.cancel")}
             </button>
             <button
               type="submit"
               className="h-10 rounded-[10px] bg-primary px-4 text-sm font-medium text-white"
             >
-              저장
+              {t("common.save")}
             </button>
           </div>
         </form>

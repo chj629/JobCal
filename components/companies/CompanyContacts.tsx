@@ -10,12 +10,14 @@ import {
   type ContactFormValues,
 } from "@/lib/companyContacts";
 import ContactForm from "@/components/companies/ContactForm";
+import { useT } from "@/lib/locale-context";
 
 interface CompanyContactsProps {
   companyId: string;
 }
 
 export default function CompanyContacts({ companyId }: CompanyContactsProps) {
+  const t = useT();
   const { contacts, error, addContact, updateContact, deleteContact } = useCompanyContacts();
   const [isExpanded, setIsExpanded] = useState(false);
   const [formState, setFormState] = useState<{ contact: CompanyContact | null } | null>(null);
@@ -23,7 +25,7 @@ export default function CompanyContacts({ companyId }: CompanyContactsProps) {
   const companyContacts = contacts.filter((contact) => contact.companyId === companyId);
 
   async function handleDelete(contact: CompanyContact) {
-    if (window.confirm(`'${contact.name}' 담당자를 삭제하시겠습니까?`)) {
+    if (window.confirm(t("companies.contacts.deleteConfirm", { name: contact.name }))) {
       await deleteContact(contact.id);
     }
   }
@@ -44,7 +46,7 @@ export default function CompanyContacts({ companyId }: CompanyContactsProps) {
           className="flex items-center gap-2 text-[16px] font-semibold text-foreground"
         >
           {isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
-          담당자
+          {t("companies.contacts.heading")}
           {companyContacts.length > 0 && (
             <span className="text-sm font-normal text-secondary">{companyContacts.length}</span>
           )}
@@ -57,7 +59,7 @@ export default function CompanyContacts({ companyId }: CompanyContactsProps) {
           }}
           className="text-xs font-medium text-primary hover:underline"
         >
-          + 담당자 추가
+          {t("companies.contacts.addButton")}
         </button>
       </div>
 
@@ -70,7 +72,7 @@ export default function CompanyContacts({ companyId }: CompanyContactsProps) {
           )}
 
           {companyContacts.length === 0 ? (
-            <p className="py-6 text-center text-sm text-secondary">등록된 담당자가 없습니다.</p>
+            <p className="py-6 text-center text-sm text-secondary">{t("companies.contacts.empty")}</p>
           ) : (
             <div className="flex flex-col gap-3">
               {companyContacts.map((contact) => (
@@ -86,14 +88,14 @@ export default function CompanyContacts({ companyId }: CompanyContactsProps) {
                         onClick={() => setFormState({ contact })}
                         className="text-secondary hover:text-primary hover:underline"
                       >
-                        수정
+                        {t("common.edit")}
                       </button>
                       <button
                         type="button"
                         onClick={() => handleDelete(contact)}
                         className="text-secondary hover:text-error hover:underline"
                       >
-                        삭제
+                        {t("common.delete")}
                       </button>
                     </div>
                   </div>
@@ -115,7 +117,11 @@ export default function CompanyContacts({ companyId }: CompanyContactsProps) {
 
       {formState && (
         <ContactForm
-          title={formState.contact ? "담당자 수정" : "담당자 추가"}
+          title={
+            formState.contact
+              ? t("companies.contacts.editModalTitle")
+              : t("companies.contacts.addModalTitle")
+          }
           initialValues={
             formState.contact ? contactToFormValues(formState.contact) : createEmptyContactFormValues()
           }

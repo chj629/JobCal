@@ -4,6 +4,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { useT } from "@/lib/locale-context";
 
 const MIN_PASSWORD_LENGTH = 6;
 
@@ -11,6 +12,7 @@ type SessionStatus = "checking" | "ready" | "invalid";
 
 export default function UpdatePasswordPage() {
   const router = useRouter();
+  const t = useT();
   const [sessionStatus, setSessionStatus] = useState<SessionStatus>("checking");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -31,15 +33,15 @@ export default function UpdatePasswordPage() {
     setErrorMessage("");
 
     if (!password || !confirmPassword) {
-      setErrorMessage("모든 항목을 입력해 주세요.");
+      setErrorMessage(t("auth.errors.allFieldsRequired"));
       return;
     }
     if (password.length < MIN_PASSWORD_LENGTH) {
-      setErrorMessage(`비밀번호는 ${MIN_PASSWORD_LENGTH}자 이상이어야 합니다.`);
+      setErrorMessage(t("auth.errors.passwordMinLength", { min: MIN_PASSWORD_LENGTH }));
       return;
     }
     if (password !== confirmPassword) {
-      setErrorMessage("비밀번호가 일치하지 않습니다.");
+      setErrorMessage(t("auth.errors.passwordMismatch"));
       return;
     }
 
@@ -48,7 +50,7 @@ export default function UpdatePasswordPage() {
     const { error } = await supabase.auth.updateUser({ password });
 
     if (error) {
-      setErrorMessage("비밀번호를 변경하지 못했습니다. 잠시 후 다시 시도해 주세요.");
+      setErrorMessage(t("auth.errors.updateFailed"));
       setIsLoading(false);
       return;
     }
@@ -61,7 +63,7 @@ export default function UpdatePasswordPage() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background px-4">
         <div className="w-full max-w-sm rounded-[10px] border border-border bg-card p-8 text-center text-sm text-secondary">
-          확인 중입니다...
+          {t("auth.updatePassword.checking")}
         </div>
       </div>
     );
@@ -71,15 +73,17 @@ export default function UpdatePasswordPage() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background px-4">
         <div className="w-full max-w-sm rounded-[10px] border border-border bg-card p-8 text-center">
-          <h1 className="text-[28px] font-semibold text-foreground">링크가 유효하지 않습니다</h1>
+          <h1 className="text-[28px] font-semibold text-foreground">
+            {t("auth.updatePassword.invalidTitle")}
+          </h1>
           <p className="mt-2 text-sm text-secondary">
-            비밀번호 재설정 링크가 유효하지 않거나 만료되었습니다. 다시 요청해 주세요.
+            {t("auth.updatePassword.invalidMessage")}
           </p>
           <Link
             href="/forgot-password"
             className="mt-8 inline-block text-sm font-medium text-primary hover:underline"
           >
-            재설정 메일 다시 받기
+            {t("auth.updatePassword.requestNewLink")}
           </Link>
         </div>
       </div>
@@ -89,14 +93,18 @@ export default function UpdatePasswordPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="w-full max-w-sm rounded-[10px] border border-border bg-card p-8">
-        <h1 className="text-center text-[28px] font-semibold text-foreground">새 비밀번호 설정</h1>
+        <h1 className="text-center text-[28px] font-semibold text-foreground">
+          {t("auth.updatePassword.title")}
+        </h1>
         <p className="mt-2 text-center text-sm text-secondary">
-          새로 사용할 비밀번호를 입력해 주세요.
+          {t("auth.updatePassword.description")}
         </p>
 
         <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-4">
           <div>
-            <label className="mb-1 block text-sm text-secondary">새 비밀번호</label>
+            <label className="mb-1 block text-sm text-secondary">
+              {t("auth.updatePassword.password")}
+            </label>
             <input
               type="password"
               value={password}
@@ -105,7 +113,9 @@ export default function UpdatePasswordPage() {
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm text-secondary">새 비밀번호 확인</label>
+            <label className="mb-1 block text-sm text-secondary">
+              {t("auth.updatePassword.confirmPassword")}
+            </label>
             <input
               type="password"
               value={confirmPassword}
@@ -121,7 +131,7 @@ export default function UpdatePasswordPage() {
             disabled={isLoading}
             className="mt-2 h-10 w-full rounded-[10px] bg-primary text-sm font-medium text-white disabled:opacity-60"
           >
-            {isLoading ? "변경 중..." : "비밀번호 변경"}
+            {isLoading ? t("auth.updatePassword.submitLoading") : t("auth.updatePassword.submit")}
           </button>
         </form>
       </div>

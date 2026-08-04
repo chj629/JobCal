@@ -8,9 +8,7 @@ import { useCompanyContacts } from "@/lib/company-contacts-context";
 import { useCompanyNotes } from "@/lib/company-notes-context";
 import {
   OVERALL_STATUSES,
-  OVERALL_STATUS_LABELS,
   PRIORITIES,
-  PRIORITY_LABELS,
   createEmptyCompanyFormValues,
   type Company,
   type CompanyFormValues,
@@ -20,7 +18,6 @@ import {
 import { DEFAULT_STEP_NAMES } from "@/lib/applicationSteps";
 import {
   EVENT_TYPES,
-  EVENT_TYPE_LABELS,
   createEmptyEventFormValues,
   isoToDatetimeLocal,
   type EventFormValues,
@@ -28,6 +25,7 @@ import {
 } from "@/lib/events";
 import { createEmptyContactFormValues, type ContactFormValues } from "@/lib/companyContacts";
 import type { EmailAnalysisResult, ExtractedEvent } from "@/lib/ai/emailAnalysis";
+import { useT } from "@/lib/locale-context";
 
 interface EmailAnalysisReviewProps {
   analysis: EmailAnalysisResult;
@@ -39,6 +37,21 @@ interface EmailAnalysisReviewProps {
 const fieldClass =
   "h-10 w-full rounded-[10px] border border-border bg-card px-3 text-sm text-foreground focus:border-primary focus:outline-none";
 const labelClass = "mb-1 block text-sm text-secondary";
+
+// 아래 세 맵은 lib/companies.ts, lib/events.ts의 *_LABELS(한국어 고정)를 건드리지 않고,
+// 기업 상세/기업 목록 단계에서 이미 만든 번역 키를 재사용하기 위한 것이다.
+const STATUS_LABEL_KEYS: Record<OverallStatus, string> = {
+  in_progress: "companies.list.status.inProgress",
+  offer: "companies.list.status.offer",
+  joined: "companies.list.status.joined",
+  rejected: "companies.list.status.rejected",
+  cancelled: "companies.list.status.cancelled",
+};
+const EVENT_TYPE_LABEL_KEYS: Record<EventType, string> = {
+  schedule: "companies.events.types.schedule",
+  deadline: "companies.events.types.deadline",
+  result_announcement: "companies.events.types.resultAnnouncement",
+};
 
 function extractedEventToFormValues(event: ExtractedEvent): EventFormValues {
   return {
@@ -59,11 +72,12 @@ export default function EmailAnalysisReview({
   onBack,
   onDone,
 }: EmailAnalysisReviewProps) {
-  const { addCompany, error: companiesError } = useCompanies();
-  const { steps, addStep, refresh: refreshSteps, error: stepsError } = useApplicationSteps();
-  const { addEvent, error: eventsError } = useEvents();
-  const { addContact, error: contactsError } = useCompanyContacts();
-  const { addNote, error: notesError } = useCompanyNotes();
+  const t = useT();
+  const { addCompany } = useCompanies();
+  const { steps, addStep, refresh: refreshSteps } = useApplicationSteps();
+  const { addEvent } = useEvents();
+  const { addContact } = useCompanyContacts();
+  const { addNote } = useCompanyNotes();
 
   const [companyValues, setCompanyValues] = useState<CompanyFormValues>(() => ({
     ...createEmptyCompanyFormValues(),
@@ -115,7 +129,7 @@ export default function EmailAnalysisReview({
 
   async function handleRegister() {
     if (!existingCompany && !companyValues.name.trim()) {
-      setSaveError("기업명을 입력해 주세요.");
+      setSaveError(t("companies.form.nameRequired"));
       return;
     }
 
@@ -132,7 +146,9 @@ export default function EmailAnalysisReview({
     } else {
       const created = await addCompany(companyValues);
       if (!created) {
-        setSaveError(companiesError ?? "기업 등록에 실패했습니다.");
+        // Context가 반환하는 원본 에러(예: Supabase 메시지)를 그대로 노출하지 않고
+        // 고정된 안내 문구만 보여준다.
+        setSaveError(t("aiEmail.review.companySaveFailed"));
         setSaving(false);
         return;
       }
@@ -152,7 +168,7 @@ export default function EmailAnalysisReview({
       } else {
         const createdStep = await addStep(companyId, trimmedStepName);
         if (!createdStep) {
-          setSaveError(stepsError ?? "전형 등록에 실패했습니다.");
+          setSaveError(t("aiEmail.review.stepSaveFailed"));
           setSaving(false);
           return;
         }
@@ -165,7 +181,7 @@ export default function EmailAnalysisReview({
     const eventsToSave = events.filter((event) => event.title.trim());
 
     if (eventsToSave.length > 0 && !stepId) {
-      setSaveError("일정을 연결할 전형을 찾을 수 없습니다. 전형 단계를 입력해 주세요.");
+      setSaveError(t("aiEmail.review.stepRequiredForEvents"));
       setSaving(false);
       return;
     }
@@ -173,7 +189,7 @@ export default function EmailAnalysisReview({
     for (const eventValues of eventsToSave) {
       const ok = await addEvent(companyId, stepId!, eventValues);
       if (!ok) {
-        setSaveError(eventsError ?? "일정 등록에 실패했습니다.");
+        setSaveError(t("aiEmail.review.eventSaveFailed"));
         setSaving(false);
         return;
       }
@@ -184,7 +200,7 @@ export default function EmailAnalysisReview({
     for (const contactValues of contactsToSave) {
       const ok = await addContact(companyId, contactValues);
       if (!ok) {
-        setSaveError(contactsError ?? "담당자 등록에 실패했습니다.");
+        setSaveError(t("aiEmail.review.contactSaveFailed"));
         setSaving(false);
         return;
       }
@@ -193,7 +209,7 @@ export default function EmailAnalysisReview({
     if (memo.trim()) {
       const ok = await addNote(companyId, { title: "", content: memo });
       if (!ok) {
-        setSaveError(notesError ?? "메모 등록에 실패했습니다.");
+        setSaveError(t("aiEmail.review.noteSaveFailed"));
         setSaving(false);
         return;
       }
@@ -205,23 +221,23 @@ export default function EmailAnalysisReview({
 
   return (
     <div className="mx-auto max-w-[720px] px-8 py-8">
-      <h1 className="text-[20px] font-semibold text-foreground">추출 결과 확인</h1>
-      <p className="mt-1 text-sm text-secondary">
-        AI가 추출한 내용을 확인하고 필요한 부분을 수정한 뒤 등록하세요.
-      </p>
+      <h1 className="text-[20px] font-semibold text-foreground">{t("aiEmail.review.title")}</h1>
+      <p className="mt-1 text-sm text-secondary">{t("aiEmail.review.description")}</p>
 
       <section className="mt-6 rounded-[10px] border border-border bg-card p-6">
-        <h2 className="mb-4 text-[16px] font-semibold text-foreground">기업</h2>
+        <h2 className="mb-4 text-[16px] font-semibold text-foreground">
+          {t("aiEmail.review.companySection")}
+        </h2>
 
         {existingCompany ? (
           <p className="text-sm text-foreground">
             <span className="font-medium">{existingCompany.name}</span>{" "}
-            <span className="text-secondary">에 아래 내용을 추가합니다.</span>
+            <span className="text-secondary">{t("aiEmail.review.addingToExistingSuffix")}</span>
           </p>
         ) : (
           <div className="flex flex-col gap-4">
             <div>
-              <label className={labelClass}>기업명</label>
+              <label className={labelClass}>{t("companies.form.name")}</label>
               <input
                 type="text"
                 value={companyValues.name}
@@ -231,7 +247,7 @@ export default function EmailAnalysisReview({
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className={labelClass}>결과</label>
+                <label className={labelClass}>{t("companies.form.status")}</label>
                 <select
                   value={companyValues.overallStatus}
                   onChange={(e) =>
@@ -244,13 +260,13 @@ export default function EmailAnalysisReview({
                 >
                   {OVERALL_STATUSES.map((status) => (
                     <option key={status} value={status}>
-                      {OVERALL_STATUS_LABELS[status]}
+                      {t(STATUS_LABEL_KEYS[status])}
                     </option>
                   ))}
                 </select>
               </div>
               <div>
-                <label className={labelClass}>우선순위</label>
+                <label className={labelClass}>{t("companies.form.priorityLabel")}</label>
                 <select
                   value={companyValues.priority}
                   onChange={(e) =>
@@ -260,7 +276,7 @@ export default function EmailAnalysisReview({
                 >
                   {PRIORITIES.map((priority) => (
                     <option key={priority} value={priority}>
-                      {PRIORITY_LABELS[priority]}
+                      {t(`companies.list.priority.${priority}`)}
                     </option>
                   ))}
                 </select>
@@ -271,12 +287,14 @@ export default function EmailAnalysisReview({
       </section>
 
       <section className="mt-6 rounded-[10px] border border-border bg-card p-6">
-        <h2 className="mb-4 text-[16px] font-semibold text-foreground">전형 단계</h2>
+        <h2 className="mb-4 text-[16px] font-semibold text-foreground">
+          {t("aiEmail.review.stepSection")}
+        </h2>
         <input
           type="text"
           value={stepName}
           onChange={(e) => setStepName(e.target.value)}
-          placeholder="예: 1차 면접"
+          placeholder={t("aiEmail.review.stepPlaceholder")}
           className={fieldClass}
         />
         {stepNameSuggestions.length > 0 && (
@@ -297,18 +315,20 @@ export default function EmailAnalysisReview({
 
       <section className="mt-6 rounded-[10px] border border-border bg-card p-6">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-[16px] font-semibold text-foreground">일정</h2>
+          <h2 className="text-[16px] font-semibold text-foreground">
+            {t("companies.steps.eventsHeading")}
+          </h2>
           <button
             type="button"
             onClick={() => setEvents((prev) => [...prev, createEmptyEventFormValues()])}
             className="text-xs font-medium text-primary hover:underline"
           >
-            + 일정 추가
+            {t("companies.steps.addEvent")}
           </button>
         </div>
 
         {events.length === 0 ? (
-          <p className="py-4 text-center text-sm text-secondary">추출된 일정이 없습니다.</p>
+          <p className="py-4 text-center text-sm text-secondary">{t("aiEmail.review.noEvents")}</p>
         ) : (
           <div className="flex flex-col gap-4">
             {events.map((event, index) => {
@@ -326,7 +346,7 @@ export default function EmailAnalysisReview({
                     >
                       {EVENT_TYPES.map((type) => (
                         <option key={type} value={type}>
-                          {EVENT_TYPE_LABELS[type]}
+                          {t(EVENT_TYPE_LABEL_KEYS[type])}
                         </option>
                       ))}
                     </select>
@@ -335,12 +355,12 @@ export default function EmailAnalysisReview({
                       onClick={() => removeEvent(index)}
                       className="text-xs text-secondary hover:text-error hover:underline"
                     >
-                      삭제
+                      {t("common.delete")}
                     </button>
                   </div>
 
                   <div className="mt-3">
-                    <label className={labelClass}>제목</label>
+                    <label className={labelClass}>{t("companies.events.titleLabel")}</label>
                     <input
                       type="text"
                       value={event.title}
@@ -352,7 +372,7 @@ export default function EmailAnalysisReview({
                   {isSchedule && (
                     <div className="mt-3 grid grid-cols-2 gap-4">
                       <div>
-                        <label className={labelClass}>시작 일시</label>
+                        <label className={labelClass}>{t("companies.events.startsAt")}</label>
                         <input
                           type="datetime-local"
                           value={event.startsAt}
@@ -362,7 +382,8 @@ export default function EmailAnalysisReview({
                       </div>
                       <div>
                         <label className={labelClass}>
-                          종료 일시 <span className="text-secondary">(선택)</span>
+                          {t("companies.events.endsAt")}{" "}
+                          <span className="text-secondary">{t("common.optional")}</span>
                         </label>
                         <input
                           type="datetime-local"
@@ -377,7 +398,9 @@ export default function EmailAnalysisReview({
                   {isDeadlineOrResult && (
                     <div className="mt-3">
                       <label className={labelClass}>
-                        {event.eventType === "deadline" ? "마감 일시" : "결과 발표 예정 일시"}
+                        {event.eventType === "deadline"
+                          ? t("companies.events.dueAtDeadline")
+                          : t("companies.events.dueAtResult")}
                       </label>
                       <input
                         type="datetime-local"
@@ -390,8 +413,8 @@ export default function EmailAnalysisReview({
 
                   <div className="mt-3">
                     <label className={labelClass}>
-                      {isSchedule ? "온라인 참가 링크" : "링크"}{" "}
-                      <span className="text-secondary">(선택)</span>
+                      {isSchedule ? t("companies.events.onlineLink") : t("aiEmail.review.linkGeneric")}{" "}
+                      <span className="text-secondary">{t("common.optional")}</span>
                     </label>
                     <input
                       type="text"
@@ -409,25 +432,27 @@ export default function EmailAnalysisReview({
 
       <section className="mt-6 rounded-[10px] border border-border bg-card p-6">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-[16px] font-semibold text-foreground">담당자</h2>
+          <h2 className="text-[16px] font-semibold text-foreground">
+            {t("companies.contacts.heading")}
+          </h2>
           <button
             type="button"
             onClick={() => setContacts((prev) => [...prev, createEmptyContactFormValues()])}
             className="text-xs font-medium text-primary hover:underline"
           >
-            + 담당자 추가
+            {t("companies.contacts.addButton")}
           </button>
         </div>
 
         {contacts.length === 0 ? (
-          <p className="py-4 text-center text-sm text-secondary">추출된 담당자가 없습니다.</p>
+          <p className="py-4 text-center text-sm text-secondary">{t("aiEmail.review.noContacts")}</p>
         ) : (
           <div className="flex flex-col gap-4">
             {contacts.map((contact, index) => (
               <div key={index} className="rounded-[10px] border border-border p-4">
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1">
-                    <label className={labelClass}>이름</label>
+                    <label className={labelClass}>{t("companies.contacts.name")}</label>
                     <input
                       type="text"
                       value={contact.name}
@@ -440,13 +465,14 @@ export default function EmailAnalysisReview({
                     onClick={() => removeContact(index)}
                     className="mt-6 shrink-0 text-xs text-secondary hover:text-error hover:underline"
                   >
-                    삭제
+                    {t("common.delete")}
                   </button>
                 </div>
                 <div className="mt-3 grid grid-cols-2 gap-4">
                   <div>
                     <label className={labelClass}>
-                      이메일 <span className="text-secondary">(선택)</span>
+                      {t("companies.contacts.email")}{" "}
+                      <span className="text-secondary">{t("common.optional")}</span>
                     </label>
                     <input
                       type="text"
@@ -457,7 +483,8 @@ export default function EmailAnalysisReview({
                   </div>
                   <div>
                     <label className={labelClass}>
-                      전화번호 <span className="text-secondary">(선택)</span>
+                      {t("companies.contacts.phone")}{" "}
+                      <span className="text-secondary">{t("common.optional")}</span>
                     </label>
                     <input
                       type="text"
@@ -474,7 +501,9 @@ export default function EmailAnalysisReview({
       </section>
 
       <section className="mt-6 rounded-[10px] border border-border bg-card p-6">
-        <h2 className="mb-4 text-[16px] font-semibold text-foreground">메모</h2>
+        <h2 className="mb-4 text-[16px] font-semibold text-foreground">
+          {t("companies.notes.heading")}
+        </h2>
         <textarea
           value={memo}
           onChange={(e) => setMemo(e.target.value)}
@@ -496,7 +525,7 @@ export default function EmailAnalysisReview({
           disabled={saving}
           className="h-10 rounded-[10px] border border-border px-4 text-sm font-medium text-secondary disabled:opacity-60"
         >
-          이전
+          {t("aiEmail.review.back")}
         </button>
         <button
           type="button"
@@ -504,7 +533,7 @@ export default function EmailAnalysisReview({
           disabled={saving}
           className="h-10 rounded-[10px] bg-primary px-4 text-sm font-medium text-white disabled:opacity-60"
         >
-          {saving ? "등록 중..." : "등록"}
+          {saving ? t("aiEmail.review.submitting") : t("aiEmail.review.submit")}
         </button>
       </div>
     </div>

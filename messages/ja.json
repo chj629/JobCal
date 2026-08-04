@@ -1,0 +1,355 @@
+{
+  "common": {
+    "appName": "JobCal",
+    "loading": "読み込み中...",
+    "save": "保存",
+    "cancel": "キャンセル",
+    "add": "追加",
+    "edit": "編集",
+    "delete": "削除",
+    "close": "閉じる",
+    "confirm": "確認",
+    "search": "検索",
+    "reset": "リセット",
+    "select": "選択",
+    "none": "なし",
+    "required": "必須",
+    "logout": "ログアウト",
+    "optional": "(任意)"
+  },
+  "sidebar": {
+    "dashboard": "ダッシュボード",
+    "companies": "企業管理",
+    "calendar": "スケジュール",
+    "settings": "設定",
+    "logout": "ログアウト"
+  },
+  "auth": {
+    "login": {
+      "description": "日本の就職活動をひとつの画面で管理しましょう。",
+      "google": "Googleでログイン",
+      "googleLoading": "移動中...",
+      "divider": "または",
+      "email": "メールアドレス",
+      "password": "パスワード",
+      "submit": "メールでログイン",
+      "submitLoading": "ログイン中...",
+      "forgotPassword": "パスワードをお忘れですか?",
+      "signupPrompt": "アカウントをお持ちでないですか?",
+      "signupLink": "新規登録"
+    },
+    "signup": {
+      "title": "新規登録",
+      "description": "JobCalアカウントを作成して就職活動を管理しましょう。",
+      "name": "お名前",
+      "email": "メールアドレス",
+      "password": "パスワード",
+      "confirmPassword": "パスワード(確認)",
+      "submit": "登録する",
+      "submitLoading": "登録中...",
+      "loginPrompt": "既にアカウントをお持ちですか?",
+      "loginLink": "ログイン",
+      "confirmedTitle": "メールをご確認ください",
+      "confirmedMessage": "{email} 宛に確認メールを送信しました。メール内のリンクをクリックして登録を完了してください。",
+      "backToLogin": "ログイン画面へ"
+    },
+    "forgotPassword": {
+      "title": "パスワード再設定",
+      "description": "ご登録のメールアドレスに再設定リンクをお送りします。",
+      "email": "メールアドレス",
+      "submit": "再設定メールを送信",
+      "submitLoading": "送信中...",
+      "backToLogin": "ログイン画面に戻る",
+      "sentTitle": "メールをご確認ください",
+      "sentMessage": "{email} 宛にパスワード再設定メールを送信しました。メール内のリンクから新しいパスワードを設定してください。",
+      "backToLoginFromSent": "ログイン画面へ"
+    },
+    "updatePassword": {
+      "checking": "確認中...",
+      "invalidTitle": "リンクが無効です",
+      "invalidMessage": "パスワード再設定リンクが無効か期限切れです。もう一度お試しください。",
+      "requestNewLink": "再設定メールを再送信",
+      "title": "新しいパスワードを設定",
+      "description": "新しく使用するパスワードを入力してください。",
+      "password": "新しいパスワード",
+      "confirmPassword": "新しいパスワード(確認)",
+      "submit": "パスワードを変更",
+      "submitLoading": "変更中..."
+    },
+    "confirmed": {
+      "title": "メールアドレスの確認が完了しました",
+      "messageLine1": "JobCalへようこそ。",
+      "messageLine2": "アカウントの作成が完了しました。",
+      "messageLine3": "ログインして就職活動の管理を始めましょう。",
+      "button": "ログインする",
+      "buttonLoading": "処理中..."
+    },
+    "errors": {
+      "invalidCredentials": "メールアドレスまたはパスワードが正しくありません。",
+      "emailNotConfirmed": "メール認証が完了していません。受信メールをご確認ください。",
+      "confirmFailed": "メール確認リンクが無効か期限切れです。もう一度お試しください。",
+      "loginFailed": "ログインに失敗しました。しばらくしてからもう一度お試しください。",
+      "emailPasswordRequired": "メールアドレスとパスワードを入力してください。",
+      "googleStartFailed": "ログインを開始できませんでした。しばらくしてからもう一度お試しください。",
+      "allFieldsRequired": "すべての項目を入力してください。",
+      "nameLength": "お名前は{min}文字以上{max}文字以下で入力してください。",
+      "passwordMinLength": "パスワードは{min}文字以上で入力してください。",
+      "passwordMismatch": "パスワードが一致しません。",
+      "alreadyRegistered": "このメールアドレスは既に登録されています。",
+      "signupFailed": "会員登録に失敗しました。しばらくしてからもう一度お試しください。",
+      "emailRequired": "メールアドレスを入力してください。",
+      "resetSendFailed": "再設定メールを送信できませんでした。しばらくしてからもう一度お試しください。",
+      "resetFailed": "再設定リンクが無効か期限切れです。もう一度お試しください。",
+      "updateFailed": "パスワードを変更できませんでした。しばらくしてからもう一度お試しください。"
+    }
+  },
+  "settings": {
+    "title": "設定",
+    "language": "言語",
+    "japanese": "日本語",
+    "korean": "한국어",
+    "languageDescription": "表示言語を選択してください。"
+  },
+  "dashboard": {
+    "title": "ダッシュボード",
+    "description": "今日も就職活動をコツコツ管理しましょう。",
+    "loading": "読み込んでいます...",
+    "addCompany": "+ 企業を追加",
+    "addCompanyModalTitle": "企業を追加",
+    "noStepLabel": "登録された選考なし",
+    "today": "今日",
+    "tomorrow": "明日",
+    "kpi": {
+      "totalCompanies": "全企業",
+      "inProgress": "進行中",
+      "thisWeekSchedule": "今週の予定",
+      "offer": "内定"
+    },
+    "todaySchedule": {
+      "title": "今日の予定",
+      "viewAll": "すべての予定を見る →",
+      "empty": "今日予定されている予定はありません 🎉",
+      "completeLabel": "{title} 完了にする"
+    },
+    "upcomingSchedule": {
+      "title": "近日の予定",
+      "empty": "近日予定されている予定はありません。",
+      "colDate": "日付",
+      "colTime": "時間",
+      "colCompany": "企業",
+      "colStep": "選考",
+      "colPlace": "場所/形式",
+      "colStatus": "状態",
+      "online": "オンライン",
+      "viewMore": "もっと見る ↓"
+    },
+    "focusCompanies": {
+      "title": "重点管理企業",
+      "viewAll": "すべて見る →",
+      "emptyTitle": "まだ重点管理する企業がありません",
+      "emptySubtitle": "優先度が高い企業がありません",
+      "noSchedule": "予定なし"
+    },
+    "pipeline": {
+      "title": "選考ステータス状況",
+      "filterAll": "全企業",
+      "filterHigh": "重点管理企業(優先度高)",
+      "empty": "登録された企業がありません。"
+    }
+  },
+  "companies": {
+    "list": {
+      "title": "企業一覧",
+      "description": "応募した企業をひと目で管理しましょう。",
+      "searchPlaceholder": "企業名で検索",
+      "filterButton": "フィルター",
+      "addFromEmail": "+ メールで追加",
+      "addCompany": "+ 企業を追加",
+      "filters": {
+        "allPriority": "すべての優先度",
+        "allStep": "すべての選考",
+        "reset": "リセット"
+      },
+      "status": {
+        "all": "すべて",
+        "inProgress": "進行中",
+        "offer": "内定",
+        "joined": "入社",
+        "rejected": "不合格",
+        "cancelled": "応募辞退"
+      },
+      "priority": {
+        "high": "高",
+        "medium": "中",
+        "low": "低"
+      },
+      "columns": {
+        "company": "企業名",
+        "currentStep": "現在の選考段階",
+        "status": "状態",
+        "nextSchedule": "次の予定",
+        "priority": "優先度",
+        "updatedAt": "最終更新日"
+      },
+      "noSchedule": "予定なし",
+      "actions": {
+        "edit": "編集",
+        "delete": "削除"
+      },
+      "actionsMenuLabel": "{name} の操作メニュー",
+      "empty": {
+        "noResults": "条件に一致する企業がありません"
+      },
+      "loading": "読み込んでいます...",
+      "pagination": {
+        "totalPrefix": "全",
+        "totalSuffix": "件",
+        "perPage": "{size}件ずつ",
+        "previous": "前のページ",
+        "next": "次のページ"
+      },
+      "addCompanyModalTitle": "企業を追加",
+      "editCompanyModalTitle": "企業を編集",
+      "deleteConfirm": "「{name}」を削除しますか?"
+    },
+    "detail": {
+      "loading": "読み込んでいます...",
+      "backToList": "← 企業一覧に戻る",
+      "basicInfo": "基本情報",
+      "currentStep": "現在の選考段階",
+      "priority": "応募優先度",
+      "nextSchedule": "次の予定",
+      "noSchedule": "予定なし",
+      "homepage": "企業ホームページ",
+      "mypage": "マイページ",
+      "mypageEmpty": "登録されたマイページURLがありません。"
+    },
+    "form": {
+      "name": "企業名",
+      "status": "結果",
+      "priorityLabel": "優先度",
+      "websiteUrl": "企業ホームページ",
+      "mypageUrl": "マイページURL",
+      "nameRequired": "企業名を入力してください。"
+    },
+    "steps": {
+      "timeline": "選考タイムライン",
+      "empty": "登録された選考がありません。",
+      "newStepPlaceholder": "新しい選考名",
+      "addStep": "選考を追加",
+      "noStepSelected": "選考を選択すると詳細が表示されます。",
+      "currentBadge": "現在の選考",
+      "rename": "名前を変更",
+      "moveUp": "上に移動",
+      "moveDown": "下に移動",
+      "statusLabels": {
+        "waiting": "待機",
+        "actionRequired": "要対応",
+        "scheduled": "日程確定",
+        "completed": "完了"
+      },
+      "eventsHeading": "予定",
+      "noEvents": "登録された予定がありません。",
+      "addEvent": "+ 予定を追加",
+      "addEventModalTitle": "予定を追加",
+      "editEventModalTitle": "予定を編集",
+      "noDateSet": "日時未定"
+    },
+    "events": {
+      "type": "種類",
+      "types": {
+        "schedule": "予定",
+        "deadline": "締切",
+        "resultAnnouncement": "結果発表"
+      },
+      "titleLabel": "タイトル",
+      "titleRequired": "タイトルを入力してください。",
+      "startsAt": "開始日時",
+      "endsAt": "終了日時",
+      "location": "場所",
+      "onlineLink": "オンライン参加リンク",
+      "dueAtDeadline": "締切日時",
+      "dueAtResult": "結果発表予定日時",
+      "submitLink": "提出リンク",
+      "resultLink": "結果確認リンク",
+      "memo": "メモ"
+    },
+    "contacts": {
+      "heading": "担当者",
+      "addButton": "+ 担当者を追加",
+      "empty": "登録された担当者がいません。",
+      "deleteConfirm": "「{name}」を削除しますか?",
+      "addModalTitle": "担当者を追加",
+      "editModalTitle": "担当者を編集",
+      "name": "名前",
+      "role": "所属または役職",
+      "email": "メール",
+      "phone": "電話番号",
+      "memo": "メモ",
+      "nameRequired": "担当者名を入力してください。"
+    },
+    "notes": {
+      "heading": "メモ",
+      "addButton": "+ メモを追加",
+      "empty": "登録されたメモがありません。",
+      "untitled": "タイトルなし",
+      "deleteConfirmFallbackTitle": "このメモ",
+      "deleteConfirm": "「{title}」を削除しますか?",
+      "addModalTitle": "メモを追加",
+      "editModalTitle": "メモを編集",
+      "title": "タイトル",
+      "content": "内容",
+      "contentRequired": "内容を入力してください。"
+    }
+  },
+  "calendar": {
+    "title": "カレンダー",
+    "description": "企業別の予定をひと目で確認しましょう。",
+    "previousMonth": "前月",
+    "today": "今日",
+    "nextMonth": "翌月",
+    "loading": "読み込んでいます...",
+    "more": "+{count}件"
+  },
+  "aiEmail": {
+    "paste": {
+      "title": "メールで企業を追加",
+      "description": "採用関連のメール本文を貼り付けると、AIが企業名・選考段階・予定・担当者などを抽出します。",
+      "label": "メール本文",
+      "placeholder": "メールの内容を貼り付けてください。",
+      "submit": "AIで分析する",
+      "submitting": "分析中...",
+      "analyzeFailed": "分析に失敗しました。",
+      "networkError": "分析リクエスト中にエラーが発生しました。"
+    },
+    "match": {
+      "title": "企業を選択",
+      "descriptionWithSuggestion": "抽出された企業名: 「{name}」。既に登録済みの企業であれば下から選択し、そうでなければ新規登録してください。",
+      "descriptionNoSuggestion": "メールから企業名を見つけられませんでした。既存の企業を検索するか、新規登録してください。",
+      "searchLabel": "既存の企業を検索",
+      "noMatches": "一致する企業がありません。",
+      "selectButton": "この企業を選択",
+      "createNew": "新しい企業として登録"
+    },
+    "review": {
+      "title": "抽出結果の確認",
+      "description": "AIが抽出した内容を確認し、必要な部分を修正してから登録してください。",
+      "companySection": "企業",
+      "addingToExistingSuffix": "に以下の内容を追加します。",
+      "stepSection": "選考段階",
+      "stepPlaceholder": "例: 1次面接",
+      "noEvents": "抽出された予定がありません。",
+      "linkGeneric": "リンク",
+      "noContacts": "抽出された担当者がいません。",
+      "companySaveFailed": "企業の登録に失敗しました。",
+      "stepSaveFailed": "選考の登録に失敗しました。",
+      "stepRequiredForEvents": "予定を紐づける選考が見つかりません。選考段階を入力してください。",
+      "eventSaveFailed": "予定の登録に失敗しました。",
+      "contactSaveFailed": "担当者の登録に失敗しました。",
+      "noteSaveFailed": "メモの登録に失敗しました。",
+      "back": "戻る",
+      "submit": "登録",
+      "submitting": "登録中..."
+    }
+  }
+}

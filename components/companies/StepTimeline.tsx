@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { useApplicationSteps } from "@/lib/application-steps-context";
 import { getCurrentStep } from "@/lib/applicationSteps";
+import { useT } from "@/lib/locale-context";
 
 interface StepTimelineProps {
   companyId: string;
@@ -11,6 +12,7 @@ interface StepTimelineProps {
 }
 
 export default function StepTimeline({ companyId, selectedStepId, onSelect }: StepTimelineProps) {
+  const t = useT();
   const { steps, error, addStep } = useApplicationSteps();
   const [newStepName, setNewStepName] = useState("");
 
@@ -28,7 +30,9 @@ export default function StepTimeline({ companyId, selectedStepId, onSelect }: St
 
   return (
     <section className="mb-8 rounded-[10px] border border-border bg-card p-6">
-      <h2 className="mb-4 text-[16px] font-semibold text-foreground">전형 타임라인</h2>
+      <h2 className="mb-4 text-[16px] font-semibold text-foreground">
+        {t("companies.steps.timeline")}
+      </h2>
 
       {error && (
         <p className="mb-4 rounded-[10px] border border-error/40 bg-error/10 px-4 py-3 text-sm text-error">
@@ -37,7 +41,7 @@ export default function StepTimeline({ companyId, selectedStepId, onSelect }: St
       )}
 
       {companySteps.length === 0 ? (
-        <p className="py-6 text-center text-sm text-secondary">등록된 전형이 없습니다.</p>
+        <p className="py-6 text-center text-sm text-secondary">{t("companies.steps.empty")}</p>
       ) : (
         <div className="overflow-x-auto pb-2">
           <div className="flex min-w-max items-start">
@@ -91,14 +95,14 @@ export default function StepTimeline({ companyId, selectedStepId, onSelect }: St
           type="text"
           value={newStepName}
           onChange={(e) => setNewStepName(e.target.value)}
-          placeholder="새 전형 이름"
+          placeholder={t("companies.steps.newStepPlaceholder")}
           className="h-10 flex-1 rounded-[10px] border border-border bg-card px-3 text-sm text-foreground placeholder:text-secondary focus:border-primary focus:outline-none"
         />
         <button
           type="submit"
           className="h-10 shrink-0 rounded-[10px] border border-border px-4 text-sm font-medium text-foreground"
         >
-          전형 추가
+          {t("companies.steps.addStep")}
         </button>
       </form>
     </section>

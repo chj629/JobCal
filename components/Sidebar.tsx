@@ -4,16 +4,19 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Building2, CalendarDays, Home, Settings } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { useT } from "@/lib/locale-context";
 
 const NAV_ITEMS = [
-  { label: "대시보드", href: "/", icon: Home },
-  { label: "기업 관리", href: "/companies", icon: Building2 },
-  { label: "일정 관리", href: "/calendar", icon: CalendarDays },
+  { labelKey: "sidebar.dashboard", href: "/", icon: Home },
+  { labelKey: "sidebar.companies", href: "/companies", icon: Building2 },
+  { labelKey: "sidebar.calendar", href: "/calendar", icon: CalendarDays },
+  { labelKey: "sidebar.settings", href: "/settings", icon: Settings },
 ];
 
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
+  const t = useT();
 
   async function handleLogout() {
     const supabase = createClient();
@@ -39,7 +42,7 @@ export default function Sidebar() {
 
           return (
             <Link
-              key={item.label}
+              key={item.href}
               href={item.href}
               className={
                 "flex items-center gap-3 rounded-[10px] px-3 py-2.5 text-sm font-medium transition-colors duration-150 " +
@@ -49,15 +52,10 @@ export default function Sidebar() {
               }
             >
               <Icon size={18} />
-              {item.label}
+              {t(item.labelKey)}
             </Link>
           );
         })}
-
-        <span className="mt-1 flex cursor-not-allowed items-center gap-3 rounded-[10px] px-3 py-2.5 text-sm font-medium text-sidebar-foreground opacity-50">
-          <Settings size={18} />
-          설정
-        </span>
       </nav>
 
       <div className="mt-auto px-3 py-6">
@@ -66,7 +64,7 @@ export default function Sidebar() {
           onClick={handleLogout}
           className="w-full rounded-[10px] px-3 py-2.5 text-left text-sm font-medium text-sidebar-foreground transition-colors duration-150 hover:bg-sidebar-hover hover:text-white"
         >
-          로그아웃
+          {t("sidebar.logout")}
         </button>
       </div>
     </aside>

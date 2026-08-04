@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import type { NoteFormValues } from "@/lib/companyNotes";
+import { useT } from "@/lib/locale-context";
 
 interface NoteFormProps {
   title: string;
@@ -15,13 +16,14 @@ const fieldClass =
 const labelClass = "mb-1 block text-sm text-secondary";
 
 export default function NoteForm({ title, initialValues, onCancel, onSubmit }: NoteFormProps) {
+  const t = useT();
   const [values, setValues] = useState<NoteFormValues>(initialValues);
   const [error, setError] = useState("");
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
     if (!values.content.trim()) {
-      setError("내용을 입력해 주세요.");
+      setError(t("companies.notes.contentRequired"));
       return;
     }
     onSubmit(values);
@@ -34,7 +36,7 @@ export default function NoteForm({ title, initialValues, onCancel, onSubmit }: N
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
             <label className={labelClass}>
-              제목 <span className="text-secondary">(선택)</span>
+              {t("companies.notes.title")} <span className="text-secondary">{t("common.optional")}</span>
             </label>
             <input
               type="text"
@@ -45,7 +47,7 @@ export default function NoteForm({ title, initialValues, onCancel, onSubmit }: N
           </div>
 
           <div>
-            <label className={labelClass}>내용</label>
+            <label className={labelClass}>{t("companies.notes.content")}</label>
             <textarea
               value={values.content}
               onChange={(e) => setValues({ ...values, content: e.target.value })}
@@ -61,13 +63,13 @@ export default function NoteForm({ title, initialValues, onCancel, onSubmit }: N
               onClick={onCancel}
               className="h-10 rounded-[10px] border border-border px-4 text-sm font-medium text-secondary"
             >
-              취소
+              {t("common.cancel")}
             </button>
             <button
               type="submit"
               className="h-10 rounded-[10px] bg-primary px-4 text-sm font-medium text-white"
             >
-              저장
+              {t("common.save")}
             </button>
           </div>
         </form>
