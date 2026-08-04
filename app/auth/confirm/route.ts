@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import { type EmailOtpType } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 
-// 이 앱은 이메일 회원가입 확인만 처리한다. 비밀번호 재설정 등 다른 OTP 타입은 아직 지원하지 않는다.
-const ALLOWED_EMAIL_OTP_TYPES: EmailOtpType[] = ["email"];
+// 이 앱은 이메일 회원가입 확인(email)과 비밀번호 재설정(recovery)만 처리한다.
+const ALLOWED_EMAIL_OTP_TYPES: EmailOtpType[] = ["email", "recovery"];
 
 // next는 반드시 앱 내부 경로만 허용한다 (오픈 리다이렉트 방지).
 function resolveNextPath(rawNext: string | null): string {
@@ -28,9 +28,14 @@ export async function GET(request: Request) {
     });
 
     if (!error) {
+      if (type === "email") {
+        return NextResponse.redirect(`${origin}/auth/confirmed`);
+      }
       return NextResponse.redirect(`${origin}${next}`);
     }
   }
 
-  return NextResponse.redirect(`${origin}/login?error=confirm_failed`);
+  const failureRedirect =
+    type === "recovery" ? "/forgot-password?error=reset_failed" : "/login?error=confirm_failed";
+  return NextResponse.redirect(`${origin}${failureRedirect}`);
 }

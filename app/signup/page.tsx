@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 const MIN_PASSWORD_LENGTH = 6;
+const MIN_NAME_LENGTH = 1;
+const MAX_NAME_LENGTH = 30;
 
 function mapSignUpError(message: string): string {
   if (message.toLowerCase().includes("already registered")) {
@@ -16,6 +18,7 @@ function mapSignUpError(message: string): string {
 
 export default function SignupPage() {
   const router = useRouter();
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -27,8 +30,12 @@ export default function SignupPage() {
     event.preventDefault();
     setErrorMessage("");
 
-    if (!email.trim() || !password || !confirmPassword) {
+    if (!name.trim() || !email.trim() || !password || !confirmPassword) {
       setErrorMessage("모든 항목을 입력해 주세요.");
+      return;
+    }
+    if (name.trim().length < MIN_NAME_LENGTH || name.trim().length > MAX_NAME_LENGTH) {
+      setErrorMessage(`이름은 ${MIN_NAME_LENGTH}자 이상 ${MAX_NAME_LENGTH}자 이하로 입력해 주세요.`);
       return;
     }
     if (password.length < MIN_PASSWORD_LENGTH) {
@@ -47,6 +54,9 @@ export default function SignupPage() {
       password,
       options: {
         emailRedirectTo: `${window.location.origin}/auth/confirm`,
+        data: {
+          display_name: name.trim(),
+        },
       },
     });
 
@@ -95,6 +105,16 @@ export default function SignupPage() {
         </p>
 
         <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-4">
+          <div>
+            <label className="mb-1 block text-sm text-secondary">이름</label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              maxLength={MAX_NAME_LENGTH}
+              className="h-10 w-full rounded-[10px] border border-border bg-card px-3 text-sm text-foreground focus:border-primary focus:outline-none"
+            />
+          </div>
           <div>
             <label className="mb-1 block text-sm text-secondary">이메일</label>
             <input

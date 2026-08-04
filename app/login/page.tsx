@@ -128,6 +128,13 @@ export default function LoginPage() {
           >
             {isLoading ? "로그인 중..." : "이메일로 로그인"}
           </button>
+
+          <Link
+            href="/forgot-password"
+            className="text-center text-sm text-secondary hover:text-foreground hover:underline"
+          >
+            비밀번호를 잊으셨나요?
+          </Link>
         </form>
 
         {errorMessage && <p className="mt-3 text-center text-xs text-error">{errorMessage}</p>}
