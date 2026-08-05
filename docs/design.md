@@ -4,7 +4,30 @@
 
 JobCal is a professional productivity tool for managing Japanese job applications.
 
-일본 취업 준비생이 많은 기업을 빠르고 정확하게 관리할 수 있도록 설계된 생산성 중심 SaaS.
+Designed to help Japanese job seekers manage dozens of applications efficiently with a clean, information-first SaaS interface.
+
+---
+
+# Official Design Reference
+
+All UI implementation must follow the design reference images located at:
+
+docs/design-references/
+
+These PNG files are the official visual specification for the project.
+
+The current design reference contains:
+
+- Authentication
+- Main Pages
+- AI Drawer
+- Modals & Dialogs
+- Landing Page
+- Design System Components
+
+Developers should always use these images as the primary UI reference.
+
+Do not redesign screens unless explicitly requested.
 
 ---
 
@@ -17,14 +40,14 @@ JobCal is a professional productivity tool for managing Japanese job application
 - Consistent Experience
 - Desktop First
 
-원칙
+Rules
 
-- 정보 전달이 디자인보다 우선이다.
-- 클릭 수를 최소화한다.
-- 반복 작업을 줄인다.
-- 필요한 정보를 빠르게 찾을 수 있어야 한다.
-- 일관된 UI를 유지한다.
-- 모든 화면은 실제 업무에 사용하는 SaaS처럼 설계한다.
+- Information has higher priority than decoration.
+- Reduce unnecessary clicks.
+- Reduce repetitive work.
+- Make important information easy to find.
+- Keep the UI visually consistent.
+- Every screen should feel like a professional SaaS product.
 
 ---
 
@@ -47,10 +70,10 @@ Style
 
 Avoid
 
-- 과도한 Gradient
+- Heavy gradients
 - Glassmorphism
-- 큰 Shadow
-- 불필요한 애니메이션
+- Large shadows
+- Unnecessary animations
 
 ---
 
@@ -77,19 +100,17 @@ Avoid
 
 | Status | Color |
 |---|---|
-| 진행 중 | Primary |
-| 내정 | Offer |
-| 입사 | Joined |
-| 불합격 | Error |
-| 지원 취소 | Cancelled |
+| In Progress | Primary |
+| Offer | Offer |
+| Joined | Joined |
+| Rejected | Error |
+| Withdrawn | Cancelled |
 
-Status는 항상
+Status should always be represented using:
 
 - Badge
 - Text
 - Color
-
-를 함께 사용한다.
 
 ---
 
@@ -101,43 +122,30 @@ Fonts
 - Pretendard
 - Noto Sans JP
 
-Font Scale
+Scale
 
-Page Title
+Page Title — 28px
 
-28px
+Section Title — 20px
 
-Section Title
+Card Title — 16px
 
-20px
+Body — 14px
 
-Card Title
+Caption — 12px
 
-16px
+Weights
 
-Body
-
-14px
-
-Caption
-
-12px
-
-Font Weight
-
-Regular
-
-Medium
-
-Semibold
-
-Bold
+- Regular
+- Medium
+- Semibold
+- Bold
 
 ---
 
 # Spacing
 
-Use 8px Grid.
+Use an 8px grid.
 
 Available spacing
 
@@ -167,7 +175,7 @@ Available spacing
 
 # Border
 
-Border를 Shadow보다 우선한다.
+Prefer borders over shadows.
 
 Default
 
@@ -177,7 +185,7 @@ Default
 
 # Shadow
 
-Use only when necessary.
+Only use shadows when necessary.
 
 Allowed
 
@@ -188,7 +196,7 @@ Allowed
 Avoid
 
 - Floating Cards
-- Large Shadows
+- Heavy shadows
 
 ---
 
@@ -196,7 +204,7 @@ Avoid
 
 Lucide Icons
 
-Size
+Preferred Sizes
 
 16
 
@@ -206,7 +214,7 @@ Size
 
 24
 
-Use consistent icon size within the same component.
+Keep icon size consistent within the same component.
 
 ---
 
@@ -228,7 +236,7 @@ Content Max Width
 
 1200px
 
-Overall Max Width
+Overall Width
 
 1440px
 
@@ -238,7 +246,7 @@ Right Drawer
 
 Closed by default
 
-Must not permanently reduce content width.
+Opening the drawer should not permanently shrink the layout.
 
 ---
 
@@ -246,12 +254,16 @@ Must not permanently reduce content width.
 
 Sidebar contains only
 
-- Dashboard
+- Home
 - Companies
-- Schedule
+- Calendar
+- Analytics
 - Settings
 
-No additional navigation unless required.
+Optional
+
+- Tags
+- Login Accounts
 
 ---
 
@@ -259,12 +271,12 @@ No additional navigation unless required.
 
 Core Components
 
-- Card
 - Button
+- Card
 - Badge
+- Input
 - Table
 - Timeline
-- Input
 - Select
 - Modal
 - Drawer
@@ -272,72 +284,8 @@ Core Components
 - Tabs
 - Dropdown
 - Date Picker
-- Tooltip
 - Empty State
 - Skeleton
-
----
-
-# Buttons
-
-Variants
-
-- Primary
-- Secondary
-- Ghost
-- Danger
-
-Height
-
-40px
-
-Radius
-
-10px
-
----
-
-# Inputs
-
-Height
-
-40px
-
-Radius
-
-10px
-
-Focus
-
-Primary Color
-
----
-
-# Tables
-
-Desktop uses Table layout.
-
-Table Rules
-
-- Hover Row
-- Clickable Company Name
-- Badge for Status
-- Compact spacing
-- Horizontal scroll allowed on smaller screens
-
----
-
-# Timeline
-
-Timeline contains
-
-- Step
-- Status
-- Schedule
-- Result
-- Memo
-
-Current step must be visually emphasized.
 
 ---
 
@@ -345,7 +293,7 @@ Current step must be visually emphasized.
 
 Desktop
 
-Sidebar + Table
+Sidebar + Main Content
 
 Tablet
 
@@ -355,15 +303,17 @@ Mobile
 
 Card Layout
 
+Bottom Navigation
+
 ---
 
 # Motion
 
 Duration
 
-150ms ~ 200ms
+150ms–200ms
 
-Rules
+Allowed
 
 - Fade
 - Slide
@@ -373,28 +323,13 @@ Avoid
 
 - Bounce
 - Elastic
-- Excessive motion
-
----
-
-# Landing Page
-
-Landing page should
-
-- Clearly explain the service within 3 seconds.
-- Show the real product UI.
-- Contain a strong CTA.
-- Focus on conversion rather than decoration.
+- Large Motion
 
 ---
 
 # AI Assistant
 
-Current Status
-
-Planned Feature
-
-UI
+Position
 
 Right Drawer
 
@@ -404,29 +339,68 @@ Closed
 
 Current MVP
 
-Do not implement AI functionality.
+Only the UI is implemented.
 
-Only prepare reusable UI structure if needed.
+No AI logic should be added until requested.
 
 ---
 
 # Implementation Rules
 
-- Existing functionality has higher priority than visual fidelity.
-- Do not change working business logic for UI purposes.
-- Do not modify Supabase schema unless explicitly requested.
+- Always check the corresponding PNG in docs/design-references before implementing a screen.
+- Match spacing, alignment, hierarchy, sizing, and visual structure as closely as practical.
+- Do not redesign or reinterpret the UI without explicit instructions.
 - Reuse existing components whenever possible.
-- Avoid unnecessary abstractions.
-- Build one screen at a time.
-- Run TypeScript, ESLint, and Build after each screen.
+- Existing functionality has higher priority than visual polish.
+- Do not modify the Supabase schema unless requested.
+- Implement one screen at a time.
+- Run TypeScript, ESLint, and Build after each completed screen.
 
 ---
 
 # Design Principles
 
-1. Information is more important than decoration.
-2. Productivity is more important than visual effects.
-3. Reduce repetitive work.
-4. Every page should feel like a professional SaaS.
-5. Consistency is more important than creativity.
-6. Simple UI creates a better user experience.
+1. Information over decoration.
+2. Productivity over visual effects.
+3. Consistency over creativity.
+4. Simplicity improves usability.
+5. Build reusable components.
+6. Follow the official design reference.
+
+---
+
+# Localization
+
+JobCal supports multiple languages.
+
+Current UI reference images are primarily written in Japanese.
+
+These images define the layout, spacing, hierarchy, and visual design only.
+
+Do not treat the text inside the PNG files as fixed.
+
+All user-facing text must be localizable.
+
+The application should support:
+
+- Japanese (ja)
+- Korean (ko)
+
+Future support:
+
+- English (en)
+
+Implementation Rules
+
+- Never hardcode UI text.
+- Use i18n translation keys.
+- Preserve the layout shown in the design reference regardless of language.
+- Components should expand naturally for longer translated text.
+
+
+Localization Rules
+
+- PNG text is for visual reference only.
+- UI layout follows the PNG.
+- Display language depends on the active locale.
+- Do not implement Japanese-only components.

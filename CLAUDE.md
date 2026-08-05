@@ -185,3 +185,11 @@ JobCal는 일본 취업을 준비하는 사용자가 30~100개 이상의 지원 
 - UI를 구현하거나 수정하기 전에 반드시 `docs/design.md`를 먼저 확인한다.
 
 문서와 코드가 다르면 임의로 판단하지 말고 차이를 먼저 알린다.
+
+Before implementing any UI, always check the corresponding PNG inside docs/design-references and reproduce it as closely as possible. Never redesign screens unless explicitly instructed.
+
+The PNG files inside docs/design-references define the visual layout only.
+
+All UI text must be implemented using the project's i18n system.
+
+Never hardcode Japanese strings from the design reference.
