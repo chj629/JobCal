@@ -15,16 +15,98 @@
     "none": "なし",
     "required": "必須",
     "logout": "ログアウト",
-    "optional": "(任意)"
+    "optional": "(任意)",
+    "cannotUndo": "この操作は元に戻せません。",
+    "showPassword": "パスワードを表示",
+    "hidePassword": "パスワードを非表示"
+  },
+  "landing": {
+    "nav": {
+      "features": "機能",
+      "pricing": "料金プラン",
+      "howItWorks": "使い方",
+      "faq": "よくある質問",
+      "login": "ログイン",
+      "getStarted": "無料で始める"
+    },
+    "hero": {
+      "badge": "就活を、もっとシンプルに。",
+      "titleLine1": "すべての就活を、",
+      "titlePrefix": "ひとつの",
+      "titleHighlight": "カレンダー",
+      "titleSuffix": "に。",
+      "description": "企業ごとの選考状況やスケジュールをまとめて管理。大事な予定や締切を見逃さず、就活に集中できます。",
+      "getStarted": "無料で始める",
+      "trustFree": "登録無料",
+      "trustNoCard": "クレカ登録不要",
+      "trustDevice": "PC・スマホ対応",
+      "previewGreeting": "山田太郎さん、おはようございます!",
+      "previewSubtitle": "今日も就活を一緒に頑張りましょう。",
+      "previewKpiEntry": "エントリー企業",
+      "previewKpiInProgress": "選考中",
+      "previewKpiOffer": "内定",
+      "previewKpiInterview": "面接予定",
+      "previewTodayTitle": "今日の予定",
+      "previewTodayItem1Company": "サンプル株式会社",
+      "previewTodayItem1Step": "Webテスト",
+      "previewTodayItem1Time": "10:00〜11:00",
+      "previewTodayItem2Company": "テック・カンパニー",
+      "previewTodayItem2Step": "一次面接",
+      "previewTodayItem2Time": "14:00〜15:00",
+      "previewFunnelTitle": "選考ステップの状況",
+      "previewFunnelEntry": "エントリー",
+      "previewFunnelDocument": "書類選考",
+      "previewFunnelInterview": "一次面接",
+      "previewFunnelFinal": "内定"
+    },
+    "features": {
+      "title": "JobCalでできること",
+      "item1Title": "スケジュールを一元管理",
+      "item1Description": "面接や締切などの予定をカレンダーでまとめて管理し、見逃しを防ぎます。",
+      "item2Title": "企業・選考管理",
+      "item2Description": "企業ごとの選考ステップを可視化し、進捗をひと目で把握できます。",
+      "item3Title": "AIでメールを自動整理",
+      "item3Description": "届いた選考メールをAIが解析し、予定やタスクを自動で登録します。",
+      "item3Badge": "近日公開",
+      "item4Title": "分析で振り返る",
+      "item4Description": "選考の進み具合や結果をグラフで分析し、次のアクションに活かせます。",
+      "item5Title": "どこでもアクセス",
+      "item5Description": "PC・スマホどちらでも利用可能。クラウドでデータも安全に同期します。"
+    },
+    "ctaBanner": {
+      "title": "無料で今すぐ始めましょう",
+      "description": "クレジットカードの登録なしで、すべての機能をお試しいただけます。",
+      "getStarted": "無料で始める"
+    },
+    "footer": {
+      "pricing": "料金プラン",
+      "howItWorks": "使い方",
+      "faq": "よくある質問",
+      "privacy": "プライバシーポリシー",
+      "terms": "利用規約",
+      "copyright": "© {year} JobCal. All rights reserved."
+    }
   },
   "sidebar": {
     "dashboard": "ダッシュボード",
     "companies": "企業管理",
     "calendar": "スケジュール",
+    "analytics": "分析",
     "settings": "設定",
     "logout": "ログアウト"
   },
   "auth": {
+    "branding": {
+      "headline": "日本の就職活動をひとつの画面で",
+      "subtitle": "企業情報と選考スケジュールを体系的に管理しましょう。",
+      "feature1Title": "企業・選考ステップ管理",
+      "feature1Description": "複数の企業の応募状況と選考ステップをひと目で確認できます。",
+      "feature2Title": "スケジュール・締切管理",
+      "feature2Description": "面接や締切をカレンダーで見逃さず管理できます。",
+      "feature3Title": "優先度管理",
+      "feature3Description": "重要な企業を優先度で分けて集中管理できます。",
+      "copyright": "© 2025 JobCal. All rights reserved."
+    },
     "login": {
       "description": "日本の就職活動をひとつの画面で管理しましょう。",
       "google": "Googleでログイン",
@@ -105,13 +187,64 @@
   },
   "settings": {
     "title": "設定",
+    "description": "アカウントとアプリの各種設定を管理できます。",
+    "tabs": {
+      "profile": "プロフィール",
+      "account": "アカウント",
+      "language": "言語"
+    },
+    "profile": {
+      "title": "プロフィール情報",
+      "displayName": "表示名",
+      "email": "メールアドレス",
+      "emailHint": "メールアドレスは変更できません。",
+      "saveSuccess": "表示名を保存しました。",
+      "saveError": "表示名の保存に失敗しました。"
+    },
+    "account": {
+      "title": "パスワード変更",
+      "description": "アカウントに使用する新しいパスワードを設定してください。",
+      "newPassword": "新しいパスワード",
+      "confirmPassword": "新しいパスワード（確認）",
+      "submit": "パスワードを変更",
+      "saveSuccess": "パスワードを変更しました。"
+    },
     "language": "言語",
     "japanese": "日本語",
     "korean": "한국어",
     "languageDescription": "表示言語を選択してください。"
   },
+  "analytics": {
+    "title": "分析",
+    "description": "就活の状況をひと目で確認できます。",
+    "statusChart": {
+      "title": "ステータス別 企業数",
+      "total": "合計",
+      "unit": "社"
+    },
+    "funnel": {
+      "title": "選考ステップ別 通過状況",
+      "unit": "社",
+      "empty": "表示できる選考データがありません。"
+    },
+    "trendChart": {
+      "title": "応募数の推移",
+      "monthUnit": "月",
+      "empty": "表示できる企業データがありません。"
+    },
+    "upcomingEvents": {
+      "title": "今後の予定",
+      "empty": "近日予定されている予定はありません。"
+    },
+    "resultSummary": {
+      "title": "選考結果サマリー",
+      "unit": "社",
+      "empty": "表示できる結果データがありません。"
+    }
+  },
   "dashboard": {
-    "title": "ダッシュボード",
+    "greeting": "{name}さん、こんにちは 👋",
+    "greetingGeneric": "こんにちは 👋",
     "description": "今日も就職活動をコツコツ管理しましょう。",
     "loading": "読み込んでいます...",
     "addCompany": "+ 企業を追加",
@@ -120,10 +253,12 @@
     "today": "今日",
     "tomorrow": "明日",
     "kpi": {
-      "totalCompanies": "全企業",
-      "inProgress": "進行中",
-      "thisWeekSchedule": "今週の予定",
-      "offer": "内定"
+      "inProgress": "進行中の企業",
+      "inProgressSubtext": "全体{total}社中",
+      "upcoming": "今後の予定",
+      "upcomingSubtext": "今週{count}件",
+      "completedSelection": "選考完了",
+      "completedSelectionSubtext": "内定{offer}・不合格{rejected}"
     },
     "todaySchedule": {
       "title": "今日の予定",
@@ -134,20 +269,13 @@
     "upcomingSchedule": {
       "title": "近日の予定",
       "empty": "近日予定されている予定はありません。",
-      "colDate": "日付",
-      "colTime": "時間",
-      "colCompany": "企業",
-      "colStep": "選考",
-      "colPlace": "場所/形式",
-      "colStatus": "状態",
-      "online": "オンライン",
       "viewMore": "もっと見る ↓"
     },
     "focusCompanies": {
-      "title": "重点管理企業",
+      "title": "進行中の企業",
       "viewAll": "すべて見る →",
-      "emptyTitle": "まだ重点管理する企業がありません",
-      "emptySubtitle": "優先度が高い企業がありません",
+      "emptyTitle": "進行中の企業がありません",
+      "emptySubtitle": "新しい企業を追加してみましょう",
       "noSchedule": "予定なし"
     },
     "pipeline": {
@@ -198,7 +326,9 @@
       },
       "actionsMenuLabel": "{name} の操作メニュー",
       "empty": {
-        "noResults": "条件に一致する企業がありません"
+        "noResults": "条件に一致する企業がありません",
+        "noCompaniesTitle": "登録した企業がまだありません",
+        "noCompaniesDescription": "最初の企業を追加して、就活管理を始めましょう。"
       },
       "loading": "読み込んでいます...",
       "pagination": {
@@ -210,7 +340,8 @@
       },
       "addCompanyModalTitle": "企業を追加",
       "editCompanyModalTitle": "企業を編集",
-      "deleteConfirm": "「{name}」を削除しますか?"
+      "deleteConfirm": "「{name}」を削除しますか?",
+      "addSuccessToast": "「{name}」を追加しました。"
     },
     "detail": {
       "loading": "読み込んでいます...",
@@ -221,8 +352,14 @@
       "nextSchedule": "次の予定",
       "noSchedule": "予定なし",
       "homepage": "企業ホームページ",
+      "homepageEmpty": "登録された企業ホームページがありません。",
       "mypage": "マイページ",
-      "mypageEmpty": "登録されたマイページURLがありません。"
+      "mypageEmpty": "登録されたマイページURLがありません。",
+      "schedulePanel": {
+        "title": "スケジュール",
+        "empty": "登録された予定がありません。",
+        "dDay": "あと{days}日"
+      }
     },
     "form": {
       "name": "企業名",
@@ -309,7 +446,8 @@
     "today": "今日",
     "nextMonth": "翌月",
     "loading": "読み込んでいます...",
-    "more": "+{count}件"
+    "more": "+{count}件",
+    "viewCompanyDetail": "企業詳細を見る"
   },
   "aiEmail": {
     "paste": {
@@ -320,7 +458,26 @@
       "submit": "AIで分析する",
       "submitting": "分析中...",
       "analyzeFailed": "分析に失敗しました。",
-      "networkError": "分析リクエスト中にエラーが発生しました。"
+      "networkError": "分析リクエスト中にエラーが発生しました。",
+      "emptyTitle": "メールを貼り付けてください",
+      "emptyDescription": "採用メールから以下の情報を抽出します。",
+      "extractFields": {
+        "company": "企業名",
+        "step": "選考ステップ",
+        "result": "選考結果",
+        "schedule": "日時",
+        "contact": "担当者",
+        "url": "URL",
+        "memo": "メモ"
+      },
+      "pastedComplete": "貼り付け完了",
+      "clearText": "テキストをクリア",
+      "hint": "AIがメールを分析し、企業名・選考ステップ・日程・担当者などを抽出します。結果は必ずご確認のうえ適用してください。",
+      "analyzingTitle": "メールを分析しています...",
+      "analyzingDescription": "AIがメールの内容を読み取り、必要な情報を抽出しています。",
+      "analyzingEstimate": "通常10〜30秒ほどかかります。",
+      "errorTitle": "メールを分析できませんでした",
+      "charCount": "{count}文字"
     },
     "match": {
       "title": "企業を選択",
@@ -350,6 +507,28 @@
       "back": "戻る",
       "submit": "登録",
       "submitting": "登録中..."
+    },
+    "drawer": {
+      "description": "採用メールを分析して、企業情報・選考ステップ・予定を整理します。",
+      "steps": {
+        "paste": "メール入力",
+        "match": "企業選択",
+        "review": "確認・登録"
+      },
+      "privacyNotice": "メール本文は分析のためにのみ使用されます。適用前に必ず内容をご確認ください。"
+    }
+  },
+  "errorPages": {
+    "notFound": {
+      "title": "ページが見つかりません",
+      "description": "リクエストされたページが存在しないか、移動した可能性があります。",
+      "action": "ホームへ戻る"
+    },
+    "error": {
+      "title": "問題が発生しました",
+      "description": "一時的なエラーの可能性があります。もう一度お試しいただくか、ホームへお戻りください。",
+      "homeAction": "ホームへ戻る",
+      "retryAction": "もう一度試す"
     }
   }
 }

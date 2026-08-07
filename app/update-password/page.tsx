@@ -3,8 +3,12 @@
 import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Lock } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useT } from "@/lib/locale-context";
+import AuthLayout from "@/components/auth/AuthLayout";
+import Input from "@/components/ui/Input";
+import Button from "@/components/ui/Button";
 
 const MIN_PASSWORD_LENGTH = 6;
 
@@ -55,23 +59,23 @@ export default function UpdatePasswordPage() {
       return;
     }
 
-    router.push("/");
+    router.push("/dashboard");
     router.refresh();
   }
 
   if (sessionStatus === "checking") {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background px-4">
+      <AuthLayout>
         <div className="w-full max-w-sm rounded-[10px] border border-border bg-card p-8 text-center text-sm text-secondary">
           {t("auth.updatePassword.checking")}
         </div>
-      </div>
+      </AuthLayout>
     );
   }
 
   if (sessionStatus === "invalid") {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background px-4">
+      <AuthLayout>
         <div className="w-full max-w-sm rounded-[10px] border border-border bg-card p-8 text-center">
           <h1 className="text-[28px] font-semibold text-foreground">
             {t("auth.updatePassword.invalidTitle")}
@@ -86,12 +90,12 @@ export default function UpdatePasswordPage() {
             {t("auth.updatePassword.requestNewLink")}
           </Link>
         </div>
-      </div>
+      </AuthLayout>
     );
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+    <AuthLayout>
       <div className="w-full max-w-sm rounded-[10px] border border-border bg-card p-8">
         <h1 className="text-center text-[28px] font-semibold text-foreground">
           {t("auth.updatePassword.title")}
@@ -101,40 +105,28 @@ export default function UpdatePasswordPage() {
         </p>
 
         <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-4">
-          <div>
-            <label className="mb-1 block text-sm text-secondary">
-              {t("auth.updatePassword.password")}
-            </label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="h-10 w-full rounded-[10px] border border-border bg-card px-3 text-sm text-foreground focus:border-primary focus:outline-none"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm text-secondary">
-              {t("auth.updatePassword.confirmPassword")}
-            </label>
-            <input
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              className="h-10 w-full rounded-[10px] border border-border bg-card px-3 text-sm text-foreground focus:border-primary focus:outline-none"
-            />
-          </div>
+          <Input
+            type="password"
+            icon={Lock}
+            label={t("auth.updatePassword.password")}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+          <Input
+            type="password"
+            icon={Lock}
+            label={t("auth.updatePassword.confirmPassword")}
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+          />
 
           {errorMessage && <p className="text-xs text-error">{errorMessage}</p>}
 
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="mt-2 h-10 w-full rounded-[10px] bg-primary text-sm font-medium text-white disabled:opacity-60"
-          >
+          <Button type="submit" variant="primary" disabled={isLoading} className="mt-2 w-full">
             {isLoading ? t("auth.updatePassword.submitLoading") : t("auth.updatePassword.submit")}
-          </button>
+          </Button>
         </form>
       </div>
-    </div>
+    </AuthLayout>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight, Users } from "lucide-react";
 import { useCompanyContacts } from "@/lib/company-contacts-context";
 import {
   createEmptyContactFormValues,
@@ -10,6 +10,8 @@ import {
   type ContactFormValues,
 } from "@/lib/companyContacts";
 import ContactForm from "@/components/companies/ContactForm";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import EmptyState from "@/components/ui/EmptyState";
 import { useT } from "@/lib/locale-context";
 
 interface CompanyContactsProps {
@@ -21,13 +23,14 @@ export default function CompanyContacts({ companyId }: CompanyContactsProps) {
   const { contacts, error, addContact, updateContact, deleteContact } = useCompanyContacts();
   const [isExpanded, setIsExpanded] = useState(false);
   const [formState, setFormState] = useState<{ contact: CompanyContact | null } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<CompanyContact | null>(null);
 
   const companyContacts = contacts.filter((contact) => contact.companyId === companyId);
 
-  async function handleDelete(contact: CompanyContact) {
-    if (window.confirm(t("companies.contacts.deleteConfirm", { name: contact.name }))) {
-      await deleteContact(contact.id);
-    }
+  async function handleConfirmDelete() {
+    if (!deleteTarget) return;
+    await deleteContact(deleteTarget.id);
+    setDeleteTarget(null);
   }
 
   async function handleSubmit(values: ContactFormValues) {
@@ -72,7 +75,7 @@ export default function CompanyContacts({ companyId }: CompanyContactsProps) {
           )}
 
           {companyContacts.length === 0 ? (
-            <p className="py-6 text-center text-sm text-secondary">{t("companies.contacts.empty")}</p>
+            <EmptyState icon={Users} title={t("companies.contacts.empty")} />
           ) : (
             <div className="flex flex-col gap-3">
               {companyContacts.map((contact) => (
@@ -92,7 +95,7 @@ export default function CompanyContacts({ companyId }: CompanyContactsProps) {
                       </button>
                       <button
                         type="button"
-                        onClick={() => handleDelete(contact)}
+                        onClick={() => setDeleteTarget(contact)}
                         className="text-secondary hover:text-error hover:underline"
                       >
                         {t("common.delete")}
@@ -129,6 +132,17 @@ export default function CompanyContacts({ companyId }: CompanyContactsProps) {
           onSubmit={handleSubmit}
         />
       )}
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title={t("companies.contacts.deleteConfirm", { name: deleteTarget?.name ?? "" })}
+        description={t("common.cannotUndo")}
+        confirmLabel={t("common.delete")}
+        cancelLabel={t("common.cancel")}
+        variant="danger"
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={handleConfirmDelete}
+      />
     </section>
   );
 }

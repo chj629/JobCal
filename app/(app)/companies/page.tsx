@@ -2,9 +2,16 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Filter, MoreHorizontal } from "lucide-react";
+import { Building2, CalendarDays, MoreHorizontal, Search } from "lucide-react";
 import StatusBadge from "@/components/StatusBadge";
 import CompanyForm from "@/components/CompanyForm";
+import Badge, { type BadgeVariant } from "@/components/ui/Badge";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import EmptyState from "@/components/ui/EmptyState";
+import Button from "@/components/ui/Button";
+import Input from "@/components/ui/Input";
+import Select from "@/components/ui/Select";
+import { useToast } from "@/components/ui/Toast";
 import {
   OVERALL_STATUSES,
   PRIORITIES,
@@ -30,11 +37,11 @@ const WEEKDAY_LABELS: Record<Locale, string[]> = {
   ko: ["일", "월", "화", "수", "목", "금", "토"],
 };
 
-// design.md 색상 토큰 재사용: 높음=Error, 보통=Warning, 낮음=Success
-const PRIORITY_BADGE_CLASS: Record<string, string> = {
-  high: "bg-error/10 text-error",
-  medium: "bg-warning/10 text-warning",
-  low: "bg-success/10 text-success",
+// design.md 색상 토큰 재사용: 높음=Error(danger), 보통=Warning, 낮음=Success
+const PRIORITY_BADGE_VARIANT: Record<string, BadgeVariant> = {
+  high: "danger",
+  medium: "warning",
+  low: "success",
 };
 
 // components/dashboard/UpcomingSchedule.tsx의 formatRowDate와 동일한 규칙(오늘/내일/MM.DD (요일)).
@@ -56,6 +63,7 @@ function getInitials(name: string) {
 
 export default function CompaniesPage() {
   const t = useT();
+  const { showToast } = useToast();
   const { locale } = useLocale();
   const weekdayLabels = WEEKDAY_LABELS[locale];
   const statusLabels: Record<string, string> = {
@@ -86,9 +94,9 @@ export default function CompaniesPage() {
   const [statusFilter, setStatusFilter] = useState<string>(ALL);
   const [priorityFilter, setPriorityFilter] = useState<string>(ALL);
   const [stepFilter, setStepFilter] = useState<string>(ALL);
-  const [isFilterOpen, setIsFilterOpen] = useState(true);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editingCompany, setEditingCompany] = useState<Company | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Company | null>(null);
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
   const [pageSize, setPageSize] = useState(PAGE_SIZE_OPTIONS[0]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -170,91 +178,78 @@ export default function CompaniesPage() {
     (_, i) => startPage + i
   );
 
-  async function handleDelete(company: Company) {
+  // 검색/필터 결과가 0건인 것과, 애초에 등록된 기업이 하나도 없는 것은 다른 상황이므로
+  // 문구를 분리한다(전자는 조건 조정 유도, 후자는 첫 기업 등록 유도).
+  const hasNoCompaniesAtAll = companies.length === 0;
+
+  function handleDeleteClick(company: Company) {
     setActiveMenuId(null);
-    if (window.confirm(t("companies.list.deleteConfirm", { name: company.name }))) {
-      await deleteCompany(company.id);
-    }
+    setDeleteTarget(company);
+  }
+
+  async function handleConfirmDelete() {
+    if (!deleteTarget) return;
+    await deleteCompany(deleteTarget.id);
+    setDeleteTarget(null);
   }
 
   return (
     <div className="mx-auto max-w-[1200px] px-8 py-8">
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+      <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-[28px] font-semibold text-foreground">
             {t("companies.list.title")}
           </h1>
           <p className="mt-1 text-sm text-secondary">{t("companies.list.description")}</p>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder={t("companies.list.searchPlaceholder")}
-            className="h-10 w-full rounded-[10px] border border-border bg-card px-3 text-sm text-foreground placeholder:text-secondary focus:border-primary focus:outline-none sm:w-64"
-          />
-          <button
-            type="button"
-            onClick={() => setIsFilterOpen((v) => !v)}
-            className="flex h-10 items-center gap-2 rounded-[10px] border border-border bg-card px-4 text-sm font-medium text-foreground hover:bg-background"
-          >
-            <Filter size={16} />
-            {t("companies.list.filterButton")}
-          </button>
-          <Link
-            href="/companies/new-from-email"
-            className="flex h-10 items-center rounded-[10px] border border-border bg-card px-4 text-sm font-medium text-foreground hover:bg-background"
-          >
-            {t("companies.list.addFromEmail")}
-          </Link>
-          <button
-            type="button"
-            onClick={() => setIsAddOpen(true)}
-            className="h-10 rounded-[10px] bg-primary px-4 text-sm font-medium text-white"
-          >
-            {t("companies.list.addCompany")}
-          </button>
-        </div>
+        <Input
+          type="text"
+          icon={Search}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder={t("companies.list.searchPlaceholder")}
+          containerClassName="w-full sm:w-64"
+        />
       </div>
 
-      {isFilterOpen && (
-        <div className="mb-4 flex flex-wrap items-center gap-3">
-          <select
-            value={priorityFilter}
-            onChange={(e) => setPriorityFilter(e.target.value)}
-            className="h-10 rounded-[10px] border border-border bg-card px-3 text-sm text-foreground focus:border-primary focus:outline-none"
-          >
-            <option value={ALL}>{t("companies.list.filters.allPriority")}</option>
-            {PRIORITIES.map((priority) => (
-              <option key={priority} value={priority}>
-                {priorityLabels[priority]}
-              </option>
-            ))}
-          </select>
-          <select
-            value={stepFilter}
-            onChange={(e) => setStepFilter(e.target.value)}
-            className="h-10 rounded-[10px] border border-border bg-card px-3 text-sm text-foreground focus:border-primary focus:outline-none"
-          >
-            <option value={ALL}>{t("companies.list.filters.allStep")}</option>
-            {DEFAULT_STEP_NAMES.map((step) => (
-              <option key={step} value={step}>
-                {step}
-              </option>
-            ))}
-          </select>
-          {isFiltering && (
-            <button
-              type="button"
-              onClick={resetFilters}
-              className="h-10 rounded-[10px] border border-border px-4 text-sm font-medium text-secondary hover:text-foreground"
-            >
-              {t("companies.list.filters.reset")}
-            </button>
-          )}
-        </div>
-      )}
+      <div className="mb-6 flex flex-wrap items-center gap-3">
+        <Select
+          value={priorityFilter}
+          onChange={(e) => setPriorityFilter(e.target.value)}
+          containerClassName="w-36"
+        >
+          <option value={ALL}>{t("companies.list.filters.allPriority")}</option>
+          {PRIORITIES.map((priority) => (
+            <option key={priority} value={priority}>
+              {priorityLabels[priority]}
+            </option>
+          ))}
+        </Select>
+        <Select
+          value={stepFilter}
+          onChange={(e) => setStepFilter(e.target.value)}
+          containerClassName="w-36"
+        >
+          <option value={ALL}>{t("companies.list.filters.allStep")}</option>
+          {DEFAULT_STEP_NAMES.map((step) => (
+            <option key={step} value={step}>
+              {step}
+            </option>
+          ))}
+        </Select>
+        <Button type="button" variant="secondary" disabled={!isFiltering} onClick={resetFilters}>
+          {t("companies.list.filters.reset")}
+        </Button>
+        <Link
+          href="/companies/new-from-email"
+          className="ml-auto flex h-10 items-center rounded-lg border border-border bg-card px-4 text-sm font-medium text-foreground hover:bg-background"
+        >
+          {t("companies.list.addFromEmail")}
+        </Link>
+        <Button type="button" variant="primary" onClick={() => setIsAddOpen(true)}>
+          {t("companies.list.addCompany")}
+        </Button>
+      </div>
 
       <div className="mb-4 flex flex-wrap items-center gap-1 border-b border-border">
         {statusTabs.map((tab) => (
@@ -281,35 +276,37 @@ export default function CompaniesPage() {
       )}
 
       {loading ? (
-        <div className="rounded-[10px] border border-border bg-card px-6 py-10 text-center text-sm text-secondary">
+        <div className="rounded-lg border border-border bg-card px-6 py-10 text-center text-sm text-secondary">
           {t("companies.list.loading")}
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-[10px] border border-border bg-card">
+        <>
+        {/* 데스크톱/태블릿: 기존 테이블 그대로 (md 이상) */}
+        <div className="hidden overflow-x-auto rounded-lg border border-border bg-card md:block">
           <table className="w-full min-w-[960px] border-collapse text-sm">
             <thead>
-              <tr className="border-b border-border text-left text-secondary">
-                <th className="px-6 py-3 font-medium">{t("companies.list.columns.company")}</th>
-                <th className="px-6 py-3 font-medium">
+              <tr className="border-b border-border bg-background text-left text-secondary">
+                <th className="px-6 py-3.5 font-medium">{t("companies.list.columns.company")}</th>
+                <th className="px-6 py-3.5 font-medium">
                   {t("companies.list.columns.currentStep")}
                 </th>
-                <th className="px-6 py-3 font-medium">{t("companies.list.columns.status")}</th>
-                <th className="px-6 py-3 font-medium">
+                <th className="px-6 py-3.5 font-medium">{t("companies.list.columns.status")}</th>
+                <th className="px-6 py-3.5 font-medium">
                   {t("companies.list.columns.nextSchedule")}
                 </th>
-                <th className="px-6 py-3 font-medium">{t("companies.list.columns.priority")}</th>
-                <th className="px-6 py-3 font-medium">
+                <th className="px-6 py-3.5 font-medium">{t("companies.list.columns.priority")}</th>
+                <th className="px-6 py-3.5 font-medium">
                   {t("companies.list.columns.updatedAt")}
                 </th>
-                <th className="w-10 px-4 py-3" />
+                <th className="w-10 px-4 py-3.5" />
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {paginatedRows.map(({ company, currentStepName, nextEventAt, nextEventStepName }) => (
-                <tr key={company.id} className="hover:bg-background">
-                  <td className="px-6 py-3">
+                <tr key={company.id} className="transition-colors duration-150 hover:bg-background">
+                  <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
-                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] bg-primary/10 text-xs font-semibold text-primary">
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-xs font-semibold text-primary">
                         {getInitials(company.name)}
                       </span>
                       <Link
@@ -320,45 +317,41 @@ export default function CompaniesPage() {
                       </Link>
                     </div>
                   </td>
-                  <td className="px-6 py-3">
-                    <span className="inline-flex items-center rounded-full border border-border bg-background px-2.5 py-0.5 text-xs font-medium text-foreground">
-                      {currentStepName}
-                    </span>
+                  <td className="px-6 py-4">
+                    <Badge variant="neutral">{currentStepName}</Badge>
                   </td>
-                  <td className="px-6 py-3">
+                  <td className="px-6 py-4">
                     <StatusBadge status={company.overallStatus} />
                   </td>
-                  <td className="px-6 py-3">
+                  <td className="px-6 py-4">
                     {nextEventAt ? (
-                      <div>
-                        <p className="text-foreground">
-                          {formatRelativeDate(nextEventAt, t, weekdayLabels)}{" "}
-                          {formatTimeOfDay(nextEventAt)}
-                        </p>
-                        <p className="text-xs text-secondary">{nextEventStepName}</p>
+                      <div className="flex items-start gap-1.5">
+                        <CalendarDays size={14} className="mt-0.5 shrink-0 text-secondary" />
+                        <div>
+                          <p className="text-foreground">
+                            {formatRelativeDate(nextEventAt, t, weekdayLabels)}{" "}
+                            {formatTimeOfDay(nextEventAt)}
+                          </p>
+                          <p className="text-xs text-secondary">{nextEventStepName}</p>
+                        </div>
                       </div>
                     ) : (
                       <span className="text-secondary">{t("companies.list.noSchedule")}</span>
                     )}
                   </td>
-                  <td className="px-6 py-3">
-                    <span
-                      className={
-                        "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium " +
-                        PRIORITY_BADGE_CLASS[company.priority]
-                      }
-                    >
+                  <td className="px-6 py-4">
+                    <Badge variant={PRIORITY_BADGE_VARIANT[company.priority]}>
                       {priorityLabels[company.priority]}
-                    </span>
+                    </Badge>
                   </td>
-                  <td className="px-6 py-3 text-secondary">{company.updatedAt}</td>
-                  <td className="relative px-4 py-3 text-right">
+                  <td className="px-6 py-4 text-secondary">{company.updatedAt}</td>
+                  <td className="relative px-4 py-4 text-right">
                     <button
                       type="button"
                       onClick={() =>
                         setActiveMenuId((id) => (id === company.id ? null : company.id))
                       }
-                      className="rounded-[8px] p-1.5 text-secondary hover:bg-background hover:text-foreground"
+                      className="rounded-md p-1.5 text-secondary hover:bg-background hover:text-foreground"
                       aria-label={t("companies.list.actionsMenuLabel", { name: company.name })}
                     >
                       <MoreHorizontal size={16} />
@@ -369,7 +362,7 @@ export default function CompaniesPage() {
                           className="fixed inset-0 z-10"
                           onClick={() => setActiveMenuId(null)}
                         />
-                        <div className="absolute right-4 top-10 z-20 w-32 rounded-[10px] border border-border bg-card py-1 text-left shadow-lg">
+                        <div className="absolute right-4 top-10 z-20 w-32 rounded-lg border border-border bg-card py-1 text-left shadow-lg">
                           <button
                             type="button"
                             onClick={() => {
@@ -382,7 +375,7 @@ export default function CompaniesPage() {
                           </button>
                           <button
                             type="button"
-                            onClick={() => handleDelete(company)}
+                            onClick={() => handleDeleteClick(company)}
                             className="block w-full px-3 py-2 text-left text-sm text-error hover:bg-background"
                           >
                             {t("companies.list.actions.delete")}
@@ -396,70 +389,192 @@ export default function CompaniesPage() {
 
               {paginatedRows.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-6 py-10 text-center text-sm text-secondary">
-                    {t("companies.list.empty.noResults")}
+                  <td colSpan={7}>
+                    {hasNoCompaniesAtAll ? (
+                      <div className="flex flex-col items-center gap-4 py-2">
+                        <EmptyState
+                          icon={Building2}
+                          title={t("companies.list.empty.noCompaniesTitle")}
+                          description={t("companies.list.empty.noCompaniesDescription")}
+                        />
+                        <Button type="button" variant="primary" size="sm" onClick={() => setIsAddOpen(true)}>
+                          {t("companies.list.addCompany")}
+                        </Button>
+                      </div>
+                    ) : (
+                      <EmptyState icon={Search} title={t("companies.list.empty.noResults")} />
+                    )}
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
+        </div>
 
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-6 py-4">
-            <p className="text-sm text-secondary">
-              {t("companies.list.pagination.totalPrefix")}{" "}
-              <span className="font-medium text-foreground">{totalCount}</span>
-              {t("companies.list.pagination.totalSuffix")}
-            </p>
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  disabled={page <= 1}
-                  onClick={() => setCurrentPage(page - 1)}
-                  className="flex h-8 w-8 items-center justify-center rounded-[8px] text-secondary hover:bg-background hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
-                  aria-label={t("companies.list.pagination.previous")}
-                >
-                  ‹
-                </button>
-                {pageNumbers.map((n) => (
-                  <button
-                    key={n}
-                    type="button"
-                    onClick={() => setCurrentPage(n)}
-                    className={
-                      "flex h-8 w-8 items-center justify-center rounded-[8px] text-sm font-medium " +
-                      (n === page
-                        ? "bg-primary text-white"
-                        : "text-foreground hover:bg-background")
-                    }
-                  >
-                    {n}
-                  </button>
-                ))}
-                <button
-                  type="button"
-                  disabled={page >= totalPages}
-                  onClick={() => setCurrentPage(page + 1)}
-                  className="flex h-8 w-8 items-center justify-center rounded-[8px] text-secondary hover:bg-background hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
-                  aria-label={t("companies.list.pagination.next")}
-                >
-                  ›
-                </button>
-              </div>
-              <select
-                value={pageSize}
-                onChange={(e) => setPageSize(Number(e.target.value))}
-                className="h-9 rounded-[8px] border border-border bg-card px-2 text-sm text-foreground focus:border-primary focus:outline-none"
-              >
-                {PAGE_SIZE_OPTIONS.map((size) => (
-                  <option key={size} value={size}>
-                    {t("companies.list.pagination.perPage", { size })}
-                  </option>
-                ))}
-              </select>
+        {/* 모바일: 테이블 대신 카드 목록 (md 미만). 검색/필터/상태 탭/페이지네이션은
+            위·아래에서 공통으로 재사용하고, 행 하나당 카드 하나로만 바꾼다. */}
+        <div className="flex flex-col gap-3 md:hidden">
+          {paginatedRows.length === 0 ? (
+            <div className="rounded-lg border border-border bg-card">
+              {hasNoCompaniesAtAll ? (
+                <div className="flex flex-col items-center gap-4 py-6">
+                  <EmptyState
+                    icon={Building2}
+                    title={t("companies.list.empty.noCompaniesTitle")}
+                    description={t("companies.list.empty.noCompaniesDescription")}
+                  />
+                  <Button type="button" variant="primary" size="sm" onClick={() => setIsAddOpen(true)}>
+                    {t("companies.list.addCompany")}
+                  </Button>
+                </div>
+              ) : (
+                <EmptyState icon={Search} title={t("companies.list.empty.noResults")} />
+              )}
             </div>
+          ) : (
+            paginatedRows.map(({ company, currentStepName, nextEventAt, nextEventStepName }) => (
+              <div key={company.id} className="rounded-lg border border-border bg-card p-4">
+                <div className="flex items-start justify-between gap-2">
+                  <Link
+                    href={`/companies/${company.id}`}
+                    className="flex min-w-0 items-center gap-3"
+                  >
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary/10 text-xs font-semibold text-primary">
+                      {getInitials(company.name)}
+                    </span>
+                    <span className="truncate font-medium text-foreground">{company.name}</span>
+                  </Link>
+                  <div className="relative shrink-0">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setActiveMenuId((id) => (id === company.id ? null : company.id))
+                      }
+                      className="rounded-md p-1.5 text-secondary hover:bg-background hover:text-foreground"
+                      aria-label={t("companies.list.actionsMenuLabel", { name: company.name })}
+                    >
+                      <MoreHorizontal size={16} />
+                    </button>
+                    {activeMenuId === company.id && (
+                      <>
+                        <div
+                          className="fixed inset-0 z-10"
+                          onClick={() => setActiveMenuId(null)}
+                        />
+                        <div className="absolute right-0 top-9 z-20 w-32 rounded-lg border border-border bg-card py-1 text-left shadow-lg">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingCompany(company);
+                              setActiveMenuId(null);
+                            }}
+                            className="block w-full px-3 py-2 text-left text-sm text-foreground hover:bg-background"
+                          >
+                            {t("companies.list.actions.edit")}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteClick(company)}
+                            className="block w-full px-3 py-2 text-left text-sm text-error hover:bg-background"
+                          >
+                            {t("companies.list.actions.delete")}
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <Badge variant="neutral">{currentStepName}</Badge>
+                  <StatusBadge status={company.overallStatus} />
+                  <Badge variant={PRIORITY_BADGE_VARIANT[company.priority]}>
+                    {priorityLabels[company.priority]}
+                  </Badge>
+                </div>
+
+                <div className="mt-3 flex items-center justify-between gap-2 text-xs">
+                  {nextEventAt ? (
+                    <div className="flex items-start gap-1.5 text-foreground">
+                      <CalendarDays size={14} className="mt-0.5 shrink-0 text-secondary" />
+                      <div>
+                        <p>
+                          {formatRelativeDate(nextEventAt, t, weekdayLabels)}{" "}
+                          {formatTimeOfDay(nextEventAt)}
+                        </p>
+                        {nextEventStepName && (
+                          <p className="text-secondary">{nextEventStepName}</p>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <span className="text-secondary">{t("companies.list.noSchedule")}</span>
+                  )}
+                  <span className="shrink-0 text-secondary">{company.updatedAt}</span>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* 페이지네이션은 데스크톱 테이블/모바일 카드 공통으로 하나만 둔다. */}
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card px-6 py-4">
+          <p className="text-sm text-secondary">
+            {t("companies.list.pagination.totalPrefix")}{" "}
+            <span className="font-medium text-foreground">{totalCount}</span>
+            {t("companies.list.pagination.totalSuffix")}
+          </p>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                disabled={page <= 1}
+                onClick={() => setCurrentPage(page - 1)}
+                className="flex h-8 w-8 items-center justify-center rounded-md text-secondary hover:bg-background hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
+                aria-label={t("companies.list.pagination.previous")}
+              >
+                ‹
+              </button>
+              {pageNumbers.map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => setCurrentPage(n)}
+                  className={
+                    "flex h-8 w-8 items-center justify-center rounded-md text-sm font-medium " +
+                    (n === page
+                      ? "bg-primary text-white"
+                      : "text-foreground hover:bg-background")
+                  }
+                >
+                  {n}
+                </button>
+              ))}
+              <button
+                type="button"
+                disabled={page >= totalPages}
+                onClick={() => setCurrentPage(page + 1)}
+                className="flex h-8 w-8 items-center justify-center rounded-md text-secondary hover:bg-background hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
+                aria-label={t("companies.list.pagination.next")}
+              >
+                ›
+              </button>
+            </div>
+            <Select
+              value={pageSize}
+              onChange={(e) => setPageSize(Number(e.target.value))}
+              containerClassName="w-32"
+              className="h-9"
+            >
+              {PAGE_SIZE_OPTIONS.map((size) => (
+                <option key={size} value={size}>
+                  {t("companies.list.pagination.perPage", { size })}
+                </option>
+              ))}
+            </Select>
           </div>
         </div>
+        </>
       )}
 
       {isAddOpen && (
@@ -474,6 +589,7 @@ export default function CompaniesPage() {
               // 기본 8개 전형은 DB 트리거가 생성하므로, 방금 만든 기업의 전형이
               // 클라이언트 상태에 보이도록 한 번 더 불러온다.
               refreshSteps();
+              showToast(t("companies.list.addSuccessToast", { name: values.name }));
             }
           }}
         />
@@ -490,6 +606,17 @@ export default function CompaniesPage() {
           }}
         />
       )}
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title={t("companies.list.deleteConfirm", { name: deleteTarget?.name ?? "" })}
+        description={t("common.cannotUndo")}
+        confirmLabel={t("common.delete")}
+        cancelLabel={t("common.cancel")}
+        variant="danger"
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={handleConfirmDelete}
+      />
     </div>
   );
 }

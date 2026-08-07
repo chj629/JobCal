@@ -18,6 +18,38 @@
   --color-sidebar-border: #1f2937;
   --color-sidebar-foreground: #94a3b8;
   --font-sans: var(--font-sans-app);
+
+  /* 44_designtoken.png: Colors - Brand states / Semantic */
+  --color-primary-hover: #1d4ed8;
+  --color-primary-active: #1e40af;
+  --color-info: #3b82f6;
+  --color-muted: #9ca3af;
+
+  /* 44_designtoken.png: Colors - Neutral */
+  --color-neutral-50: #f8fafc;
+  --color-neutral-100: #f1f5f9;
+  --color-neutral-200: #e5e7eb;
+  --color-neutral-300: #d1d5db;
+  --color-neutral-400: #9ca3af;
+  --color-neutral-500: #6b7280;
+  --color-neutral-600: #4b5563;
+  --color-neutral-700: #374151;
+  --color-neutral-800: #1f2937;
+  --color-neutral-900: #111827;
+
+  /* 44_designtoken.png: Radius */
+  --radius-none: 0px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 12px;
+  --radius-full: 9999px;
+
+  /* 44_designtoken.png: Shadow */
+  --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.05);
+  --shadow-md: 0 4px 6px rgba(16, 24, 40, 0.08);
+  --shadow-lg: 0 10px 15px rgba(16, 24, 40, 0.1);
+  --shadow-xl: 0 20px 25px rgba(16, 24, 40, 0.12);
 }
 
 body {

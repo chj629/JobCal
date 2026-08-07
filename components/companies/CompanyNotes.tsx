@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { NotebookPen } from "lucide-react";
 import { useCompanyNotes } from "@/lib/company-notes-context";
 import {
   createEmptyNoteFormValues,
@@ -11,6 +12,8 @@ import {
 import { dateKeyOf } from "@/lib/date";
 import { useT } from "@/lib/locale-context";
 import NoteForm from "@/components/companies/NoteForm";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import EmptyState from "@/components/ui/EmptyState";
 
 interface CompanyNotesProps {
   companyId: string;
@@ -20,16 +23,18 @@ export default function CompanyNotes({ companyId }: CompanyNotesProps) {
   const t = useT();
   const { notes, error, addNote, updateNote, deleteNote } = useCompanyNotes();
   const [formState, setFormState] = useState<{ note: CompanyNote | null } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<CompanyNote | null>(null);
 
   const companyNotes = notes
     .filter((note) => note.companyId === companyId)
     .sort((a, b) => a.position - b.position);
 
-  async function handleDelete(note: CompanyNote) {
-    const fallbackTitle = t("companies.notes.deleteConfirmFallbackTitle");
-    if (window.confirm(t("companies.notes.deleteConfirm", { title: note.title || fallbackTitle }))) {
-      await deleteNote(note.id);
-    }
+  const fallbackTitle = t("companies.notes.deleteConfirmFallbackTitle");
+
+  async function handleConfirmDelete() {
+    if (!deleteTarget) return;
+    await deleteNote(deleteTarget.id);
+    setDeleteTarget(null);
   }
 
   async function handleSubmit(values: NoteFormValues) {
@@ -59,7 +64,7 @@ export default function CompanyNotes({ companyId }: CompanyNotesProps) {
       )}
 
       {companyNotes.length === 0 ? (
-        <p className="py-6 text-center text-sm text-secondary">{t("companies.notes.empty")}</p>
+        <EmptyState icon={NotebookPen} title={t("companies.notes.empty")} />
       ) : (
         <div className="flex flex-col gap-3">
           {companyNotes.map((note) => (
@@ -78,7 +83,7 @@ export default function CompanyNotes({ companyId }: CompanyNotesProps) {
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleDelete(note)}
+                    onClick={() => setDeleteTarget(note)}
                     className="text-secondary hover:text-error hover:underline"
                   >
                     {t("common.delete")}
@@ -104,6 +109,19 @@ export default function CompanyNotes({ companyId }: CompanyNotesProps) {
           onSubmit={handleSubmit}
         />
       )}
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title={t("companies.notes.deleteConfirm", {
+          title: deleteTarget?.title || fallbackTitle,
+        })}
+        description={t("common.cannotUndo")}
+        confirmLabel={t("common.delete")}
+        cancelLabel={t("common.cancel")}
+        variant="danger"
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={handleConfirmDelete}
+      />
     </section>
   );
 }

@@ -34,6 +34,7 @@ export interface Company {
   name: string;
   overallStatus: OverallStatus;
   priority: Priority;
+  createdAt: string;
   updatedAt: string;
   websiteUrl: string;
   mypageUrl: string;
@@ -87,6 +88,7 @@ export function rowToCompany(row: CompanyRow): Company {
     name: row.name,
     overallStatus: row.overall_status,
     priority: row.priority,
+    createdAt: row.created_at.slice(0, 10),
     updatedAt: row.updated_at.slice(0, 10),
     websiteUrl: row.website_url,
     mypageUrl: row.mypage_url,

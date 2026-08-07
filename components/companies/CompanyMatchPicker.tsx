@@ -1,9 +1,13 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { Search } from "lucide-react";
 import { useCompanies } from "@/lib/companies-context";
 import type { Company } from "@/lib/companies";
 import { useT } from "@/lib/locale-context";
+import Input from "@/components/ui/Input";
+import Button from "@/components/ui/Button";
+import EmptyState from "@/components/ui/EmptyState";
 
 interface CompanyMatchPickerProps {
   suggestedName: string | null;
@@ -29,28 +33,30 @@ export default function CompanyMatchPicker({
   }, [companies, search]);
 
   return (
-    <div className="mx-auto max-w-[720px] px-8 py-8">
-      <h1 className="text-[20px] font-semibold text-foreground">{t("aiEmail.match.title")}</h1>
-      <p className="mt-1 text-sm text-secondary">
-        {suggestedName
-          ? t("aiEmail.match.descriptionWithSuggestion", { name: suggestedName })
-          : t("aiEmail.match.descriptionNoSuggestion")}
-      </p>
+    <div className="flex flex-col gap-6">
+      <div>
+        <h1 className="text-[20px] font-semibold text-foreground">{t("aiEmail.match.title")}</h1>
+        <p className="mt-1 text-sm text-secondary">
+          {suggestedName
+            ? t("aiEmail.match.descriptionWithSuggestion", { name: suggestedName })
+            : t("aiEmail.match.descriptionNoSuggestion")}
+        </p>
+      </div>
 
-      <div className="mt-6 rounded-[10px] border border-border bg-card p-6">
-        <label className="mb-1 block text-sm text-secondary">{t("aiEmail.match.searchLabel")}</label>
-        <input
+      <div className="rounded-[10px] border border-border bg-card p-6">
+        <Input
+          label={t("aiEmail.match.searchLabel")}
+          icon={Search}
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder={t("companies.list.searchPlaceholder")}
-          className="h-10 w-full rounded-[10px] border border-border bg-card px-3 text-sm text-foreground focus:border-primary focus:outline-none"
         />
 
         {search.trim() && (
           <div className="mt-4 flex flex-col gap-2">
             {matches.length === 0 ? (
-              <p className="py-4 text-center text-sm text-secondary">{t("aiEmail.match.noMatches")}</p>
+              <EmptyState icon={Search} title={t("aiEmail.match.noMatches")} />
             ) : (
               matches.map((company) => (
                 <button
@@ -68,13 +74,9 @@ export default function CompanyMatchPicker({
         )}
       </div>
 
-      <button
-        type="button"
-        onClick={onSelectNew}
-        className="mt-4 h-10 w-full rounded-[10px] border border-border bg-card text-sm font-medium text-foreground hover:bg-background"
-      >
+      <Button type="button" variant="secondary" onClick={onSelectNew} className="w-full">
         {t("aiEmail.match.createNew")}
-      </button>
+      </Button>
     </div>
   );
 }

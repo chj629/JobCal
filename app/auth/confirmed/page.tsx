@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useT } from "@/lib/locale-context";
+import AuthLayout from "@/components/auth/AuthLayout";
 
 export default function AuthConfirmedPage() {
   const router = useRouter();
@@ -33,7 +34,7 @@ export default function AuthConfirmedPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+    <AuthLayout>
       <div className="w-full max-w-sm rounded-[10px] border border-border bg-card p-8 text-center">
         <h1 className="text-[28px] font-semibold text-foreground">
           {t("auth.confirmed.title")}
@@ -55,6 +56,6 @@ export default function AuthConfirmedPage() {
           {isLoading ? t("auth.confirmed.buttonLoading") : t("auth.confirmed.button")}
         </button>
       </div>
-    </div>
+    </AuthLayout>
   );
 }

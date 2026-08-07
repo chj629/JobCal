@@ -3,6 +3,9 @@
 import { useState, type FormEvent } from "react";
 import type { ContactFormValues } from "@/lib/companyContacts";
 import { useT } from "@/lib/locale-context";
+import Modal from "@/components/ui/Modal";
+import Button from "@/components/ui/Button";
+import Input from "@/components/ui/Input";
 
 interface ContactFormProps {
   title: string;
@@ -11,8 +14,6 @@ interface ContactFormProps {
   onSubmit: (values: ContactFormValues) => void;
 }
 
-const fieldClass =
-  "h-10 w-full rounded-[10px] border border-border bg-card px-3 text-sm text-foreground focus:border-primary focus:outline-none";
 const labelClass = "mb-1 block text-sm text-secondary";
 
 export default function ContactForm({ title, initialValues, onCancel, onSubmit }: ContactFormProps) {
@@ -30,87 +31,74 @@ export default function ContactForm({ title, initialValues, onCancel, onSubmit }
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-lg rounded-[10px] border border-border bg-card p-6 shadow-lg">
-        <h2 className="mb-4 text-[16px] font-semibold text-foreground">{title}</h2>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <div>
-            <label className={labelClass}>{t("companies.contacts.name")}</label>
-            <input
-              type="text"
-              value={values.name}
-              onChange={(e) => setValues({ ...values, name: e.target.value })}
-              className={fieldClass}
-            />
-            {error && <p className="mt-1 text-xs text-error">{error}</p>}
-          </div>
+    <Modal title={title} onClose={onCancel}>
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <Input
+          label={t("companies.contacts.name")}
+          type="text"
+          value={values.name}
+          onChange={(e) => setValues({ ...values, name: e.target.value })}
+          error={error}
+        />
 
-          <div>
-            <label className={labelClass}>
-              {t("companies.contacts.role")} <span className="text-secondary">{t("common.optional")}</span>
-            </label>
-            <input
-              type="text"
-              value={values.role}
-              onChange={(e) => setValues({ ...values, role: e.target.value })}
-              className={fieldClass}
-            />
-          </div>
+        <Input
+          label={
+            <>
+              {t("companies.contacts.role")}{" "}
+              <span className="text-secondary">{t("common.optional")}</span>
+            </>
+          }
+          type="text"
+          value={values.role}
+          onChange={(e) => setValues({ ...values, role: e.target.value })}
+        />
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className={labelClass}>
-                {t("companies.contacts.email")} <span className="text-secondary">{t("common.optional")}</span>
-              </label>
-              <input
-                type="text"
-                value={values.email}
-                onChange={(e) => setValues({ ...values, email: e.target.value })}
-                className={fieldClass}
-              />
-            </div>
-            <div>
-              <label className={labelClass}>
-                {t("companies.contacts.phone")} <span className="text-secondary">{t("common.optional")}</span>
-              </label>
-              <input
-                type="text"
-                value={values.phone}
-                onChange={(e) => setValues({ ...values, phone: e.target.value })}
-                className={fieldClass}
-              />
-            </div>
-          </div>
+        <div className="grid grid-cols-2 gap-4">
+          <Input
+            label={
+              <>
+                {t("companies.contacts.email")}{" "}
+                <span className="text-secondary">{t("common.optional")}</span>
+              </>
+            }
+            type="text"
+            value={values.email}
+            onChange={(e) => setValues({ ...values, email: e.target.value })}
+          />
+          <Input
+            label={
+              <>
+                {t("companies.contacts.phone")}{" "}
+                <span className="text-secondary">{t("common.optional")}</span>
+              </>
+            }
+            type="text"
+            value={values.phone}
+            onChange={(e) => setValues({ ...values, phone: e.target.value })}
+          />
+        </div>
 
-          <div>
-            <label className={labelClass}>
-              {t("companies.contacts.memo")} <span className="text-secondary">{t("common.optional")}</span>
-            </label>
-            <textarea
-              value={values.memo}
-              onChange={(e) => setValues({ ...values, memo: e.target.value })}
-              rows={3}
-              className="w-full rounded-[10px] border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none"
-            />
-          </div>
+        <div>
+          <label className={labelClass}>
+            {t("companies.contacts.memo")} <span className="text-secondary">{t("common.optional")}</span>
+          </label>
+          <textarea
+            value={values.memo}
+            onChange={(e) => setValues({ ...values, memo: e.target.value })}
+            rows={3}
+            className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none"
+          />
+        </div>
 
-          <div className="mt-2 flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={onCancel}
-              className="h-10 rounded-[10px] border border-border px-4 text-sm font-medium text-secondary"
-            >
-              {t("common.cancel")}
-            </button>
-            <button
-              type="submit"
-              className="h-10 rounded-[10px] bg-primary px-4 text-sm font-medium text-white"
-            >
-              {t("common.save")}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+        <div className="mt-2 flex justify-end gap-2">
+          <Button type="button" variant="secondary" onClick={onCancel}>
+            {t("common.cancel")}
+          </Button>
+          <Button type="submit" variant="primary">
+            {t("common.save")}
+          </Button>
+        </div>
+      </form>
+    </Modal>
   );
 }

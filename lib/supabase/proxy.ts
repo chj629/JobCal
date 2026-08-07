@@ -3,8 +3,9 @@ import { NextResponse, type NextRequest } from "next/server";
 
 const PUBLIC_PATH_PREFIXES = ["/login", "/signup", "/auth", "/forgot-password", "/update-password"];
 
+// "/"는 접두사(startsWith)로 검사하면 모든 경로가 걸리므로 정확히 일치할 때만 공개 경로로 취급한다.
 function isPublicPath(pathname: string) {
-  return PUBLIC_PATH_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+  return pathname === "/" || PUBLIC_PATH_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 }
 
 // 세션 토큰 갱신 + 로그인 여부에 따른 접근 제어를 함께 수행한다.
@@ -50,7 +51,7 @@ export async function updateSession(request: NextRequest) {
 
   if (user && (pathname.startsWith("/login") || pathname.startsWith("/signup"))) {
     const url = request.nextUrl.clone();
-    url.pathname = "/";
+    url.pathname = "/dashboard";
     return NextResponse.redirect(url);
   }
 

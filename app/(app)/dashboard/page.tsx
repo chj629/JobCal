@@ -1,13 +1,14 @@
 "use client";
 
-import { useState } from "react";
-import { Award, Briefcase, Building2, CalendarDays } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Briefcase, CalendarDays, CheckCircle2 } from "lucide-react";
 import { useCompanies } from "@/lib/companies-context";
 import { useApplicationSteps } from "@/lib/application-steps-context";
 import { useEvents } from "@/lib/events-context";
 import { createEmptyCompanyFormValues } from "@/lib/companies";
 import { dateKeyOf, todayKey } from "@/lib/date";
 import { useT } from "@/lib/locale-context";
+import { createClient } from "@/lib/supabase/client";
 import CompanyForm from "@/components/CompanyForm";
 import TodaySchedule from "@/components/dashboard/TodaySchedule";
 import UpcomingSchedule from "@/components/dashboard/UpcomingSchedule";
@@ -27,41 +28,59 @@ export default function DashboardPage() {
   const { steps, loading: stepsLoading, refresh: refreshSteps } = useApplicationSteps();
   const { events, loading: eventsLoading } = useEvents();
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [displayName, setDisplayName] = useState<string | null>(null);
 
   const loading = companiesLoading || stepsLoading || eventsLoading;
 
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      const name = user?.user_metadata?.display_name;
+      if (typeof name === "string" && name.trim()) {
+        setDisplayName(name);
+      }
+    });
+  }, []);
+
   const today = todayKey();
   const inProgressCount = companies.filter((c) => c.overallStatus === "in_progress").length;
-  const offerCount = companies.filter((c) => c.overallStatus === "offer").length;
+  const upcomingEventCount = events.filter((event) => {
+    const at = event.startsAt ?? event.dueAt;
+    return at !== null && dateKeyOf(at) >= today;
+  }).length;
   const thisWeekEventCount = events.filter((event) => {
     const at = event.startsAt ?? event.dueAt;
     return at !== null && isWithinNext7Days(dateKeyOf(at), today);
   }).length;
+  const offerLikeCount = companies.filter(
+    (c) => c.overallStatus === "offer" || c.overallStatus === "joined"
+  ).length;
+  const rejectedCount = companies.filter((c) => c.overallStatus === "rejected").length;
 
   const kpiTiles = [
     {
-      label: t("dashboard.kpi.totalCompanies"),
-      value: companies.length,
-      icon: Building2,
+      label: t("dashboard.kpi.inProgress"),
+      value: inProgressCount,
+      subtext: t("dashboard.kpi.inProgressSubtext", { total: companies.length }),
+      icon: Briefcase,
       colorClass: "bg-primary/10 text-primary",
     },
     {
-      label: t("dashboard.kpi.inProgress"),
-      value: inProgressCount,
-      icon: Briefcase,
+      label: t("dashboard.kpi.upcoming"),
+      value: upcomingEventCount,
+      subtext: t("dashboard.kpi.upcomingSubtext", { count: thisWeekEventCount }),
+      icon: CalendarDays,
       colorClass: "bg-success/10 text-success",
     },
     {
-      label: t("dashboard.kpi.thisWeekSchedule"),
-      value: thisWeekEventCount,
-      icon: CalendarDays,
+      label: t("dashboard.kpi.completedSelection"),
+      value: offerLikeCount + rejectedCount,
+      subtext: t("dashboard.kpi.completedSelectionSubtext", {
+        offer: offerLikeCount,
+        rejected: rejectedCount,
+      }),
+      icon: CheckCircle2,
       colorClass: "bg-joined/10 text-joined",
-    },
-    {
-      label: t("dashboard.kpi.offer"),
-      value: offerCount,
-      icon: Award,
-      colorClass: "bg-warning/10 text-warning",
     },
   ];
 
@@ -77,7 +96,11 @@ export default function DashboardPage() {
     <div className="mx-auto max-w-[960px] px-7 pt-7 pb-8">
       <div className="mb-8 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
         <div>
-          <h1 className="text-[24px] font-bold text-foreground">{t("dashboard.title")}</h1>
+          <h1 className="text-[24px] font-bold text-foreground">
+            {displayName
+              ? t("dashboard.greeting", { name: displayName })
+              : t("dashboard.greetingGeneric")}
+          </h1>
           <p className="mt-1 text-[13px] text-secondary">{t("dashboard.description")}</p>
         </div>
         <button
@@ -95,37 +118,39 @@ export default function DashboardPage() {
         </p>
       )}
 
-      <div className="flex flex-col gap-6">
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {kpiTiles.map(({ label, value, icon: Icon, colorClass }) => (
-            <div
-              key={label}
-              className="flex h-[164px] flex-col rounded-[10px] border border-border bg-card p-6"
-            >
-              <div className="flex items-start gap-3">
-                <span
-                  className={
-                    "flex h-14 w-14 shrink-0 items-center justify-center rounded-full " + colorClass
-                  }
-                >
-                  <Icon size={24} />
-                </span>
-                <div className="flex flex-col gap-2">
-                  <span className="text-[16px] font-bold text-secondary">{label}</span>
-                  <p className="text-[38px] font-bold text-foreground">{value}</p>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
+        <div className="flex min-w-0 flex-col gap-6">
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
+            {kpiTiles.map(({ label, value, subtext, icon: Icon, colorClass }) => (
+              <div
+                key={label}
+                className="flex h-[164px] flex-col rounded-[10px] border border-border bg-card p-6"
+              >
+                <div className="flex items-start gap-3">
+                  <span
+                    className={
+                      "flex h-14 w-14 shrink-0 items-center justify-center rounded-full " +
+                      colorClass
+                    }
+                  >
+                    <Icon size={24} />
+                  </span>
+                  <div className="flex flex-col gap-2">
+                    <span className="text-[16px] font-bold text-secondary">{label}</span>
+                    <p className="text-[38px] font-bold text-foreground">{value}</p>
+                  </div>
                 </div>
+                <p className="mt-2 text-xs text-secondary">{subtext}</p>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
 
-        <div className="grid gap-6 lg:grid-cols-2">
           <TodaySchedule companies={companies} events={events} steps={steps} />
-          <PipelineOverview companies={companies} steps={steps} />
+          <UpcomingSchedule companies={companies} events={events} steps={steps} />
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-[3fr_2fr]">
-          <UpcomingSchedule companies={companies} events={events} steps={steps} />
+        <div className="flex flex-col gap-6">
+          <PipelineOverview companies={companies} steps={steps} />
           <FocusCompanies companies={companies} events={events} steps={steps} />
         </div>
       </div>

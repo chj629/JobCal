@@ -4,6 +4,9 @@ import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useT } from "@/lib/locale-context";
+import AuthLayout from "@/components/auth/AuthLayout";
+import Input from "@/components/ui/Input";
+import Button from "@/components/ui/Button";
 
 export default function ForgotPasswordPage() {
   const t = useT();
@@ -59,7 +62,7 @@ export default function ForgotPasswordPage() {
 
   if (sent) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background px-4">
+      <AuthLayout>
         <div className="w-full max-w-sm rounded-[10px] border border-border bg-card p-8 text-center">
           <h1 className="text-[28px] font-semibold text-foreground">
             {t("auth.forgotPassword.sentTitle")}
@@ -74,12 +77,12 @@ export default function ForgotPasswordPage() {
             {t("auth.forgotPassword.backToLoginFromSent")}
           </Link>
         </div>
-      </div>
+      </AuthLayout>
     );
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+    <AuthLayout>
       <div className="w-full max-w-sm rounded-[10px] border border-border bg-card p-8">
         <h1 className="text-center text-[28px] font-semibold text-foreground">
           {t("auth.forgotPassword.title")}
@@ -89,27 +92,18 @@ export default function ForgotPasswordPage() {
         </p>
 
         <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-4">
-          <div>
-            <label className="mb-1 block text-sm text-secondary">
-              {t("auth.forgotPassword.email")}
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="h-10 w-full rounded-[10px] border border-border bg-card px-3 text-sm text-foreground focus:border-primary focus:outline-none"
-            />
-          </div>
+          <Input
+            type="email"
+            label={t("auth.forgotPassword.email")}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
 
           {errorMessage && <p className="text-xs text-error">{errorMessage}</p>}
 
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="mt-2 h-10 w-full rounded-[10px] bg-primary text-sm font-medium text-white disabled:opacity-60"
-          >
+          <Button type="submit" variant="primary" disabled={isLoading} className="mt-2 w-full">
             {isLoading ? t("auth.forgotPassword.submitLoading") : t("auth.forgotPassword.submit")}
-          </button>
+          </Button>
         </form>
 
         <p className="mt-6 text-center text-sm text-secondary">
@@ -118,6 +112,6 @@ export default function ForgotPasswordPage() {
           </Link>
         </p>
       </div>
-    </div>
+    </AuthLayout>
   );
 }

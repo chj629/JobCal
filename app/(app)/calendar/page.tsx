@@ -1,21 +1,32 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import { useCompanies } from "@/lib/companies-context";
 import { useEvents } from "@/lib/events-context";
+import { useApplicationSteps } from "@/lib/application-steps-context";
 import { EVENT_TYPE_BADGE_CLASS, EVENT_TYPES, type AppEvent, type EventType } from "@/lib/events";
-import { formatDateKey, dateKeyOf } from "@/lib/date";
+import { formatDateKey, dateKeyOf, formatTimeOfDay } from "@/lib/date";
 import { useLocale, useT } from "@/lib/locale-context";
+import Button from "@/components/ui/Button";
+import Badge, { type BadgeVariant } from "@/components/ui/Badge";
+import EventDetailPopover from "@/components/calendar/EventDetailPopover";
+import UpcomingSchedulePanel from "@/components/calendar/UpcomingSchedulePanel";
 
 const MAX_VISIBLE_EVENTS = 3;
 
 // lib/events.ts의 EVENT_TYPE_LABELS(한국어 고정)는 그대로 두고, 기업 상세 단계에서 만든
-// companies.events.types.* 키를 재사용해 표시 라벨만 번역한다.
+// companies.events.types.*를 재사용해 표시 라벨만 번역한다.
 const EVENT_TYPE_LABEL_KEYS: Record<EventType, string> = {
   schedule: "companies.events.types.schedule",
   deadline: "companies.events.types.deadline",
   result_announcement: "companies.events.types.resultAnnouncement",
+};
+
+// lib/events.ts의 EVENT_TYPE_BADGE_CLASS와 동일한 색상 의미를 범례의 Badge variant로 재사용한다.
+const EVENT_TYPE_BADGE_VARIANT: Record<EventType, BadgeVariant> = {
+  schedule: "primary",
+  deadline: "warning",
+  result_announcement: "purple",
 };
 
 function startOfMonth(year: number, month: number) {
@@ -27,11 +38,13 @@ export default function CalendarPage() {
   const { locale } = useLocale();
   const { companies, loading: companiesLoading, error } = useCompanies();
   const { events, loading: eventsLoading } = useEvents();
+  const { steps } = useApplicationSteps();
   const loading = companiesLoading || eventsLoading;
   const today = useMemo(() => new Date(), []);
   const [viewDate, setViewDate] = useState(() =>
     startOfMonth(today.getFullYear(), today.getMonth())
   );
+  const [selectedEvent, setSelectedEvent] = useState<AppEvent | null>(null);
 
   const year = viewDate.getFullYear();
   const month = viewDate.getMonth();
@@ -92,65 +105,68 @@ export default function CalendarPage() {
 
   const todayKey = formatDateKey(today);
 
+  // 10_calendar.png 기준: 일요일은 빨강, 토요일은 파랑 계열로 요일 헤더/날짜 숫자를 구분한다.
+  function weekendTextClass(dayOfWeek: number) {
+    if (dayOfWeek === 0) return "text-error";
+    if (dayOfWeek === 6) return "text-primary";
+    return "";
+  }
+
   return (
-    <div className="mx-auto max-w-[1200px] px-8 py-8">
+    <div className="mx-auto max-w-[1320px] px-8 py-8">
       <header className="mb-8">
         <h1 className="text-[28px] font-semibold text-foreground">{t("calendar.title")}</h1>
         <p className="mt-1 text-sm text-secondary">{t("calendar.description")}</p>
       </header>
 
+      {/* 월간 그리드(min-w-[880px])와 320px 우측 패널이 gap과 함께 나란히 들어가려면
+          사이드바(240px)를 제외한 실제 폭이 최소 1224px 이상 필요하다. lg(1024px)나
+          xl(1280px)에서 2단으로 전환하면 그 폭을 확보하지 못해 항상 카드 내부 가로
+          스크롤이 생기므로, 실측 기준으로 여유 있게 맞아떨어지는 1600px에서 전환한다. */}
+      <div className="grid grid-cols-1 gap-6 min-[1600px]:grid-cols-[minmax(0,1fr)_320px] min-[1600px]:items-start">
+      <div className="min-w-0">
       <div className="mb-6 flex flex-wrap items-center gap-3">
-        <button
-          type="button"
-          onClick={goToPrevMonth}
-          className="h-10 rounded-[10px] border border-border px-4 text-sm font-medium text-foreground"
-        >
+        <Button type="button" variant="secondary" onClick={goToPrevMonth}>
           {t("calendar.previousMonth")}
-        </button>
-        <button
-          type="button"
-          onClick={goToToday}
-          className="h-10 rounded-[10px] border border-border px-4 text-sm font-medium text-foreground"
-        >
+        </Button>
+        <Button type="button" variant="secondary" onClick={goToToday}>
           {t("calendar.today")}
-        </button>
-        <button
-          type="button"
-          onClick={goToNextMonth}
-          className="h-10 rounded-[10px] border border-border px-4 text-sm font-medium text-foreground"
-        >
+        </Button>
+        <Button type="button" variant="secondary" onClick={goToNextMonth}>
           {t("calendar.nextMonth")}
-        </button>
+        </Button>
         <span className="ml-2 text-[16px] font-semibold text-foreground">{monthLabel}</span>
 
-        <div className="ml-auto flex items-center gap-3 text-xs text-secondary">
+        <div className="ml-auto flex items-center gap-2">
           {EVENT_TYPES.map((type) => (
-            <span key={type} className="flex items-center gap-1">
-              <span className={"h-2.5 w-2.5 rounded-full " + EVENT_TYPE_BADGE_CLASS[type]} />
+            <Badge key={type} variant={EVENT_TYPE_BADGE_VARIANT[type]} size="sm">
               {t(EVENT_TYPE_LABEL_KEYS[type])}
-            </span>
+            </Badge>
           ))}
         </div>
       </div>
 
       {error && (
-        <p className="mb-6 rounded-[10px] border border-error/40 bg-error/10 px-4 py-3 text-sm text-error">
+        <p className="mb-6 rounded-lg border border-error/40 bg-error/10 px-4 py-3 text-sm text-error">
           {error}
         </p>
       )}
 
       {loading ? (
-        <div className="rounded-[10px] border border-border bg-card px-6 py-10 text-center text-sm text-secondary">
+        <div className="rounded-lg border border-border bg-card px-6 py-10 text-center text-sm text-secondary">
           {t("calendar.loading")}
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-[10px] border border-border bg-card">
+        <div className="overflow-x-auto rounded-lg border border-border bg-card">
           <div className="min-w-[880px]">
             <div className="grid grid-cols-7 border-b border-border">
               {weekdayLabels.map((day, index) => (
                 <div
                   key={index}
-                  className="px-3 py-2 text-center text-sm font-medium text-secondary"
+                  className={
+                    "px-3 py-2 text-center text-sm font-medium " +
+                    (weekendTextClass(index) || "text-secondary")
+                  }
                 >
                   {day}
                 </div>
@@ -162,13 +178,15 @@ export default function CalendarPage() {
                 const isCurrentMonth = date.getMonth() === month;
                 const isToday = dateKey === todayKey;
                 const dayEvents = eventsByDate[dateKey] ?? [];
+                const weekendClass = isCurrentMonth ? weekendTextClass(date.getDay()) : "";
 
                 return (
                   <div
                     key={dateKey}
                     className={
                       "min-h-[110px] border-b border-r border-border p-2 [&:nth-child(7n)]:border-r-0 " +
-                      (isCurrentMonth ? "" : "bg-background/60")
+                      (isCurrentMonth ? "" : "bg-background/60") +
+                      (isToday ? " ring-2 ring-inset ring-primary" : "")
                     }
                   >
                     <span
@@ -177,7 +195,7 @@ export default function CalendarPage() {
                         (isToday
                           ? "bg-primary text-white"
                           : isCurrentMonth
-                            ? "text-foreground"
+                            ? weekendClass || "text-foreground"
                             : "text-secondary")
                       }
                     >
@@ -186,22 +204,27 @@ export default function CalendarPage() {
                     <div className="mt-1 flex flex-col gap-1">
                       {dayEvents.slice(0, MAX_VISIBLE_EVENTS).map((event) => {
                         const company = companies.find((c) => c.id === event.companyId);
+                        const at = event.startsAt ?? event.dueAt;
+                        const time = at ? formatTimeOfDay(at) : null;
+
                         return (
-                          <Link
+                          <button
                             key={event.id}
-                            href={`/companies/${event.companyId}`}
+                            type="button"
+                            onClick={() => setSelectedEvent(event)}
                             title={`${company?.name ?? ""} · ${event.title}`}
                             className={
-                              "block truncate rounded-[6px] px-1.5 py-1 text-xs hover:opacity-80 " +
+                              "block w-full truncate rounded-md px-1.5 py-1 text-left text-xs hover:opacity-80 " +
                               EVENT_TYPE_BADGE_CLASS[event.eventType]
                             }
                           >
+                            {time && <span className="font-medium">{time} </span>}
                             {company?.name ?? ""}
-                          </Link>
+                          </button>
                         );
                       })}
                       {dayEvents.length > MAX_VISIBLE_EVENTS && (
-                        <span className="px-1.5 text-xs text-secondary">
+                        <span className="inline-block w-fit rounded-md bg-background px-1.5 py-0.5 text-xs font-medium text-secondary">
                           {t("calendar.more", { count: dayEvents.length - MAX_VISIBLE_EVENTS })}
                         </span>
                       )}
@@ -212,6 +235,19 @@ export default function CalendarPage() {
             </div>
           </div>
         </div>
+      )}
+      </div>
+
+      <UpcomingSchedulePanel companies={companies} events={events} steps={steps} />
+      </div>
+
+      {selectedEvent && (
+        <EventDetailPopover
+          event={selectedEvent}
+          companyName={companies.find((c) => c.id === selectedEvent.companyId)?.name ?? ""}
+          stepName={steps.find((s) => s.id === selectedEvent.applicationStepId)?.name ?? null}
+          onClose={() => setSelectedEvent(null)}
+        />
       )}
     </div>
   );

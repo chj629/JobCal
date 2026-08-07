@@ -14,6 +14,10 @@ interface LocaleContextValue {
 
 const LocaleContext = createContext<LocaleContextValue | null>(null);
 
+// 비로그인 상태(Landing/로그인/회원가입 등)에서 고른 언어를 기억해 두는 키.
+// 로그인 사용자의 Supabase user_metadata.language가 있으면 그 값이 항상 우선한다.
+const LOCALE_STORAGE_KEY = "jobcal:locale";
+
 function isLocale(value: unknown): value is Locale {
   return value === "ja" || value === "ko";
 }
@@ -61,18 +65,32 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
     document.documentElement.lang = locale;
   }, [locale]);
 
+  // localStorage 확인은 마이크로태스크로 한 틱 미뤄 effect 본문에서 동기적으로
+  // setState하지 않는다(react-hooks/set-state-in-effect 회피). 아래 Supabase 조회는
+  // 네트워크 왕복이 필요해 항상 이 마이크로태스크보다 늦게 끝나므로, 로그인 사용자의
+  // 저장된 언어가 있으면 이 값을 자연스럽게 덮어써 Settings에서 정한 언어가 항상
+  // 우선한다("충돌하지 않도록" 요구사항).
+  useEffect(() => {
+    const stored = window.localStorage.getItem(LOCALE_STORAGE_KEY);
+    if (isLocale(stored)) {
+      queueMicrotask(() => setLocaleState(stored));
+    }
+  }, []);
+
   useEffect(() => {
     const supabase = createClient();
     supabase.auth.getUser().then(({ data: { user } }) => {
       const savedLocale = user?.user_metadata?.language;
       if (isLocale(savedLocale)) {
         setLocaleState(savedLocale);
+        window.localStorage.setItem(LOCALE_STORAGE_KEY, savedLocale);
       }
     });
   }, []);
 
   async function setLocale(next: Locale) {
     setLocaleState(next);
+    window.localStorage.setItem(LOCALE_STORAGE_KEY, next);
 
     const supabase = createClient();
     const {

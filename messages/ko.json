@@ -15,16 +15,98 @@
     "none": "없음",
     "required": "필수",
     "logout": "로그아웃",
-    "optional": "(선택)"
+    "optional": "(선택)",
+    "cannotUndo": "이 작업은 되돌릴 수 없습니다.",
+    "showPassword": "비밀번호 표시",
+    "hidePassword": "비밀번호 숨기기"
+  },
+  "landing": {
+    "nav": {
+      "features": "기능",
+      "pricing": "요금제",
+      "howItWorks": "사용법",
+      "faq": "자주 묻는 질문",
+      "login": "로그인",
+      "getStarted": "무료로 시작하기"
+    },
+    "hero": {
+      "badge": "취업활동을, 더 심플하게.",
+      "titleLine1": "모든 취업활동을,",
+      "titlePrefix": "하나의 ",
+      "titleHighlight": "캘린더",
+      "titleSuffix": "에.",
+      "description": "기업별 전형 현황과 일정을 한 곳에서 관리하세요. 중요한 일정과 마감을 놓치지 않고 취업활동에 집중할 수 있습니다.",
+      "getStarted": "무료로 시작하기",
+      "trustFree": "등록 무료",
+      "trustNoCard": "카드 등록 불필요",
+      "trustDevice": "PC・모바일 대응",
+      "previewGreeting": "홍길동님, 좋은 아침입니다!",
+      "previewSubtitle": "오늘도 취업활동 화이팅하세요.",
+      "previewKpiEntry": "지원 기업",
+      "previewKpiInProgress": "선고 중",
+      "previewKpiOffer": "내정",
+      "previewKpiInterview": "면접 예정",
+      "previewTodayTitle": "오늘의 일정",
+      "previewTodayItem1Company": "샘플 주식회사",
+      "previewTodayItem1Step": "Web 테스트",
+      "previewTodayItem1Time": "10:00 - 11:00",
+      "previewTodayItem2Company": "테크 컴퍼니",
+      "previewTodayItem2Step": "1차 면접",
+      "previewTodayItem2Time": "14:00 - 15:00",
+      "previewFunnelTitle": "선고 스텝 현황",
+      "previewFunnelEntry": "엔트리",
+      "previewFunnelDocument": "서류 전형",
+      "previewFunnelInterview": "1차 면접",
+      "previewFunnelFinal": "내정"
+    },
+    "features": {
+      "title": "JobCal로 할 수 있는 것",
+      "item1Title": "일정 통합 관리",
+      "item1Description": "면접, 마감 등 일정을 캘린더로 한곳에서 관리하고 놓치지 않게 확인하세요.",
+      "item2Title": "기업・전형 관리",
+      "item2Description": "기업별 전형 단계를 시각화해 진행 상황을 한눈에 파악할 수 있습니다.",
+      "item3Title": "AI 메일 자동 정리",
+      "item3Description": "전형 메일을 AI가 분석해 일정과 할 일을 자동으로 등록합니다.",
+      "item3Badge": "오픈 예정",
+      "item4Title": "분석으로 되돌아보기",
+      "item4Description": "전형 진행 상황과 결과를 그래프로 분석해 다음 전략에 활용하세요.",
+      "item5Title": "어디서나 접근",
+      "item5Description": "PC와 모바일 어디서든 이용할 수 있습니다. 클라우드로 데이터도 안전하게 동기화됩니다."
+    },
+    "ctaBanner": {
+      "title": "무료로 지금 바로 시작하세요",
+      "description": "신용카드 등록 없이 모든 기능을 사용해 볼 수 있습니다.",
+      "getStarted": "무료로 시작하기"
+    },
+    "footer": {
+      "pricing": "요금제",
+      "howItWorks": "사용법",
+      "faq": "자주 묻는 질문",
+      "privacy": "개인정보처리방침",
+      "terms": "이용약관",
+      "copyright": "© {year} JobCal. All rights reserved."
+    }
   },
   "sidebar": {
     "dashboard": "대시보드",
     "companies": "기업 관리",
     "calendar": "일정 관리",
+    "analytics": "분석",
     "settings": "설정",
     "logout": "로그아웃"
   },
   "auth": {
+    "branding": {
+      "headline": "일본 취업 준비를 한 곳에서",
+      "subtitle": "기업 정보와 전형 일정을 체계적으로 관리하세요.",
+      "feature1Title": "기업・전형 단계 관리",
+      "feature1Description": "여러 기업의 지원 현황과 전형 단계를 한눈에 확인하세요.",
+      "feature2Title": "일정・마감 관리",
+      "feature2Description": "면접과 마감일을 캘린더로 놓치지 않게 관리하세요.",
+      "feature3Title": "우선순위 관리",
+      "feature3Description": "중요한 기업을 우선순위로 구분해 집중 관리하세요.",
+      "copyright": "© 2025 JobCal. All rights reserved."
+    },
     "login": {
       "description": "일본 취업 활동을 한곳에서 관리하세요.",
       "google": "Google로 로그인",
@@ -105,13 +187,64 @@
   },
   "settings": {
     "title": "설정",
+    "description": "계정과 앱의 각종 설정을 관리할 수 있습니다.",
+    "tabs": {
+      "profile": "프로필",
+      "account": "계정",
+      "language": "언어"
+    },
+    "profile": {
+      "title": "프로필 정보",
+      "displayName": "표시 이름",
+      "email": "이메일",
+      "emailHint": "이메일은 변경할 수 없습니다.",
+      "saveSuccess": "표시 이름이 저장되었습니다.",
+      "saveError": "표시 이름 저장에 실패했습니다."
+    },
+    "account": {
+      "title": "비밀번호 변경",
+      "description": "계정에 사용할 새 비밀번호를 설정하세요.",
+      "newPassword": "새 비밀번호",
+      "confirmPassword": "새 비밀번호 확인",
+      "submit": "비밀번호 변경",
+      "saveSuccess": "비밀번호가 변경되었습니다."
+    },
     "language": "언어",
     "japanese": "日本語",
     "korean": "한국어",
     "languageDescription": "화면 언어를 선택해 주세요."
   },
+  "analytics": {
+    "title": "분석",
+    "description": "취업 활동 현황을 한눈에 확인하세요.",
+    "statusChart": {
+      "title": "상태별 기업 수",
+      "total": "전체",
+      "unit": "사"
+    },
+    "funnel": {
+      "title": "선고 스텝별 통과 상황",
+      "unit": "사",
+      "empty": "표시할 전형 데이터가 없습니다."
+    },
+    "trendChart": {
+      "title": "응모수 누적 추이",
+      "monthUnit": "월",
+      "empty": "표시할 기업 데이터가 없습니다."
+    },
+    "upcomingEvents": {
+      "title": "향후 예정",
+      "empty": "다가오는 일정이 없습니다."
+    },
+    "resultSummary": {
+      "title": "선고 결과 서머리",
+      "unit": "사",
+      "empty": "표시할 결과 데이터가 없습니다."
+    }
+  },
   "dashboard": {
-    "title": "대시보드",
+    "greeting": "안녕하세요, {name}님 👋",
+    "greetingGeneric": "안녕하세요 👋",
     "description": "오늘도 취업 활동을 차근차근 관리해보세요.",
     "loading": "불러오는 중입니다...",
     "addCompany": "+ 기업 추가",
@@ -120,10 +253,12 @@
     "today": "오늘",
     "tomorrow": "내일",
     "kpi": {
-      "totalCompanies": "전체 기업",
-      "inProgress": "진행 중",
-      "thisWeekSchedule": "이번 주 일정",
-      "offer": "내정"
+      "inProgress": "진행 중인 기업",
+      "inProgressSubtext": "전체 {total}사 중",
+      "upcoming": "향후 예정",
+      "upcomingSubtext": "이번 주 {count}건",
+      "completedSelection": "선고 완료",
+      "completedSelectionSubtext": "내정 {offer} · 불합격 {rejected}"
     },
     "todaySchedule": {
       "title": "오늘의 일정",
@@ -134,20 +269,13 @@
     "upcomingSchedule": {
       "title": "다가오는 일정",
       "empty": "다가오는 일정이 없습니다.",
-      "colDate": "날짜",
-      "colTime": "시간",
-      "colCompany": "기업",
-      "colStep": "전형",
-      "colPlace": "장소/방식",
-      "colStatus": "상태",
-      "online": "온라인",
       "viewMore": "더 많은 일정 보기 ↓"
     },
     "focusCompanies": {
-      "title": "집중 관리 기업",
+      "title": "진행 중인 기업",
       "viewAll": "전체 보기 →",
-      "emptyTitle": "아직 집중 관리할 기업이 없습니다",
-      "emptySubtitle": "우선순위가 높은 기업이 없습니다",
+      "emptyTitle": "진행 중인 기업이 없습니다",
+      "emptySubtitle": "새 기업을 추가해보세요",
       "noSchedule": "예정 없음"
     },
     "pipeline": {
@@ -198,7 +326,9 @@
       },
       "actionsMenuLabel": "{name} 작업 메뉴",
       "empty": {
-        "noResults": "검색 조건에 맞는 기업이 없습니다"
+        "noResults": "검색 조건에 맞는 기업이 없습니다",
+        "noCompaniesTitle": "아직 등록된 기업이 없어요",
+        "noCompaniesDescription": "첫 기업을 추가하고 취업 활동을 관리해 보세요."
       },
       "loading": "불러오는 중입니다...",
       "pagination": {
@@ -210,7 +340,8 @@
       },
       "addCompanyModalTitle": "기업 추가",
       "editCompanyModalTitle": "기업 수정",
-      "deleteConfirm": "'{name}' 기업을 삭제하시겠습니까?"
+      "deleteConfirm": "'{name}' 기업을 삭제하시겠습니까?",
+      "addSuccessToast": "'{name}' 기업을 추가했습니다."
     },
     "detail": {
       "loading": "불러오는 중입니다...",
@@ -221,8 +352,14 @@
       "nextSchedule": "다음 일정",
       "noSchedule": "예정 없음",
       "homepage": "기업 홈페이지",
+      "homepageEmpty": "등록된 기업 홈페이지가 없습니다.",
       "mypage": "마이페이지",
-      "mypageEmpty": "등록된 마이페이지 URL이 없습니다."
+      "mypageEmpty": "등록된 마이페이지 URL이 없습니다.",
+      "schedulePanel": {
+        "title": "일정",
+        "empty": "등록된 일정이 없습니다.",
+        "dDay": "{days}일 후"
+      }
     },
     "form": {
       "name": "기업명",
@@ -309,7 +446,8 @@
     "today": "오늘",
     "nextMonth": "다음 달",
     "loading": "불러오는 중입니다...",
-    "more": "+{count}개"
+    "more": "+{count}개",
+    "viewCompanyDetail": "기업 상세 보기"
   },
   "aiEmail": {
     "paste": {
@@ -320,7 +458,26 @@
       "submit": "AI로 분석하기",
       "submitting": "분석 중...",
       "analyzeFailed": "분석에 실패했습니다.",
-      "networkError": "분석 요청 중 오류가 발생했습니다."
+      "networkError": "분석 요청 중 오류가 발생했습니다.",
+      "emptyTitle": "메일을 붙여넣어 주세요",
+      "emptyDescription": "채용 메일에서 아래 정보를 추출합니다.",
+      "extractFields": {
+        "company": "기업명",
+        "step": "전형 단계",
+        "result": "전형 결과",
+        "schedule": "일시",
+        "contact": "담당자",
+        "url": "URL",
+        "memo": "메모"
+      },
+      "pastedComplete": "붙여넣기 완료",
+      "clearText": "텍스트 지우기",
+      "hint": "AI가 메일을 분석해 기업명・전형 단계・일정・담당자 등을 추출합니다. 결과는 반드시 확인 후 적용해 주세요.",
+      "analyzingTitle": "메일을 분석하고 있어요...",
+      "analyzingDescription": "AI가 메일 내용을 읽고 필요한 정보를 추출하고 있습니다.",
+      "analyzingEstimate": "보통 10~30초 정도 걸려요.",
+      "errorTitle": "메일을 분석하지 못했어요",
+      "charCount": "{count}자"
     },
     "match": {
       "title": "기업 선택",
@@ -350,6 +507,28 @@
       "back": "이전",
       "submit": "등록",
       "submitting": "등록 중..."
+    },
+    "drawer": {
+      "description": "채용 메일을 분석해 기업 정보・전형 단계・일정을 정리해 드려요.",
+      "steps": {
+        "paste": "메일 입력",
+        "match": "기업 선택",
+        "review": "검토·등록"
+      },
+      "privacyNotice": "메일 본문은 분석 목적으로만 사용됩니다. 적용 전 반드시 내용을 확인해 주세요."
+    }
+  },
+  "errorPages": {
+    "notFound": {
+      "title": "페이지를 찾을 수 없어요",
+      "description": "요청하신 페이지가 없거나 이동되었을 수 있어요.",
+      "action": "홈으로 이동"
+    },
+    "error": {
+      "title": "문제가 발생했어요",
+      "description": "일시적인 오류일 수 있어요. 다시 시도하거나 홈으로 이동해 주세요.",
+      "homeAction": "홈으로 이동",
+      "retryAction": "다시 시도"
     }
   }
 }

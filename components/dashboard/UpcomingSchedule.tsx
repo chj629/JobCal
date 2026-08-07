@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { ChevronRight } from "lucide-react";
 import { getTodayResultsList } from "@/components/dashboard/TodayResults";
 import { getUpcomingHighlights } from "@/components/dashboard/UpcomingDDay";
 import { getUpcomingDeadlinesList } from "@/components/dashboard/UpcomingDeadlines";
@@ -8,8 +10,10 @@ import { dateKeyOf, diffInDays, formatTimeOfDay, todayKey } from "@/lib/date";
 import { useLocale, useT } from "@/lib/locale-context";
 import type { Locale } from "@/lib/i18n/messages";
 import type { Company } from "@/lib/companies";
-import { EVENT_TYPE_BADGE_CLASS, type AppEvent, type EventType } from "@/lib/events";
+import type { AppEvent, EventType } from "@/lib/events";
 import type { ApplicationStep } from "@/lib/applicationSteps";
+import Badge, { type BadgeVariant } from "@/components/ui/Badge";
+import Button from "@/components/ui/Button";
 
 interface UpcomingScheduleProps {
   companies: Company[];
@@ -32,11 +36,14 @@ const EVENT_TYPE_LABEL_KEYS: Record<EventType, string> = {
   result_announcement: "companies.events.types.resultAnnouncement",
 };
 
-function formatRowDate(
-  iso: string,
-  t: (key: string) => string,
-  weekdayLabels: string[]
-) {
+// lib/events.ts의 EVENT_TYPE_BADGE_CLASS와 동일한 색 의미를 Badge variant로 재사용한다.
+const EVENT_TYPE_BADGE_VARIANT: Record<EventType, BadgeVariant> = {
+  schedule: "primary",
+  deadline: "warning",
+  result_announcement: "purple",
+};
+
+function formatRowDate(iso: string, t: (key: string) => string, weekdayLabels: string[]) {
   const key = dateKeyOf(iso);
   const diff = diffInDays(todayKey(), key);
   if (diff === 0) return t("dashboard.today");
@@ -47,12 +54,13 @@ function formatRowDate(
   return `${pad(date.getMonth() + 1)}.${pad(date.getDate())} (${weekdayLabels[date.getDay()]})`;
 }
 
-// 01-dashboard.png의 "다가오는 일정" 표. TodayResults/UpcomingDDay/UpcomingDeadlines의
+// 6_homeAIOFF.png의 "직근 예정" 리스트. TodayResults/UpcomingDDay/UpcomingDeadlines의
 // 기존 계산 함수를 그대로 재사용해 이벤트를 시간순으로 합친다. 같은 이벤트가 여러 계산에
 // 동시에 걸리는 경우(예: 회사별 최근 일정과 마감 목록이 겹치는 경우)를 대비해 event.id
 // 기준으로 중복만 제거하고, 필터링/정렬 로직 자체는 손대지 않는다.
 export default function UpcomingSchedule({ companies, events, steps }: UpcomingScheduleProps) {
   const t = useT();
+  const router = useRouter();
   const { locale } = useLocale();
   const weekdayLabels = WEEKDAY_LABELS[locale];
   const combined = new Map<string, { event: AppEvent; at: string }>();
@@ -82,67 +90,65 @@ export default function UpcomingSchedule({ companies, events, steps }: UpcomingS
           {t("dashboard.upcomingSchedule.empty")}
         </p>
       ) : (
-        <div className="mx-6 flex-1 overflow-auto">
-          <table className="w-full min-w-[560px] border-collapse text-sm">
-            <thead className="shadow-[0_2px_3px_-2px_rgba(0,0,0,0.08)]">
-              <tr className="bg-background text-left text-xs text-secondary">
-                <th className="px-2 py-2 font-medium">{t("dashboard.upcomingSchedule.colDate")}</th>
-                <th className="px-2 py-2 font-medium">{t("dashboard.upcomingSchedule.colTime")}</th>
-                <th className="px-2 py-2 font-medium">{t("dashboard.upcomingSchedule.colCompany")}</th>
-                <th className="px-2 py-2 font-medium">{t("dashboard.upcomingSchedule.colStep")}</th>
-                <th className="px-2 py-2 font-medium">{t("dashboard.upcomingSchedule.colPlace")}</th>
-                <th className="px-2 py-2 font-medium">{t("dashboard.upcomingSchedule.colStatus")}</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {rows.map(({ event, at }) => {
-                const company = companies.find((c) => c.id === event.companyId);
-                const step = steps.find((s) => s.id === event.applicationStepId);
-                const place =
-                  event.location ??
-                  (event.onlineUrl ? t("dashboard.upcomingSchedule.online") : "-");
+        <ul className="flex-1 overflow-y-auto">
+          {rows.map(({ event, at }, index) => {
+            const company = companies.find((c) => c.id === event.companyId);
+            const step = steps.find((s) => s.id === event.applicationStepId);
+            const isSoon = diffInDays(todayKey(), dateKeyOf(at)) <= 1;
+            const isLast = index === rows.length - 1;
 
-                return (
-                  <tr key={event.id} className="hover:bg-background">
-                    <td className="px-2 py-2.5 text-secondary">
-                      {formatRowDate(at, t, weekdayLabels)}
-                    </td>
-                    <td className="px-2 py-2.5 text-foreground">{formatTimeOfDay(at)}</td>
-                    <td className="px-2 py-2.5">
-                      <Link
-                        href={`/companies/${event.companyId}`}
-                        className="font-medium text-foreground hover:text-primary"
-                      >
-                        {company?.name ?? ""}
-                      </Link>
-                    </td>
-                    <td className="px-2 py-2.5 text-secondary">{step?.name ?? event.title}</td>
-                    <td className="px-2 py-2.5 text-secondary">{place}</td>
-                    <td className="px-2 py-2.5">
-                      <span
+            return (
+              <li key={event.id} className="transition-colors duration-150 hover:bg-background">
+                <div className={"mx-4 " + (isLast ? "" : "border-b border-border")}>
+                  <Link
+                    href={`/companies/${event.companyId}`}
+                    className="flex items-center gap-3 px-2 py-3"
+                  >
+                    <div className="w-16 shrink-0 self-start">
+                      <p
                         className={
-                          "inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium " +
-                          EVENT_TYPE_BADGE_CLASS[event.eventType]
+                          "text-sm font-semibold " + (isSoon ? "text-primary" : "text-secondary")
                         }
                       >
-                        {t(EVENT_TYPE_LABEL_KEYS[event.eventType])}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                        {formatRowDate(at, t, weekdayLabels)}
+                      </p>
+                      <p className="text-xs text-secondary">{formatTimeOfDay(at)}</p>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="truncate text-sm font-bold text-foreground">
+                          {company?.name ?? ""}
+                        </p>
+                        <Badge
+                          variant={EVENT_TYPE_BADGE_VARIANT[event.eventType]}
+                          size="sm"
+                          className="shrink-0"
+                        >
+                          {t(EVENT_TYPE_LABEL_KEYS[event.eventType])}
+                        </Badge>
+                      </div>
+                      <p className="mt-0.5 truncate text-xs text-secondary">
+                        {step?.name ?? event.title}
+                      </p>
+                    </div>
+                    <ChevronRight size={16} className="shrink-0 text-secondary" />
+                  </Link>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
       )}
 
       <div className="mx-6 pt-3 pb-3">
-        <Link
-          href="/calendar"
-          className="flex h-9 w-full items-center justify-center rounded-[8px] border border-border px-4 text-xs font-medium text-primary transition-colors duration-150 hover:bg-background"
+        <Button
+          type="button"
+          variant="secondary"
+          className="w-full"
+          onClick={() => router.push("/calendar")}
         >
           {t("dashboard.upcomingSchedule.viewMore")}
-        </Link>
+        </Button>
       </div>
     </section>
   );

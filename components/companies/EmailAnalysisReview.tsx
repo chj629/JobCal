@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { Calendar, User } from "lucide-react";
 import { useCompanies } from "@/lib/companies-context";
 import { useApplicationSteps } from "@/lib/application-steps-context";
 import { useEvents } from "@/lib/events-context";
@@ -26,6 +27,10 @@ import {
 import { createEmptyContactFormValues, type ContactFormValues } from "@/lib/companyContacts";
 import type { EmailAnalysisResult, ExtractedEvent } from "@/lib/ai/emailAnalysis";
 import { useT } from "@/lib/locale-context";
+import Button from "@/components/ui/Button";
+import Input from "@/components/ui/Input";
+import Select from "@/components/ui/Select";
+import EmptyState from "@/components/ui/EmptyState";
 
 interface EmailAnalysisReviewProps {
   analysis: EmailAnalysisResult;
@@ -34,11 +39,7 @@ interface EmailAnalysisReviewProps {
   onDone: (companyId: string) => void;
 }
 
-const fieldClass =
-  "h-10 w-full rounded-[10px] border border-border bg-card px-3 text-sm text-foreground focus:border-primary focus:outline-none";
-const labelClass = "mb-1 block text-sm text-secondary";
-
-// 아래 세 맵은 lib/companies.ts, lib/events.ts의 *_LABELS(한국어 고정)를 건드리지 않고,
+// 아래 두 맵은 lib/companies.ts, lib/events.ts의 *_LABELS(한국어 고정)를 건드리지 않고,
 // 기업 상세/기업 목록 단계에서 이미 만든 번역 키를 재사용하기 위한 것이다.
 const STATUS_LABEL_KEYS: Record<OverallStatus, string> = {
   in_progress: "companies.list.status.inProgress",
@@ -220,11 +221,13 @@ export default function EmailAnalysisReview({
   }
 
   return (
-    <div className="mx-auto max-w-[720px] px-8 py-8">
-      <h1 className="text-[20px] font-semibold text-foreground">{t("aiEmail.review.title")}</h1>
-      <p className="mt-1 text-sm text-secondary">{t("aiEmail.review.description")}</p>
+    <div className="flex flex-col gap-6">
+      <div>
+        <h1 className="text-[20px] font-semibold text-foreground">{t("aiEmail.review.title")}</h1>
+        <p className="mt-1 text-sm text-secondary">{t("aiEmail.review.description")}</p>
+      </div>
 
-      <section className="mt-6 rounded-[10px] border border-border bg-card p-6">
+      <section className="rounded-[10px] border border-border bg-card p-6">
         <h2 className="mb-4 text-[16px] font-semibold text-foreground">
           {t("aiEmail.review.companySection")}
         </h2>
@@ -236,66 +239,56 @@ export default function EmailAnalysisReview({
           </p>
         ) : (
           <div className="flex flex-col gap-4">
-            <div>
-              <label className={labelClass}>{t("companies.form.name")}</label>
-              <input
-                type="text"
-                value={companyValues.name}
-                onChange={(e) => setCompanyValues({ ...companyValues, name: e.target.value })}
-                className={fieldClass}
-              />
-            </div>
+            <Input
+              label={t("companies.form.name")}
+              type="text"
+              value={companyValues.name}
+              onChange={(e) => setCompanyValues({ ...companyValues, name: e.target.value })}
+            />
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className={labelClass}>{t("companies.form.status")}</label>
-                <select
-                  value={companyValues.overallStatus}
-                  onChange={(e) =>
-                    setCompanyValues({
-                      ...companyValues,
-                      overallStatus: e.target.value as OverallStatus,
-                    })
-                  }
-                  className={fieldClass}
-                >
-                  {OVERALL_STATUSES.map((status) => (
-                    <option key={status} value={status}>
-                      {t(STATUS_LABEL_KEYS[status])}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className={labelClass}>{t("companies.form.priorityLabel")}</label>
-                <select
-                  value={companyValues.priority}
-                  onChange={(e) =>
-                    setCompanyValues({ ...companyValues, priority: e.target.value as Priority })
-                  }
-                  className={fieldClass}
-                >
-                  {PRIORITIES.map((priority) => (
-                    <option key={priority} value={priority}>
-                      {t(`companies.list.priority.${priority}`)}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <Select
+                label={t("companies.form.status")}
+                value={companyValues.overallStatus}
+                onChange={(e) =>
+                  setCompanyValues({
+                    ...companyValues,
+                    overallStatus: e.target.value as OverallStatus,
+                  })
+                }
+              >
+                {OVERALL_STATUSES.map((status) => (
+                  <option key={status} value={status}>
+                    {t(STATUS_LABEL_KEYS[status])}
+                  </option>
+                ))}
+              </Select>
+              <Select
+                label={t("companies.form.priorityLabel")}
+                value={companyValues.priority}
+                onChange={(e) =>
+                  setCompanyValues({ ...companyValues, priority: e.target.value as Priority })
+                }
+              >
+                {PRIORITIES.map((priority) => (
+                  <option key={priority} value={priority}>
+                    {t(`companies.list.priority.${priority}`)}
+                  </option>
+                ))}
+              </Select>
             </div>
           </div>
         )}
       </section>
 
-      <section className="mt-6 rounded-[10px] border border-border bg-card p-6">
+      <section className="rounded-[10px] border border-border bg-card p-6">
         <h2 className="mb-4 text-[16px] font-semibold text-foreground">
           {t("aiEmail.review.stepSection")}
         </h2>
-        <input
+        <Input
           type="text"
           value={stepName}
           onChange={(e) => setStepName(e.target.value)}
           placeholder={t("aiEmail.review.stepPlaceholder")}
-          className={fieldClass}
         />
         {stepNameSuggestions.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-2">
@@ -313,7 +306,7 @@ export default function EmailAnalysisReview({
         )}
       </section>
 
-      <section className="mt-6 rounded-[10px] border border-border bg-card p-6">
+      <section className="rounded-[10px] border border-border bg-card p-6">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-[16px] font-semibold text-foreground">
             {t("companies.steps.eventsHeading")}
@@ -328,7 +321,7 @@ export default function EmailAnalysisReview({
         </div>
 
         {events.length === 0 ? (
-          <p className="py-4 text-center text-sm text-secondary">{t("aiEmail.review.noEvents")}</p>
+          <EmptyState icon={Calendar} title={t("aiEmail.review.noEvents")} />
         ) : (
           <div className="flex flex-col gap-4">
             {events.map((event, index) => {
@@ -339,88 +332,86 @@ export default function EmailAnalysisReview({
               return (
                 <div key={index} className="rounded-[10px] border border-border p-4">
                   <div className="flex items-start justify-between gap-2">
-                    <select
+                    <Select
                       value={event.eventType}
                       onChange={(e) => updateEvent(index, { eventType: e.target.value as EventType })}
-                      className="h-9 rounded-[10px] border border-border bg-card px-2 text-xs text-foreground"
+                      containerClassName="w-40"
                     >
                       {EVENT_TYPES.map((type) => (
                         <option key={type} value={type}>
                           {t(EVENT_TYPE_LABEL_KEYS[type])}
                         </option>
                       ))}
-                    </select>
+                    </Select>
                     <button
                       type="button"
                       onClick={() => removeEvent(index)}
-                      className="text-xs text-secondary hover:text-error hover:underline"
+                      className="mt-2 text-xs text-secondary hover:text-error hover:underline"
                     >
                       {t("common.delete")}
                     </button>
                   </div>
 
                   <div className="mt-3">
-                    <label className={labelClass}>{t("companies.events.titleLabel")}</label>
-                    <input
+                    <Input
+                      label={t("companies.events.titleLabel")}
                       type="text"
                       value={event.title}
                       onChange={(e) => updateEvent(index, { title: e.target.value })}
-                      className={fieldClass}
                     />
                   </div>
 
                   {isSchedule && (
-                    <div className="mt-3 grid grid-cols-2 gap-4">
-                      <div>
-                        <label className={labelClass}>{t("companies.events.startsAt")}</label>
-                        <input
-                          type="datetime-local"
-                          value={event.startsAt}
-                          onChange={(e) => updateEvent(index, { startsAt: e.target.value })}
-                          className={fieldClass}
-                        />
-                      </div>
-                      <div>
-                        <label className={labelClass}>
-                          {t("companies.events.endsAt")}{" "}
-                          <span className="text-secondary">{t("common.optional")}</span>
-                        </label>
-                        <input
-                          type="datetime-local"
-                          value={event.endsAt}
-                          onChange={(e) => updateEvent(index, { endsAt: e.target.value })}
-                          className={fieldClass}
-                        />
-                      </div>
+                    // datetime-local 입력은 네이티브 위젯 폭이 고정적이라 grid-cols-2로
+                    // 나란히 두면 Drawer 폭(520px)에서 값이 잘려 보인다. 좁은 폭에서도
+                    // 안전하게 세로로 쌓는다.
+                    <div className="mt-3 flex flex-col gap-4">
+                      <Input
+                        label={t("companies.events.startsAt")}
+                        type="datetime-local"
+                        value={event.startsAt}
+                        onChange={(e) => updateEvent(index, { startsAt: e.target.value })}
+                      />
+                      <Input
+                        label={
+                          <>
+                            {t("companies.events.endsAt")}{" "}
+                            <span className="text-secondary">{t("common.optional")}</span>
+                          </>
+                        }
+                        type="datetime-local"
+                        value={event.endsAt}
+                        onChange={(e) => updateEvent(index, { endsAt: e.target.value })}
+                      />
                     </div>
                   )}
 
                   {isDeadlineOrResult && (
                     <div className="mt-3">
-                      <label className={labelClass}>
-                        {event.eventType === "deadline"
-                          ? t("companies.events.dueAtDeadline")
-                          : t("companies.events.dueAtResult")}
-                      </label>
-                      <input
+                      <Input
+                        label={
+                          event.eventType === "deadline"
+                            ? t("companies.events.dueAtDeadline")
+                            : t("companies.events.dueAtResult")
+                        }
                         type="datetime-local"
                         value={event.dueAt}
                         onChange={(e) => updateEvent(index, { dueAt: e.target.value })}
-                        className={fieldClass}
                       />
                     </div>
                   )}
 
                   <div className="mt-3">
-                    <label className={labelClass}>
-                      {isSchedule ? t("companies.events.onlineLink") : t("aiEmail.review.linkGeneric")}{" "}
-                      <span className="text-secondary">{t("common.optional")}</span>
-                    </label>
-                    <input
+                    <Input
+                      label={
+                        <>
+                          {isSchedule ? t("companies.events.onlineLink") : t("aiEmail.review.linkGeneric")}{" "}
+                          <span className="text-secondary">{t("common.optional")}</span>
+                        </>
+                      }
                       type="text"
                       value={event.onlineUrl}
                       onChange={(e) => updateEvent(index, { onlineUrl: e.target.value })}
-                      className={fieldClass}
                     />
                   </div>
                 </div>
@@ -430,7 +421,7 @@ export default function EmailAnalysisReview({
         )}
       </section>
 
-      <section className="mt-6 rounded-[10px] border border-border bg-card p-6">
+      <section className="rounded-[10px] border border-border bg-card p-6">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-[16px] font-semibold text-foreground">
             {t("companies.contacts.heading")}
@@ -445,19 +436,18 @@ export default function EmailAnalysisReview({
         </div>
 
         {contacts.length === 0 ? (
-          <p className="py-4 text-center text-sm text-secondary">{t("aiEmail.review.noContacts")}</p>
+          <EmptyState icon={User} title={t("aiEmail.review.noContacts")} />
         ) : (
           <div className="flex flex-col gap-4">
             {contacts.map((contact, index) => (
               <div key={index} className="rounded-[10px] border border-border p-4">
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1">
-                    <label className={labelClass}>{t("companies.contacts.name")}</label>
-                    <input
+                    <Input
+                      label={t("companies.contacts.name")}
                       type="text"
                       value={contact.name}
                       onChange={(e) => updateContact(index, { name: e.target.value })}
-                      className={fieldClass}
                     />
                   </div>
                   <button
@@ -469,30 +459,28 @@ export default function EmailAnalysisReview({
                   </button>
                 </div>
                 <div className="mt-3 grid grid-cols-2 gap-4">
-                  <div>
-                    <label className={labelClass}>
-                      {t("companies.contacts.email")}{" "}
-                      <span className="text-secondary">{t("common.optional")}</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={contact.email}
-                      onChange={(e) => updateContact(index, { email: e.target.value })}
-                      className={fieldClass}
-                    />
-                  </div>
-                  <div>
-                    <label className={labelClass}>
-                      {t("companies.contacts.phone")}{" "}
-                      <span className="text-secondary">{t("common.optional")}</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={contact.phone}
-                      onChange={(e) => updateContact(index, { phone: e.target.value })}
-                      className={fieldClass}
-                    />
-                  </div>
+                  <Input
+                    label={
+                      <>
+                        {t("companies.contacts.email")}{" "}
+                        <span className="text-secondary">{t("common.optional")}</span>
+                      </>
+                    }
+                    type="text"
+                    value={contact.email}
+                    onChange={(e) => updateContact(index, { email: e.target.value })}
+                  />
+                  <Input
+                    label={
+                      <>
+                        {t("companies.contacts.phone")}{" "}
+                        <span className="text-secondary">{t("common.optional")}</span>
+                      </>
+                    }
+                    type="text"
+                    value={contact.phone}
+                    onChange={(e) => updateContact(index, { phone: e.target.value })}
+                  />
                 </div>
               </div>
             ))}
@@ -500,7 +488,7 @@ export default function EmailAnalysisReview({
         )}
       </section>
 
-      <section className="mt-6 rounded-[10px] border border-border bg-card p-6">
+      <section className="rounded-[10px] border border-border bg-card p-6">
         <h2 className="mb-4 text-[16px] font-semibold text-foreground">
           {t("companies.notes.heading")}
         </h2>
@@ -513,28 +501,18 @@ export default function EmailAnalysisReview({
       </section>
 
       {saveError && (
-        <p className="mt-4 rounded-[10px] border border-error/40 bg-error/10 px-4 py-3 text-sm text-error">
+        <p className="rounded-[10px] border border-error/40 bg-error/10 px-4 py-3 text-sm text-error">
           {saveError}
         </p>
       )}
 
-      <div className="mt-6 flex justify-end gap-2">
-        <button
-          type="button"
-          onClick={onBack}
-          disabled={saving}
-          className="h-10 rounded-[10px] border border-border px-4 text-sm font-medium text-secondary disabled:opacity-60"
-        >
+      <div className="flex justify-end gap-2">
+        <Button type="button" variant="secondary" onClick={onBack} disabled={saving}>
           {t("aiEmail.review.back")}
-        </button>
-        <button
-          type="button"
-          onClick={handleRegister}
-          disabled={saving}
-          className="h-10 rounded-[10px] bg-primary px-4 text-sm font-medium text-white disabled:opacity-60"
-        >
+        </Button>
+        <Button type="button" variant="primary" onClick={handleRegister} disabled={saving}>
           {saving ? t("aiEmail.review.submitting") : t("aiEmail.review.submit")}
-        </button>
+        </Button>
       </div>
     </div>
   );

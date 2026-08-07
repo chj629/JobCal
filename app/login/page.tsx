@@ -3,8 +3,12 @@
 import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Lock, Mail } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useT } from "@/lib/locale-context";
+import AuthLayout from "@/components/auth/AuthLayout";
+import Input from "@/components/ui/Input";
+import Button from "@/components/ui/Button";
 
 function mapSignInError(t: (key: string) => string, message: string): string {
   if (message.includes("Invalid login credentials")) {
@@ -77,26 +81,27 @@ export default function LoginPage() {
       return;
     }
 
-    router.push("/");
+    router.push("/dashboard");
     router.refresh();
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+    <AuthLayout>
       <div className="w-full max-w-sm rounded-[10px] border border-border bg-card p-8">
         <h1 className="text-center text-[28px] font-semibold text-foreground">
           {t("common.appName")}
         </h1>
         <p className="mt-2 text-center text-sm text-secondary">{t("auth.login.description")}</p>
 
-        <button
+        <Button
           type="button"
+          variant="secondary"
           onClick={handleGoogleLogin}
           disabled={isLoading}
-          className="mt-8 flex h-10 w-full items-center justify-center gap-2 rounded-[10px] border border-border text-sm font-medium text-foreground hover:bg-background disabled:opacity-60"
+          className="mt-8 w-full"
         >
           {isLoading ? t("auth.login.googleLoading") : t("auth.login.google")}
-        </button>
+        </Button>
 
         <div className="my-6 flex items-center gap-3">
           <div className="h-px flex-1 bg-border" />
@@ -105,32 +110,24 @@ export default function LoginPage() {
         </div>
 
         <form onSubmit={handleEmailLogin} className="flex flex-col gap-4">
-          <div>
-            <label className="mb-1 block text-sm text-secondary">{t("auth.login.email")}</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="h-10 w-full rounded-[10px] border border-border bg-card px-3 text-sm text-foreground focus:border-primary focus:outline-none"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm text-secondary">{t("auth.login.password")}</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="h-10 w-full rounded-[10px] border border-border bg-card px-3 text-sm text-foreground focus:border-primary focus:outline-none"
-            />
-          </div>
+          <Input
+            type="email"
+            icon={Mail}
+            label={t("auth.login.email")}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+          <Input
+            type="password"
+            icon={Lock}
+            label={t("auth.login.password")}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
 
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="h-10 w-full rounded-[10px] bg-primary text-sm font-medium text-white disabled:opacity-60"
-          >
+          <Button type="submit" variant="primary" disabled={isLoading} className="w-full">
             {isLoading ? t("auth.login.submitLoading") : t("auth.login.submit")}
-          </button>
+          </Button>
 
           <Link
             href="/forgot-password"
@@ -149,6 +146,6 @@ export default function LoginPage() {
           </Link>
         </p>
       </div>
-    </div>
+    </AuthLayout>
   );
 }

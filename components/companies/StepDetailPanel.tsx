@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ChevronDown, ChevronUp, X } from "lucide-react";
 import { useApplicationSteps } from "@/lib/application-steps-context";
 import { STEP_STATUSES, getCurrentStep, type StepStatus } from "@/lib/applicationSteps";
 import { useEvents } from "@/lib/events-context";
@@ -12,6 +13,10 @@ import {
 } from "@/lib/events";
 import { useT } from "@/lib/locale-context";
 import EventForm from "@/components/companies/EventForm";
+import Button from "@/components/ui/Button";
+import Select from "@/components/ui/Select";
+import Input from "@/components/ui/Input";
+import Badge from "@/components/ui/Badge";
 
 // lib/applicationSteps.ts의 STEP_STATUS_LABELS(한국어 고정)는 그대로 두고,
 // 표시 라벨만 companies.steps.statusLabels.*로 번역한다. 내부 enum 값은 불변.
@@ -34,11 +39,6 @@ interface StepDetailPanelProps {
   selectedStepId: string | null;
   onClose: () => void;
 }
-
-const selectClass =
-  "h-9 rounded-[8px] border border-border bg-card px-2 text-xs text-foreground focus:border-primary focus:outline-none";
-const iconButtonClass =
-  "h-9 rounded-[8px] border border-border px-2 text-xs font-medium text-secondary hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40";
 
 function formatEventDate(iso: string | null) {
   if (!iso) return null;
@@ -70,17 +70,18 @@ export default function StepDetailPanel({ companyId, selectedStepId, onClose }: 
 
   if (!step) {
     return (
-      <section className="mb-8 rounded-[10px] border border-border bg-card p-6">
+      <section className="mb-8 rounded-lg border border-border bg-card p-6">
         <div className="flex items-center justify-between">
           <p className="text-sm text-secondary">{t("companies.steps.noStepSelected")}</p>
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="sm"
             onClick={onClose}
             aria-label={t("common.close")}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px] border border-border text-secondary hover:text-foreground"
           >
-            ✕
-          </button>
+            <X size={16} />
+          </Button>
         </div>
       </section>
     );
@@ -102,9 +103,9 @@ export default function StepDetailPanel({ companyId, selectedStepId, onClose }: 
   }
 
   return (
-    <section className="mb-8 rounded-[10px] border border-border bg-card p-6">
+    <section className="mb-8 rounded-lg border border-border bg-card p-6">
       {(stepsError || eventsError) && (
-        <p className="mb-4 rounded-[10px] border border-error/40 bg-error/10 px-4 py-3 text-sm text-error">
+        <p className="mb-4 rounded-lg border border-error/40 bg-error/10 px-4 py-3 text-sm text-error">
           {stepsError || eventsError}
         </p>
       )}
@@ -112,87 +113,82 @@ export default function StepDetailPanel({ companyId, selectedStepId, onClose }: 
       <div className="flex flex-wrap items-center gap-2">
         {isRenaming ? (
           <div className="flex flex-1 items-center gap-2">
-            <input
+            <Input
               type="text"
               value={renameValue}
               onChange={(e) => setRenameValue(e.target.value)}
-              className="h-9 min-w-0 flex-1 rounded-[8px] border border-border bg-card px-2 text-sm text-foreground focus:border-primary focus:outline-none"
+              containerClassName="min-w-0 flex-1"
               autoFocus
             />
-            <button
-              type="button"
-              onClick={confirmRename}
-              className="h-9 rounded-[8px] bg-primary px-3 text-xs font-medium text-white"
-            >
+            <Button type="button" variant="primary" size="sm" onClick={confirmRename}>
               {t("common.save")}
-            </button>
-            <button type="button" onClick={() => setIsRenaming(false)} className={iconButtonClass}>
+            </Button>
+            <Button type="button" variant="secondary" size="sm" onClick={() => setIsRenaming(false)}>
               {t("common.cancel")}
-            </button>
+            </Button>
           </div>
         ) : (
           <>
             <h2 className="text-[16px] font-semibold text-foreground">{step.name}</h2>
             {isCurrent && (
-              <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+              <Badge variant="primary" size="sm">
                 {t("companies.steps.currentBadge")}
-              </span>
+              </Badge>
             )}
           </>
         )}
 
-        <select
+        <Select
           value={step.stepStatus}
           onChange={(e) => updateStepStatus(step.id, e.target.value as StepStatus)}
-          className={selectClass + " ml-auto"}
+          containerClassName="ml-auto w-36"
         >
           {STEP_STATUSES.map((status) => (
             <option key={status} value={status}>
               {t(STEP_STATUS_LABEL_KEYS[status])}
             </option>
           ))}
-        </select>
+        </Select>
 
-        <button
+        <Button
           type="button"
+          variant="ghost"
+          size="sm"
           onClick={onClose}
           aria-label={t("common.close")}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px] border border-border text-secondary hover:text-foreground"
         >
-          ✕
-        </button>
+          <X size={16} />
+        </Button>
       </div>
 
       {!isRenaming && (
         <div className="mt-3 flex flex-wrap gap-2">
-          <button type="button" onClick={startRename} className={iconButtonClass}>
+          <Button type="button" variant="secondary" size="sm" onClick={startRename}>
             {t("companies.steps.rename")}
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="secondary"
+            size="sm"
             onClick={() => moveStep(step.id, "up")}
             disabled={index === 0}
-            className={iconButtonClass}
             aria-label={t("companies.steps.moveUp")}
           >
-            ↑
-          </button>
-          <button
+            <ChevronUp size={14} />
+          </Button>
+          <Button
             type="button"
+            variant="secondary"
+            size="sm"
             onClick={() => moveStep(step.id, "down")}
             disabled={index === companySteps.length - 1}
-            className={iconButtonClass}
             aria-label={t("companies.steps.moveDown")}
           >
-            ↓
-          </button>
-          <button
-            type="button"
-            onClick={() => deleteStep(step.id)}
-            className="h-9 rounded-[8px] border border-error px-2 text-xs font-medium text-error"
-          >
+            <ChevronDown size={14} />
+          </Button>
+          <Button type="button" variant="danger" size="sm" onClick={() => deleteStep(step.id)}>
             {t("common.delete")}
-          </button>
+          </Button>
         </div>
       )}
 
@@ -203,9 +199,9 @@ export default function StepDetailPanel({ companyId, selectedStepId, onClose }: 
         ) : (
           stepEvents.map((event) => (
             <div key={event.id} className="flex flex-wrap items-center gap-2 text-xs">
-              <span className="rounded-full bg-background px-2 py-0.5 font-medium text-foreground">
+              <Badge variant="neutral" size="sm">
                 {t(EVENT_TYPE_LABEL_KEYS[event.eventType])}
-              </span>
+              </Badge>
               <span className="truncate text-foreground">{event.title}</span>
               <span className="text-secondary">
                 {formatEventDate(event.startsAt ?? event.dueAt) ?? t("companies.steps.noDateSet")}

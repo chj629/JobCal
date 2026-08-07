@@ -3,8 +3,12 @@
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Lock, Mail, User } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useT } from "@/lib/locale-context";
+import AuthLayout from "@/components/auth/AuthLayout";
+import Input from "@/components/ui/Input";
+import Button from "@/components/ui/Button";
 
 const MIN_PASSWORD_LENGTH = 6;
 const MIN_NAME_LENGTH = 1;
@@ -72,7 +76,7 @@ export default function SignupPage() {
 
     // 이메일 확인이 꺼져 있는 프로젝트는 signUp() 즉시 세션이 발급된다.
     if (data.session) {
-      router.push("/");
+      router.push("/dashboard");
       router.refresh();
       return;
     }
@@ -83,7 +87,7 @@ export default function SignupPage() {
 
   if (confirmationSent) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background px-4">
+      <AuthLayout>
         <div className="w-full max-w-sm rounded-[10px] border border-border bg-card p-8 text-center">
           <h1 className="text-[28px] font-semibold text-foreground">
             {t("auth.signup.confirmedTitle")}
@@ -98,12 +102,12 @@ export default function SignupPage() {
             {t("auth.signup.backToLogin")}
           </Link>
         </div>
-      </div>
+      </AuthLayout>
     );
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+    <AuthLayout>
       <div className="w-full max-w-sm rounded-[10px] border border-border bg-card p-8">
         <h1 className="text-center text-[28px] font-semibold text-foreground">
           {t("auth.signup.title")}
@@ -111,55 +115,41 @@ export default function SignupPage() {
         <p className="mt-2 text-center text-sm text-secondary">{t("auth.signup.description")}</p>
 
         <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-4">
-          <div>
-            <label className="mb-1 block text-sm text-secondary">{t("auth.signup.name")}</label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              maxLength={MAX_NAME_LENGTH}
-              className="h-10 w-full rounded-[10px] border border-border bg-card px-3 text-sm text-foreground focus:border-primary focus:outline-none"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm text-secondary">{t("auth.signup.email")}</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="h-10 w-full rounded-[10px] border border-border bg-card px-3 text-sm text-foreground focus:border-primary focus:outline-none"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm text-secondary">{t("auth.signup.password")}</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="h-10 w-full rounded-[10px] border border-border bg-card px-3 text-sm text-foreground focus:border-primary focus:outline-none"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm text-secondary">
-              {t("auth.signup.confirmPassword")}
-            </label>
-            <input
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              className="h-10 w-full rounded-[10px] border border-border bg-card px-3 text-sm text-foreground focus:border-primary focus:outline-none"
-            />
-          </div>
+          <Input
+            type="text"
+            icon={User}
+            label={t("auth.signup.name")}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            maxLength={MAX_NAME_LENGTH}
+          />
+          <Input
+            type="email"
+            icon={Mail}
+            label={t("auth.signup.email")}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+          <Input
+            type="password"
+            icon={Lock}
+            label={t("auth.signup.password")}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+          <Input
+            type="password"
+            icon={Lock}
+            label={t("auth.signup.confirmPassword")}
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+          />
 
           {errorMessage && <p className="text-xs text-error">{errorMessage}</p>}
 
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="mt-2 h-10 w-full rounded-[10px] bg-primary text-sm font-medium text-white disabled:opacity-60"
-          >
+          <Button type="submit" variant="primary" disabled={isLoading} className="mt-2 w-full">
             {isLoading ? t("auth.signup.submitLoading") : t("auth.signup.submit")}
-          </button>
+          </Button>
         </form>
 
         <p className="mt-6 text-center text-sm text-secondary">
@@ -169,6 +159,6 @@ export default function SignupPage() {
           </Link>
         </p>
       </div>
-    </div>
+    </AuthLayout>
   );
 }
