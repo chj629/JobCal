@@ -10,6 +10,9 @@ import { dateKeyOf, todayKey } from "@/lib/date";
 import { useT } from "@/lib/locale-context";
 import { createClient } from "@/lib/supabase/client";
 import CompanyForm from "@/components/CompanyForm";
+import Button from "@/components/ui/Button";
+import LoadingState from "@/components/ui/LoadingState";
+import { useToast } from "@/components/ui/Toast";
 import TodaySchedule from "@/components/dashboard/TodaySchedule";
 import UpcomingSchedule from "@/components/dashboard/UpcomingSchedule";
 import FocusCompanies from "@/components/dashboard/FocusCompanies";
@@ -24,6 +27,7 @@ function isWithinNext7Days(dateKey: string, fromKey: string) {
 
 export default function DashboardPage() {
   const t = useT();
+  const { showToast } = useToast();
   const { companies, addCompany, loading: companiesLoading, error } = useCompanies();
   const { steps, loading: stepsLoading, refresh: refreshSteps } = useApplicationSteps();
   const { events, loading: eventsLoading } = useEvents();
@@ -86,30 +90,26 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-[960px] px-7 pt-7 pb-8 text-sm text-secondary">
-        {t("dashboard.loading")}
+      <div className="mx-auto max-w-[1200px] px-8 py-8">
+        <LoadingState>{t("dashboard.loading")}</LoadingState>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-[960px] px-7 pt-7 pb-8">
+    <div className="mx-auto max-w-[1200px] px-8 py-8">
       <div className="mb-8 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
         <div>
-          <h1 className="text-[24px] font-bold text-foreground">
+          <h1 className="text-[28px] font-semibold text-foreground">
             {displayName
               ? t("dashboard.greeting", { name: displayName })
               : t("dashboard.greetingGeneric")}
           </h1>
           <p className="mt-1 text-[13px] text-secondary">{t("dashboard.description")}</p>
         </div>
-        <button
-          type="button"
-          onClick={() => setIsAddOpen(true)}
-          className="h-9 shrink-0 rounded-[8px] border border-border bg-card px-3.5 text-[13px] font-medium text-foreground transition-colors duration-150 hover:bg-background"
-        >
+        <Button type="button" variant="secondary" className="shrink-0" onClick={() => setIsAddOpen(true)}>
           {t("dashboard.addCompany")}
-        </button>
+        </Button>
       </div>
 
       {error && (
@@ -165,6 +165,7 @@ export default function DashboardPage() {
             if (ok) {
               setIsAddOpen(false);
               refreshSteps();
+              showToast(t("companies.list.addSuccessToast", { name: values.name }));
             }
           }}
         />

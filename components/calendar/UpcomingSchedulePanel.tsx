@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import type { Company } from "@/lib/companies";
-import type { ApplicationStep } from "@/lib/applicationSteps";
+import { getStepDisplayName, type ApplicationStep } from "@/lib/applicationSteps";
 import type { AppEvent, EventType } from "@/lib/events";
 import { dateKeyOf, diffInDays, todayKey } from "@/lib/date";
 import { useLocale, useT } from "@/lib/locale-context";
@@ -73,7 +73,8 @@ export default function UpcomingSchedulePanel({
       <ul>
         {rowsToRender.map(({ event, at }, index) => {
           const company = companies.find((c) => c.id === event.companyId);
-          const stepName = steps.find((s) => s.id === event.applicationStepId)?.name;
+          const step = steps.find((s) => s.id === event.applicationStepId);
+          const stepName = step ? getStepDisplayName(step, t) : undefined;
           const isLast = index === rowsToRender.length - 1;
 
           return (

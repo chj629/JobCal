@@ -20,6 +20,18 @@
     "showPassword": "비밀번호 표시",
     "hidePassword": "비밀번호 숨기기"
   },
+  "applicationSteps": {
+    "default": {
+      "entry": "엔트리",
+      "briefing": "설명회",
+      "es": "ES",
+      "web_test": "Web 테스트",
+      "coding_test": "코딩 테스트",
+      "interview_1": "1차 면접",
+      "interview_2": "2차 면접",
+      "interview_final": "최종 면접"
+    }
+  },
   "landing": {
     "nav": {
       "features": "기능",
@@ -341,7 +353,8 @@
       "addCompanyModalTitle": "기업 추가",
       "editCompanyModalTitle": "기업 수정",
       "deleteConfirm": "'{name}' 기업을 삭제하시겠습니까?",
-      "addSuccessToast": "'{name}' 기업을 추가했습니다."
+      "addSuccessToast": "'{name}' 기업을 추가했습니다.",
+      "deleteSuccessToast": "'{name}' 기업을 삭제했습니다."
     },
     "detail": {
       "loading": "불러오는 중입니다...",
@@ -379,6 +392,7 @@
       "rename": "이름 변경",
       "moveUp": "위로 이동",
       "moveDown": "아래로 이동",
+      "deleteConfirm": "'{name}' 전형을 삭제하시겠습니까?",
       "statusLabels": {
         "waiting": "대기",
         "actionRequired": "해야 함",
@@ -401,6 +415,7 @@
       },
       "titleLabel": "제목",
       "titleRequired": "제목을 입력해 주세요.",
+      "deleteConfirm": "'{title}'을(를) 삭제하시겠습니까?",
       "startsAt": "시작 일시",
       "endsAt": "종료 일시",
       "location": "장소",
@@ -447,7 +462,8 @@
     "nextMonth": "다음 달",
     "loading": "불러오는 중입니다...",
     "more": "+{count}개",
-    "viewCompanyDetail": "기업 상세 보기"
+    "viewCompanyDetail": "기업 상세 보기",
+    "selectedDateEmpty": "선택한 날짜에 일정이 없습니다."
   },
   "aiEmail": {
     "paste": {
@@ -504,6 +520,7 @@
       "eventSaveFailed": "일정 등록에 실패했습니다.",
       "contactSaveFailed": "담당자 등록에 실패했습니다.",
       "noteSaveFailed": "메모 등록에 실패했습니다.",
+      "saveSuccessToast": "'{name}' 기업 정보를 등록했습니다.",
       "back": "이전",
       "submit": "등록",
       "submitting": "등록 중..."

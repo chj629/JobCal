@@ -3,7 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { Check, ListChecks } from "lucide-react";
 import { useApplicationSteps } from "@/lib/application-steps-context";
-import { getCurrentStep } from "@/lib/applicationSteps";
+import { getCurrentStep, getStepDisplayName } from "@/lib/applicationSteps";
 import { useEvents } from "@/lib/events-context";
 import { useLocale, useT } from "@/lib/locale-context";
 import EmptyState from "@/components/ui/EmptyState";
@@ -107,7 +107,7 @@ export default function StepTimeline({ companyId, selectedStepId, onSelect }: St
                             : "text-secondary")
                       }
                     >
-                      {step.name}
+                      {getStepDisplayName(step, t)}
                     </span>
                     {dateLabel && (
                       <span className="text-[10px] text-secondary">{dateLabel}</span>

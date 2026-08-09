@@ -20,6 +20,18 @@
     "showPassword": "パスワードを表示",
     "hidePassword": "パスワードを非表示"
   },
+  "applicationSteps": {
+    "default": {
+      "entry": "エントリー",
+      "briefing": "説明会",
+      "es": "ES",
+      "web_test": "Webテスト",
+      "coding_test": "コーディングテスト",
+      "interview_1": "一次面接",
+      "interview_2": "二次面接",
+      "interview_final": "最終面接"
+    }
+  },
   "landing": {
     "nav": {
       "features": "機能",
@@ -341,7 +353,8 @@
       "addCompanyModalTitle": "企業を追加",
       "editCompanyModalTitle": "企業を編集",
       "deleteConfirm": "「{name}」を削除しますか?",
-      "addSuccessToast": "「{name}」を追加しました。"
+      "addSuccessToast": "「{name}」を追加しました。",
+      "deleteSuccessToast": "「{name}」を削除しました。"
     },
     "detail": {
       "loading": "読み込んでいます...",
@@ -379,6 +392,7 @@
       "rename": "名前を変更",
       "moveUp": "上に移動",
       "moveDown": "下に移動",
+      "deleteConfirm": "「{name}」を削除しますか?",
       "statusLabels": {
         "waiting": "待機",
         "actionRequired": "要対応",
@@ -401,6 +415,7 @@
       },
       "titleLabel": "タイトル",
       "titleRequired": "タイトルを入力してください。",
+      "deleteConfirm": "「{title}」を削除しますか?",
       "startsAt": "開始日時",
       "endsAt": "終了日時",
       "location": "場所",
@@ -447,7 +462,8 @@
     "nextMonth": "翌月",
     "loading": "読み込んでいます...",
     "more": "+{count}件",
-    "viewCompanyDetail": "企業詳細を見る"
+    "viewCompanyDetail": "企業詳細を見る",
+    "selectedDateEmpty": "選択した日に予定がありません。"
   },
   "aiEmail": {
     "paste": {
@@ -504,6 +520,7 @@
       "eventSaveFailed": "予定の登録に失敗しました。",
       "contactSaveFailed": "担当者の登録に失敗しました。",
       "noteSaveFailed": "メモの登録に失敗しました。",
+      "saveSuccessToast": "「{name}」の情報を登録しました。",
       "back": "戻る",
       "submit": "登録",
       "submitting": "登録中..."

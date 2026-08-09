@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronRight } from "lucide-react";
+import { CalendarClock, ChevronRight } from "lucide-react";
 import { getTodayResultsList } from "@/components/dashboard/TodayResults";
 import { getUpcomingHighlights } from "@/components/dashboard/UpcomingDDay";
 import { getUpcomingDeadlinesList } from "@/components/dashboard/UpcomingDeadlines";
@@ -11,9 +11,10 @@ import { useLocale, useT } from "@/lib/locale-context";
 import type { Locale } from "@/lib/i18n/messages";
 import type { Company } from "@/lib/companies";
 import type { AppEvent, EventType } from "@/lib/events";
-import type { ApplicationStep } from "@/lib/applicationSteps";
+import { getStepDisplayName, type ApplicationStep } from "@/lib/applicationSteps";
 import Badge, { type BadgeVariant } from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
+import EmptyState from "@/components/ui/EmptyState";
 
 interface UpcomingScheduleProps {
   companies: Company[];
@@ -81,14 +82,14 @@ export default function UpcomingSchedule({ companies, events, steps }: UpcomingS
 
   return (
     <section className="flex h-[346px] flex-col rounded-[10px] border border-border bg-card">
-      <h2 className="px-6 py-4 text-[16px] font-semibold text-foreground">
+      <h2 className="border-b border-border px-6 py-4 text-[16px] font-semibold text-foreground">
         {t("dashboard.upcomingSchedule.title")}
       </h2>
 
       {rows.length === 0 ? (
-        <p className="flex flex-1 items-center justify-center px-6 py-10 text-center text-sm text-secondary">
-          {t("dashboard.upcomingSchedule.empty")}
-        </p>
+        <div className="flex flex-1 items-center justify-center px-6">
+          <EmptyState icon={CalendarClock} title={t("dashboard.upcomingSchedule.empty")} />
+        </div>
       ) : (
         <ul className="flex-1 overflow-y-auto">
           {rows.map(({ event, at }, index) => {
@@ -128,7 +129,7 @@ export default function UpcomingSchedule({ companies, events, steps }: UpcomingS
                         </Badge>
                       </div>
                       <p className="mt-0.5 truncate text-xs text-secondary">
-                        {step?.name ?? event.title}
+                        {step ? getStepDisplayName(step, t) : event.title}
                       </p>
                     </div>
                     <ChevronRight size={16} className="shrink-0 text-secondary" />

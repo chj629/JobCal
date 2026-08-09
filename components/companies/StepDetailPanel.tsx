@@ -3,7 +3,12 @@
 import { useState } from "react";
 import { ChevronDown, ChevronUp, X } from "lucide-react";
 import { useApplicationSteps } from "@/lib/application-steps-context";
-import { STEP_STATUSES, getCurrentStep, type StepStatus } from "@/lib/applicationSteps";
+import {
+  STEP_STATUSES,
+  getCurrentStep,
+  getStepDisplayName,
+  type StepStatus,
+} from "@/lib/applicationSteps";
 import { useEvents } from "@/lib/events-context";
 import {
   createEmptyEventFormValues,
@@ -17,6 +22,7 @@ import Button from "@/components/ui/Button";
 import Select from "@/components/ui/Select";
 import Input from "@/components/ui/Input";
 import Badge from "@/components/ui/Badge";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 
 // lib/applicationSteps.ts의 STEP_STATUS_LABELS(한국어 고정)는 그대로 두고,
 // 표시 라벨만 companies.steps.statusLabels.*로 번역한다. 내부 enum 값은 불변.
@@ -57,10 +63,22 @@ export default function StepDetailPanel({ companyId, selectedStepId, onClose }: 
     updateStepStatus,
     moveStep,
   } = useApplicationSteps();
-  const { events, error: eventsError, addEvent, updateEvent, deleteEvent } = useEvents();
+  const {
+    events,
+    error: eventsError,
+    addEvent,
+    updateEvent,
+    deleteEvent,
+    refresh: refreshEvents,
+  } = useEvents();
   const [isRenaming, setIsRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState("");
   const [eventFormState, setEventFormState] = useState<{ event: AppEvent | null } | null>(null);
+  // 이 패널에는 항상 step 하나만 표시되므로(선택된 전형), companies/[id]/page.tsx의
+  // isDeleteConfirmOpen과 같은 boolean 하나로 충분하다. 삭제 대상 일정은 여러 개 중 하나를
+  // 골라야 하므로 companies/page.tsx의 deleteTarget과 동일하게 대상 객체 자체를 담는다.
+  const [isStepDeleteConfirmOpen, setIsStepDeleteConfirmOpen] = useState(false);
+  const [eventDeleteTarget, setEventDeleteTarget] = useState<AppEvent | null>(null);
 
   const companySteps = steps
     .filter((step) => step.companyId === companyId)
@@ -102,6 +120,22 @@ export default function StepDetailPanel({ companyId, selectedStepId, onClose }: 
     if (ok) setIsRenaming(false);
   }
 
+  // companies/page.tsx handleConfirmDelete와 동일하게, 성공/실패 여부와 무관하게 항상
+  // 확인창을 닫는다. 실패 시 안내는 기존 stepsError 배너가 그대로 담당한다.
+  // 전형 삭제는 DB에서 연결된 events도 함께 CASCADE 삭제되지만, events Context의 로컬
+  // state는 그대로라 성공 시에만 refreshEvents()로 다시 받아와 유령 일정을 남기지 않는다.
+  async function handleConfirmDeleteStep() {
+    const ok = await deleteStep(step!.id);
+    if (ok) refreshEvents();
+    setIsStepDeleteConfirmOpen(false);
+  }
+
+  async function handleConfirmDeleteEvent() {
+    if (!eventDeleteTarget) return;
+    await deleteEvent(eventDeleteTarget.id);
+    setEventDeleteTarget(null);
+  }
+
   return (
     <section className="mb-8 rounded-lg border border-border bg-card p-6">
       {(stepsError || eventsError) && (
@@ -129,7 +163,9 @@ export default function StepDetailPanel({ companyId, selectedStepId, onClose }: 
           </div>
         ) : (
           <>
-            <h2 className="text-[16px] font-semibold text-foreground">{step.name}</h2>
+            <h2 className="text-[16px] font-semibold text-foreground">
+              {getStepDisplayName(step, t)}
+            </h2>
             {isCurrent && (
               <Badge variant="primary" size="sm">
                 {t("companies.steps.currentBadge")}
@@ -186,7 +222,12 @@ export default function StepDetailPanel({ companyId, selectedStepId, onClose }: 
           >
             <ChevronDown size={14} />
           </Button>
-          <Button type="button" variant="danger" size="sm" onClick={() => deleteStep(step.id)}>
+          <Button
+            type="button"
+            variant="danger"
+            size="sm"
+            onClick={() => setIsStepDeleteConfirmOpen(true)}
+          >
             {t("common.delete")}
           </Button>
         </div>
@@ -209,14 +250,14 @@ export default function StepDetailPanel({ companyId, selectedStepId, onClose }: 
               <button
                 type="button"
                 onClick={() => setEventFormState({ event })}
-                className="text-secondary hover:text-primary hover:underline"
+                className="-my-3 py-3 text-secondary hover:text-primary hover:underline"
               >
                 {t("common.edit")}
               </button>
               <button
                 type="button"
-                onClick={() => deleteEvent(event.id)}
-                className="text-secondary hover:text-error hover:underline"
+                onClick={() => setEventDeleteTarget(event)}
+                className="-my-3 py-3 text-secondary hover:text-error hover:underline"
               >
                 {t("common.delete")}
               </button>
@@ -253,6 +294,28 @@ export default function StepDetailPanel({ companyId, selectedStepId, onClose }: 
           }}
         />
       )}
+
+      <ConfirmDialog
+        open={isStepDeleteConfirmOpen}
+        title={t("companies.steps.deleteConfirm", { name: getStepDisplayName(step, t) })}
+        description={t("common.cannotUndo")}
+        confirmLabel={t("common.delete")}
+        cancelLabel={t("common.cancel")}
+        variant="danger"
+        onCancel={() => setIsStepDeleteConfirmOpen(false)}
+        onConfirm={handleConfirmDeleteStep}
+      />
+
+      <ConfirmDialog
+        open={!!eventDeleteTarget}
+        title={t("companies.events.deleteConfirm", { title: eventDeleteTarget?.title ?? "" })}
+        description={t("common.cannotUndo")}
+        confirmLabel={t("common.delete")}
+        cancelLabel={t("common.cancel")}
+        variant="danger"
+        onCancel={() => setEventDeleteTarget(null)}
+        onConfirm={handleConfirmDeleteEvent}
+      />
     </section>
   );
 }

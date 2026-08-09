@@ -2,6 +2,7 @@
 
 import { CalendarClock } from "lucide-react";
 import { useApplicationSteps } from "@/lib/application-steps-context";
+import { getStepDisplayName } from "@/lib/applicationSteps";
 import { useEvents } from "@/lib/events-context";
 import type { AppEvent, EventType } from "@/lib/events";
 import { dateKeyOf, diffInDays, todayKey } from "@/lib/date";
@@ -64,7 +65,8 @@ export default function CompanySchedulePanel({ companyId }: CompanySchedulePanel
       ) : (
         <div className="flex flex-col gap-4">
           {rows.map(({ event, at }) => {
-            const stepName = companySteps.find((step) => step.id === event.applicationStepId)?.name;
+            const step = companySteps.find((s) => s.id === event.applicationStepId);
+            const stepName = step ? getStepDisplayName(step, t) : undefined;
             const dDay = formatDDay(at);
 
             return (

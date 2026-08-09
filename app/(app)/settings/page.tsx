@@ -103,11 +103,11 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-[960px] px-8 py-8">
-      <h1 className="text-[24px] font-bold text-foreground">{t("settings.title")}</h1>
+    <div className="mx-auto max-w-[1200px] px-8 py-8">
+      <h1 className="text-[28px] font-semibold text-foreground">{t("settings.title")}</h1>
       <p className="mt-1 text-sm text-secondary">{t("settings.description")}</p>
 
-      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[200px_1fr] lg:items-start">
+      <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-[200px_1fr] lg:items-start">
         <nav className="flex gap-1 overflow-x-auto lg:flex-col lg:overflow-visible">
           {TABS.map(({ key, labelKey, icon: Icon }) => (
             <button

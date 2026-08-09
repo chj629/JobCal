@@ -45,12 +45,12 @@ export default function Modal({
         aria-modal="true"
         aria-labelledby={title ? titleId : undefined}
         className={
-          "w-full rounded-[10px] border border-border bg-card p-6 shadow-lg " +
+          "flex max-h-[90vh] w-full flex-col rounded-[10px] border border-border bg-card p-6 shadow-lg " +
           SIZE_CLASS[size] +
           (className ? " " + className : "")
         }
       >
-        <div className="mb-4 flex items-center justify-between">
+        <div className="mb-4 flex shrink-0 items-center justify-between">
           {title ? (
             <h2 id={titleId} className="text-[16px] font-semibold text-foreground">
               {title}
@@ -68,9 +68,15 @@ export default function Modal({
           </button>
         </div>
 
-        {children}
+        {/* EventForm/ContactForm 등 긴 폼은 children 맨 끝에 저장 버튼 행을 직접 포함시키는
+            방식이라(Modal의 footer prop을 실제로 쓰는 곳은 없음), 헤더는 항상 보이도록
+            고정하고 children(+footer prop)만 이 영역 안에서 스크롤되게 한다. 짧은 모달은
+            내용이 max-h(90vh)보다 작아 스크롤이 생기지 않아 기존과 동일하게 보인다. */}
+        <div className="min-h-0 overflow-y-auto">
+          {children}
 
-        {footer && <div className="mt-2 flex justify-end gap-2">{footer}</div>}
+          {footer && <div className="mt-2 flex justify-end gap-2">{footer}</div>}
+        </div>
       </div>
     </div>
   );

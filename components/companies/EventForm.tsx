@@ -61,7 +61,10 @@ export default function EventForm({ title, initialValues, onCancel, onSubmit }: 
           label={t("companies.events.titleLabel")}
           type="text"
           value={values.title}
-          onChange={(e) => setValues({ ...values, title: e.target.value })}
+          onChange={(e) => {
+            setValues({ ...values, title: e.target.value });
+            setError("");
+          }}
           error={error}
         />
 

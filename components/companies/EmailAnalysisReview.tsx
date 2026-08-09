@@ -16,7 +16,7 @@ import {
   type OverallStatus,
   type Priority,
 } from "@/lib/companies";
-import { DEFAULT_STEP_NAMES } from "@/lib/applicationSteps";
+import { DEFAULT_STEP_KEYS, getStepDisplayName } from "@/lib/applicationSteps";
 import {
   EVENT_TYPES,
   createEmptyEventFormValues,
@@ -31,6 +31,7 @@ import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
 import EmptyState from "@/components/ui/EmptyState";
+import { useToast } from "@/components/ui/Toast";
 
 interface EmailAnalysisReviewProps {
   analysis: EmailAnalysisResult;
@@ -54,6 +55,13 @@ const EVENT_TYPE_LABEL_KEYS: Record<EventType, string> = {
   result_announcement: "companies.events.types.resultAnnouncement",
 };
 
+// 일정 dedup 비교용: 타입별로 실제 의미 있는 시각 필드만 ISO 문자열로 뽑는다
+// (schedule은 startsAt, deadline/result_announcement는 dueAt).
+function formEventTimeIso(value: EventFormValues): string | null {
+  const raw = value.eventType === "schedule" ? value.startsAt : value.dueAt;
+  return raw ? new Date(raw).toISOString() : null;
+}
+
 function extractedEventToFormValues(event: ExtractedEvent): EventFormValues {
   return {
     eventType: event.eventType,
@@ -74,10 +82,11 @@ export default function EmailAnalysisReview({
   onDone,
 }: EmailAnalysisReviewProps) {
   const t = useT();
+  const { showToast } = useToast();
   const { addCompany } = useCompanies();
   const { steps, addStep, refresh: refreshSteps } = useApplicationSteps();
-  const { addEvent } = useEvents();
-  const { addContact } = useCompanyContacts();
+  const { events: existingEvents, addEvent } = useEvents();
+  const { contacts: existingContacts, addContact } = useCompanyContacts();
   const { addNote } = useCompanyNotes();
 
   const [companyValues, setCompanyValues] = useState<CompanyFormValues>(() => ({
@@ -101,16 +110,24 @@ export default function EmailAnalysisReview({
 
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  // 부분 실패 후 재시도 시 이미 저장된 만큼은 다시 만들지 않기 위한 최소 상태.
+  // existingCompany가 있는 흐름은 애초에 새 기업을 만들지 않으므로 영향받지 않는다.
+  const [createdCompanyId, setCreatedCompanyId] = useState<string | null>(null);
+  const [savedEventCount, setSavedEventCount] = useState(0);
+  const [savedContactCount, setSavedContactCount] = useState(0);
 
+  // 표시는 항상 locale 번역(getStepDisplayName)을 쓰되, handleRegister의 매칭 로직이
+  // 원본 name 또는 stepKey 기준 번역 문자열 어느 쪽으로 클릭/입력해도 올바른 기존 단계를
+  // 찾아내므로, 여기서는 번역된 라벨을 그대로 클릭 값으로 써도 안전하다.
   const stepNameSuggestions = useMemo(() => {
     if (existingCompany) {
       return steps
         .filter((step) => step.companyId === existingCompany.id)
         .sort((a, b) => a.stepOrder - b.stepOrder)
-        .map((step) => step.name);
+        .map((step) => getStepDisplayName(step, t));
     }
-    return DEFAULT_STEP_NAMES;
-  }, [existingCompany, steps]);
+    return DEFAULT_STEP_KEYS.map((key) => t(`applicationSteps.default.${key}`));
+  }, [existingCompany, steps, t]);
 
   function updateEvent(index: number, patch: Partial<EventFormValues>) {
     setEvents((prev) => prev.map((event, i) => (i === index ? { ...event, ...patch } : event)));
@@ -144,6 +161,12 @@ export default function EmailAnalysisReview({
 
     if (existingCompany) {
       companyId = existingCompany.id;
+    } else if (createdCompanyId) {
+      // 이전 시도(이후 단계에서 실패해 재시도하는 경우)에서 이미 만들어진 기업을 그대로
+      // 재사용한다 — addCompany를 다시 호출하면 같은 이름의 기업이 중복 생성된다.
+      companyId = createdCompanyId;
+      const freshSteps = await refreshSteps();
+      candidateSteps = freshSteps.filter((step) => step.companyId === companyId);
     } else {
       const created = await addCompany(companyValues);
       if (!created) {
@@ -154,6 +177,7 @@ export default function EmailAnalysisReview({
         return;
       }
       companyId = created.id;
+      setCreatedCompanyId(created.id);
       // 기업 생성 시 DB 트리거가 기본 8개 전형을 자동 생성하므로, 최신 목록을 다시 받아온다.
       const freshSteps = await refreshSteps();
       candidateSteps = freshSteps.filter((step) => step.companyId === companyId);
@@ -163,11 +187,27 @@ export default function EmailAnalysisReview({
     const trimmedStepName = stepName.trim();
 
     if (trimmedStepName) {
-      const matched = candidateSteps.find((step) => step.name === trimmedStepName);
+      // 원본 name과의 완전 일치(예: AI가 추출한 기본 전형 한국어 원문, 사용자 커스텀 전형)를
+      // 우선 확인하고, 기본 전형(stepKey 존재)이면 현재 locale 번역 문자열과도 비교한다.
+      // stepName 입력값이 어떤 언어로 들어와도(추천 pill 클릭/직접 입력 모두) 같은 기본
+      // 전형이면 새로 만들지 않고 항상 같은 행을 재사용하게 하기 위함이다.
+      const matched = candidateSteps.find(
+        (step) =>
+          step.name === trimmedStepName ||
+          (step.stepKey && getStepDisplayName(step, t) === trimmedStepName)
+      );
       if (matched) {
         stepId = matched.id;
       } else {
-        const createdStep = await addStep(companyId, trimmedStepName);
+        // addStep()의 기본 order 계산은 Context 클로저의 steps를 참조하는데, 방금 생성한
+        // 신규 기업은 그 steps에 아직 반영되지 않아 order가 1(엔트리와 충돌)로 잘못 계산될
+        // 수 있다. 직전에 refreshSteps()로 받은 candidateSteps(최신 목록) 기준으로 직접
+        // 계산해 넘겨 항상 맨 끝에 추가되게 한다.
+        const nextOrder =
+          candidateSteps.length === 0
+            ? 1
+            : Math.max(...candidateSteps.map((step) => step.stepOrder)) + 1;
+        const createdStep = await addStep(companyId, trimmedStepName, nextOrder);
         if (!createdStep) {
           setSaveError(t("aiEmail.review.stepSaveFailed"));
           setSaving(false);
@@ -187,24 +227,60 @@ export default function EmailAnalysisReview({
       return;
     }
 
-    for (const eventValues of eventsToSave) {
-      const ok = await addEvent(companyId, stepId!, eventValues);
-      if (!ok) {
-        setSaveError(t("aiEmail.review.eventSaveFailed"));
-        setSaving(false);
-        return;
+    // savedEventCount부터 재개해, 이전 시도에서 이미 저장에 성공한 일정은 다시 만들지 않는다.
+    // 같은 메일을 같은 기업에 다시 저장하는 경우(전형/타입/제목/시각이 기존 일정과 완전히
+    // 같은 경우)도 중복 생성하지 않도록, 저장 전에 기존 일정과 정확히 일치하는지 확인한다.
+    // 하나라도 다르면(예: AI가 제목을 조금 다르게 뽑은 경우) 별개의 새 일정으로 저장한다.
+    for (let i = savedEventCount; i < eventsToSave.length; i++) {
+      const toSave = eventsToSave[i];
+      const toSaveTimeIso = formEventTimeIso(toSave);
+      const alreadyExists = existingEvents.some((existing) => {
+        if (existing.companyId !== companyId) return false;
+        if (existing.applicationStepId !== stepId) return false;
+        if (existing.eventType !== toSave.eventType) return false;
+        if (existing.title.trim() !== toSave.title.trim()) return false;
+        // existing 쪽 시각은 DB에서 "+00:00" 형식으로 오고 toSaveTimeIso는
+        // Date.toISOString()이라 "Z" 형식이라, 같은 시각이어도 문자열이 달라 항상
+        // false가 되는 문제가 있었다. 양쪽 다 toISOString()으로 정규화해 비교한다.
+        const existingRaw = existing.eventType === "schedule" ? existing.startsAt : existing.dueAt;
+        const existingTimeIso = existingRaw ? new Date(existingRaw).toISOString() : null;
+        return existingTimeIso === toSaveTimeIso;
+      });
+
+      if (!alreadyExists) {
+        const ok = await addEvent(companyId, stepId!, toSave);
+        if (!ok) {
+          setSaveError(t("aiEmail.review.eventSaveFailed"));
+          setSaving(false);
+          return;
+        }
       }
+      setSavedEventCount(i + 1);
     }
 
     const contactsToSave = contacts.filter((contact) => contact.name.trim());
 
-    for (const contactValues of contactsToSave) {
-      const ok = await addContact(companyId, contactValues);
-      if (!ok) {
-        setSaveError(t("aiEmail.review.contactSaveFailed"));
-        setSaving(false);
-        return;
+    // 담당자도 동일하게 savedContactCount부터 재개하며, email이 있으면 email(trim+소문자)
+    // 기준으로, 없으면 name 기준으로 기존 담당자와 중복인지 확인한다.
+    for (let i = savedContactCount; i < contactsToSave.length; i++) {
+      const toSave = contactsToSave[i];
+      const trimmedEmail = toSave.email.trim().toLowerCase();
+      const alreadyExists = existingContacts.some((existing) => {
+        if (existing.companyId !== companyId) return false;
+        return trimmedEmail
+          ? existing.email.trim().toLowerCase() === trimmedEmail
+          : existing.name.trim() === toSave.name.trim();
+      });
+
+      if (!alreadyExists) {
+        const ok = await addContact(companyId, toSave);
+        if (!ok) {
+          setSaveError(t("aiEmail.review.contactSaveFailed"));
+          setSaving(false);
+          return;
+        }
       }
+      setSavedContactCount(i + 1);
     }
 
     if (memo.trim()) {
@@ -217,6 +293,13 @@ export default function EmailAnalysisReview({
     }
 
     setSaving(false);
+    // 여기까지 도달했다는 것은 위의 모든 저장 단계(기업/전형/일정/담당자/메모)가
+    // 하나도 실패하지 않고 통과했다는 뜻이다(각 단계는 실패 시 위에서 이미 return함).
+    showToast(
+      t("aiEmail.review.saveSuccessToast", {
+        name: existingCompany ? existingCompany.name : companyValues.name,
+      })
+    );
     onDone(companyId);
   }
 

@@ -81,8 +81,25 @@ export default function CompanyTrendChart({ companies }: CompanyTrendChartProps)
         {t("analytics.trendChart.title")}
       </h2>
 
+      {/* md(768px) 이상에서는 기존 그대로: 카드 폭이 항상 600px보다 넉넉해 min-w-[600px]가
+          스크롤 없이 안전하고, 2단이 열리는 1600px 이상에서는 506px보다 여유 있는 480px로
+          낮춘다(자세한 폭 계산은 app/(app)/analytics/page.tsx 주석 참고).
+          md 미만(모바일 375~430px)은 카드 콘텐츠 폭이 약 263~318px로 600px 바닥값을 절대
+          만족할 수 없어 항상 가로 스크롤이 강제됐다. svg는 min-width 외에 별도 width를
+          지정하지 않아 block 요소 기본값(width:auto)으로 이미 부모(카드) 폭을 그대로
+          채우던 중이었으므로, 모바일에서만 그 바닥값을 없애 자연스럽게 카드 폭 100%에
+          맞춰지도록 한다(viewBox="0 0 720 240"과 좌표 계산은 그대로 유지). */}
       <div className="mt-4 overflow-x-auto">
-        <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} className="min-w-[600px]">
+        <svg
+          viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
+          className="min-w-full md:min-w-[600px] min-[1600px]:min-w-[480px]"
+        >
+          {/* 모바일에서 SVG가 카드 폭(≈263~318px)까지 줄어들면 축척이 약 0.37~0.44배가 되어,
+              기존 fontSize=11/strokeWidth=2/r=3이 물리적으로 4~5px 수준까지 작아진다. CSS는
+              presentation attribute보다 우선하므로 max-md: 클래스로만 덮어써 좌표/viewBox는
+              그대로 두고 시각 크기만 키운다. 값 텍스트(y - 10 위치, 좌표 계산 변경 금지)가
+              같은 점의 원과 겹치지 않아야 하므로 "0.25 × fontSize ≤ 10 - r" 여유를 두고
+              text-[18px] · r:5px · stroke-width:4px로 정했다(문자/점 간 가로 간격도 충분함). */}
           {ticks.map((tick) => {
             const y = PADDING_TOP + CHART_HEIGHT - (tick / chartMax) * CHART_HEIGHT;
             return (
@@ -100,6 +117,7 @@ export default function CompanyTrendChart({ companies }: CompanyTrendChartProps)
                   y={y + 4}
                   textAnchor="end"
                   fontSize={11}
+                  className="max-md:text-[18px]"
                   fill="var(--color-secondary)"
                 >
                   {tick}
@@ -108,16 +126,29 @@ export default function CompanyTrendChart({ companies }: CompanyTrendChartProps)
             );
           })}
 
-          <path d={pathD} fill="none" stroke="var(--color-primary)" strokeWidth={2} />
+          <path
+            d={pathD}
+            fill="none"
+            stroke="var(--color-primary)"
+            strokeWidth={2}
+            className="max-md:[stroke-width:4px]"
+          />
 
           {points.map(({ x, y, row }) => (
             <g key={`${row.year}-${row.month}`}>
-              <circle cx={x} cy={y} r={3} fill="var(--color-primary)" />
+              <circle
+                cx={x}
+                cy={y}
+                r={3}
+                fill="var(--color-primary)"
+                className="max-md:[r:5px]"
+              />
               <text
                 x={x}
                 y={y - 10}
                 textAnchor="middle"
                 fontSize={11}
+                className="max-md:text-[18px]"
                 fill="var(--color-foreground)"
               >
                 {row.cumulative}
@@ -127,6 +158,7 @@ export default function CompanyTrendChart({ companies }: CompanyTrendChartProps)
                 y={HEIGHT - PADDING_BOTTOM + 18}
                 textAnchor="middle"
                 fontSize={11}
+                className="max-md:text-[18px]"
                 fill="var(--color-secondary)"
               >
                 {row.month + 1}

@@ -14,22 +14,29 @@ import CompanySchedulePanel from "@/components/companies/CompanySchedulePanel";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import Button from "@/components/ui/Button";
 import Badge from "@/components/ui/Badge";
+import LoadingState from "@/components/ui/LoadingState";
+import { useToast } from "@/components/ui/Toast";
 import { companyToFormValues, type Company } from "@/lib/companies";
 import { useCompanies } from "@/lib/companies-context";
 import { useApplicationSteps } from "@/lib/application-steps-context";
-import { getCurrentStep } from "@/lib/applicationSteps";
+import { getCurrentStep, getStepDisplayName } from "@/lib/applicationSteps";
 import { useEvents } from "@/lib/events-context";
 import { getNextEvent } from "@/lib/events";
+import { useCompanyContacts } from "@/lib/company-contacts-context";
+import { useCompanyNotes } from "@/lib/company-notes-context";
 import { dateKeyOf, diffInDays, todayKey } from "@/lib/date";
 import { useLocale, useT } from "@/lib/locale-context";
 
 export default function CompanyDetailPage() {
   const t = useT();
+  const { showToast } = useToast();
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { companies, deleteCompany, loading: companiesLoading, error } = useCompanies();
-  const { loading: stepsLoading } = useApplicationSteps();
-  const { loading: eventsLoading } = useEvents();
+  const { loading: stepsLoading, refresh: refreshSteps } = useApplicationSteps();
+  const { loading: eventsLoading, refresh: refreshEvents } = useEvents();
+  const { refresh: refreshContacts } = useCompanyContacts();
+  const { refresh: refreshNotes } = useCompanyNotes();
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
 
@@ -38,8 +45,8 @@ export default function CompanyDetailPage() {
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-[1200px] px-8 py-8 text-sm text-secondary">
-        {t("companies.detail.loading")}
+      <div className="mx-auto max-w-[1200px] px-8 py-8">
+        <LoadingState>{t("companies.detail.loading")}</LoadingState>
       </div>
     );
   }
@@ -59,6 +66,15 @@ export default function CompanyDetailPage() {
     setIsDeleting(true);
     const ok = await deleteCompany(company!.id);
     if (ok) {
+      showToast(t("companies.list.deleteSuccessToast", { name: company!.name }));
+      // companies/page.tsx의 handleConfirmDelete와 동일한 이유: DB는 CASCADE로 정리되지만
+      // 다른 Context의 로컬 state는 그대로라, 삭제 성공 시에만 각자 refresh()로 최신 상태를
+      // 다시 받아온다. /companies로 이동한 뒤에도 같은 레이아웃(Provider)이 유지되므로
+      // 여기서 갱신해 둬야 Calendar 등에서 유령 데이터가 보이지 않는다.
+      refreshSteps();
+      refreshEvents();
+      refreshContacts();
+      refreshNotes();
       router.push("/companies");
     } else {
       setIsDeleting(false);
@@ -143,7 +159,7 @@ function CompanyDetailView({ company, error, onDeleteClick }: CompanyDetailViewP
         </div>
       </div>
 
-      <header className="mt-6 mb-6 flex flex-wrap items-center gap-3">
+      <header className="mt-6 mb-8 flex flex-wrap items-center gap-3">
         <h1 className="text-[28px] font-semibold text-foreground">{company.name}</h1>
         <StatusBadge status={company.overallStatus} />
       </header>
@@ -201,7 +217,7 @@ function CompanyDetailView({ company, error, onDeleteClick }: CompanyDetailViewP
                 <div>
                   <dt className="text-secondary">{t("companies.detail.currentStep")}</dt>
                   <dd className="mt-1 text-foreground">
-                    {currentStep?.name ?? t("dashboard.noStepLabel")}
+                    {currentStep ? getStepDisplayName(currentStep, t) : t("dashboard.noStepLabel")}
                   </dd>
                 </div>
                 <div>

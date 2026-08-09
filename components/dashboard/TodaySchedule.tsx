@@ -2,16 +2,17 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronRight } from "lucide-react";
+import { CalendarClock, ChevronRight } from "lucide-react";
 import { useTodayChecklist } from "@/components/dashboard/TodayChecklist";
 import { getTodaySchedules } from "@/components/dashboard/TodayTimetable";
 import { formatTimeOfDay } from "@/lib/date";
 import { useT } from "@/lib/locale-context";
 import type { Company } from "@/lib/companies";
 import type { AppEvent, EventType } from "@/lib/events";
-import type { ApplicationStep } from "@/lib/applicationSteps";
+import { getStepDisplayName, type ApplicationStep } from "@/lib/applicationSteps";
 import Badge, { type BadgeVariant } from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
+import EmptyState from "@/components/ui/EmptyState";
 
 interface TodayScheduleProps {
   companies: Company[];
@@ -72,9 +73,9 @@ export default function TodaySchedule({ companies, events, steps }: TodaySchedul
       )}
 
       {items.length === 0 ? (
-        <p className="flex flex-1 items-center justify-center px-6 py-10 text-center text-sm text-secondary">
-          {t("dashboard.todaySchedule.empty")}
-        </p>
+        <div className="flex flex-1 items-center justify-center px-6">
+          <EmptyState icon={CalendarClock} title={t("dashboard.todaySchedule.empty")} />
+        </div>
       ) : (
         <ul className="flex-1 overflow-y-auto">
           {items.map(({ event, at }, index) => {
@@ -146,7 +147,7 @@ export default function TodaySchedule({ companies, events, steps }: TodaySchedul
                           size="sm"
                           className="shrink-0"
                         >
-                          {step?.name ?? event.title}
+                          {step ? getStepDisplayName(step, t) : event.title}
                         </Badge>
                       </div>
                       <p className="mt-0.5 truncate text-xs text-secondary">{event.title}</p>

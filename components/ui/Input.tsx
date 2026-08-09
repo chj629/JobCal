@@ -17,7 +17,18 @@ export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
 // 36_inputs.png 기준: label + input + (error 또는 hint) 구조. Focused/Error 상태만 색상으로 구분한다.
 // type="password"일 때는 시안(1_login.png 등)처럼 우측에 표시/숨김(Eye) 토글을 자동으로 붙인다.
 const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
-  { label, error, hint, id, className = "", containerClassName = "", icon: Icon, type, ...props },
+  {
+    label,
+    error,
+    hint,
+    id,
+    className = "",
+    containerClassName = "",
+    icon: Icon,
+    type,
+    disabled,
+    ...props
+  },
   ref
 ) {
   const t = useT();
@@ -39,17 +50,21 @@ const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
         {Icon && (
           <Icon
             size={16}
-            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-secondary"
+            className={
+              "pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-secondary" +
+              (disabled ? " opacity-60" : "")
+            }
           />
         )}
         <input
           ref={ref}
           id={inputId}
           type={isPassword ? (visible ? "text" : "password") : type}
+          disabled={disabled}
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? errorId : hint ? hintId : undefined}
           className={
-            "h-10 w-full rounded-lg border bg-card text-sm text-foreground placeholder:text-secondary focus:outline-none " +
+            "h-10 w-full rounded-lg border bg-card text-sm text-foreground placeholder:text-secondary focus:outline-none disabled:cursor-not-allowed disabled:opacity-60 " +
             (Icon ? "pl-9 " : "pl-3 ") +
             (isPassword ? "pr-9 " : "pr-3 ") +
             (error ? "border-error focus:border-error" : "border-border focus:border-primary") +
@@ -62,8 +77,9 @@ const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
             type="button"
             onClick={() => setVisible((v) => !v)}
             tabIndex={-1}
+            disabled={disabled}
             aria-label={visible ? t("common.hidePassword") : t("common.showPassword")}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-secondary hover:text-foreground"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-secondary hover:text-foreground disabled:cursor-not-allowed disabled:opacity-60"
           >
             {visible ? <EyeOff size={16} /> : <Eye size={16} />}
           </button>

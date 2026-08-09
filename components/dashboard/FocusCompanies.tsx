@@ -3,11 +3,12 @@
 import Link from "next/link";
 import { Building2, Info } from "lucide-react";
 import type { Company } from "@/lib/companies";
-import { getCurrentStep, type ApplicationStep } from "@/lib/applicationSteps";
+import { getCurrentStep, getStepDisplayName, type ApplicationStep } from "@/lib/applicationSteps";
 import { getNextEvent, type AppEvent } from "@/lib/events";
 import { diffInDays, dateKeyOf, todayKey, formatTimeOfDay } from "@/lib/date";
 import { useT } from "@/lib/locale-context";
 import Badge, { type BadgeVariant } from "@/components/ui/Badge";
+import EmptyState from "@/components/ui/EmptyState";
 
 interface FocusCompaniesProps {
   companies: Company[];
@@ -49,9 +50,10 @@ export default function FocusCompanies({ companies, events, steps }: FocusCompan
       const companyEvents = events.filter((event) => event.companyId === company.id);
       const nextEvent = getNextEvent(companyEvents);
       const nextEventAt = nextEvent ? (nextEvent.startsAt ?? nextEvent.dueAt) : null;
+      const currentStep = getCurrentStep(companySteps);
       return {
         company,
-        currentStepName: getCurrentStep(companySteps)?.name ?? t("dashboard.noStepLabel"),
+        currentStepName: currentStep ? getStepDisplayName(currentStep, t) : t("dashboard.noStepLabel"),
         nextEventAt,
       };
     })
@@ -78,12 +80,12 @@ export default function FocusCompanies({ companies, events, steps }: FocusCompan
       </div>
 
       {inProgress.length === 0 ? (
-        <div className="flex flex-1 flex-col items-center justify-center gap-2 px-6 py-10 text-center">
-          <Building2 size={24} className="text-secondary" />
-          <p className="text-sm font-medium text-foreground">
-            {t("dashboard.focusCompanies.emptyTitle")}
-          </p>
-          <p className="text-xs text-secondary">{t("dashboard.focusCompanies.emptySubtitle")}</p>
+        <div className="flex flex-1 items-center justify-center px-6">
+          <EmptyState
+            icon={Building2}
+            title={t("dashboard.focusCompanies.emptyTitle")}
+            description={t("dashboard.focusCompanies.emptySubtitle")}
+          />
         </div>
       ) : (
         <ul>

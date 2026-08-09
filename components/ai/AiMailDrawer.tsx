@@ -93,11 +93,14 @@ export function useEmailAnalysisFlow() {
 export interface AiMailDrawerProps {
   open: boolean;
   onClose: () => void;
+  // Drawer 닫힘 애니메이션이 완전히 끝난 시점에만 호출(components/ui/Drawer.tsx의 onClosed
+  // 그대로 전달). AppLayout이 Header AI 버튼 재표시 타이밍을 여기 맞추기 위해 필요.
+  onClosed?: () => void;
 }
 
 // EmailPasteForm/CompanyMatchPicker/EmailAnalysisReview는 new-from-email 페이지와 동일한
 // 컴포넌트를 그대로 가져다 쓴다(내부 로직/저장(handleRegister) 로직 수정 없음).
-export default function AiMailDrawer({ open, onClose }: AiMailDrawerProps) {
+export default function AiMailDrawer({ open, onClose, onClosed }: AiMailDrawerProps) {
   const t = useT();
   const router = useRouter();
   const flow = useEmailAnalysisFlow();
@@ -111,6 +114,7 @@ export default function AiMailDrawer({ open, onClose }: AiMailDrawerProps) {
     <Drawer
       open={open}
       onClose={handleClose}
+      onClosed={onClosed}
       title={
         <span className="flex items-center gap-2">
           <Sparkles size={18} className="text-primary" />

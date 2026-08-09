@@ -14,7 +14,7 @@ interface ApplicationStepsContextValue {
   loading: boolean;
   error: string | null;
   refresh: () => Promise<ApplicationStep[]>;
-  addStep: (companyId: string, name: string) => Promise<ApplicationStep | null>;
+  addStep: (companyId: string, name: string, order?: number) => Promise<ApplicationStep | null>;
   deleteStep: (id: string) => Promise<boolean>;
   renameStep: (id: string, name: string) => Promise<boolean>;
   updateStepStatus: (id: string, status: StepStatus) => Promise<boolean>;
@@ -86,12 +86,16 @@ export function ApplicationStepsProvider({ children }: { children: ReactNode }) 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [supabase]);
 
-  async function addStep(companyId: string, name: string) {
+  // order를 넘기지 않으면 기존처럼 현재 steps state 기준으로 계산한다. 신규 기업 생성
+  // 직후처럼 이 함수의 클로저가 아직 최신 steps를 갖지 못한 상황(EmailAnalysisReview 참고)에서는
+  // 호출부가 refreshSteps()로 받은 최신 목록 기준 order를 직접 계산해 넘겨줘야 한다.
+  async function addStep(companyId: string, name: string, order?: number) {
     if (!userId) return null;
 
     const companySteps = steps.filter((step) => step.companyId === companyId);
     const nextOrder =
-      companySteps.length === 0 ? 1 : Math.max(...companySteps.map((step) => step.stepOrder)) + 1;
+      order ??
+      (companySteps.length === 0 ? 1 : Math.max(...companySteps.map((step) => step.stepOrder)) + 1);
 
     const { data, error: insertError } = await supabase
       .from("application_steps")
@@ -134,9 +138,11 @@ export function ApplicationStepsProvider({ children }: { children: ReactNode }) 
   async function renameStep(id: string, name: string) {
     if (!userId) return false;
 
+    // 이름을 직접 바꾸는 순간부터는 사용자가 입력한 문자열이므로, 기본 단계였더라도
+    // step_key를 null로 내려 이후에는 자동 번역 없이 이 name을 그대로 표시한다.
     const { data, error: updateError } = await supabase
       .from("application_steps")
-      .update({ name: name.trim() })
+      .update({ name: name.trim(), step_key: null })
       .eq("id", id)
       .select()
       .single();

@@ -8,6 +8,7 @@ import CompanyForm from "@/components/CompanyForm";
 import Badge, { type BadgeVariant } from "@/components/ui/Badge";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import EmptyState from "@/components/ui/EmptyState";
+import LoadingState from "@/components/ui/LoadingState";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
@@ -21,9 +22,11 @@ import {
 } from "@/lib/companies";
 import { useCompanies } from "@/lib/companies-context";
 import { useApplicationSteps } from "@/lib/application-steps-context";
-import { DEFAULT_STEP_NAMES, getCurrentStep } from "@/lib/applicationSteps";
+import { DEFAULT_STEP_KEYS, getCurrentStep, getStepDisplayName } from "@/lib/applicationSteps";
 import { useEvents } from "@/lib/events-context";
 import { getNextEvent } from "@/lib/events";
+import { useCompanyContacts } from "@/lib/company-contacts-context";
+import { useCompanyNotes } from "@/lib/company-notes-context";
 import { dateKeyOf, diffInDays, formatTimeOfDay, todayKey } from "@/lib/date";
 import { useLocale, useT } from "@/lib/locale-context";
 import type { Locale } from "@/lib/i18n/messages";
@@ -88,7 +91,9 @@ export default function CompaniesPage() {
     error,
   } = useCompanies();
   const { steps, loading: stepsLoading, refresh: refreshSteps } = useApplicationSteps();
-  const { events, loading: eventsLoading } = useEvents();
+  const { events, loading: eventsLoading, refresh: refreshEvents } = useEvents();
+  const { refresh: refreshContacts } = useCompanyContacts();
+  const { refresh: refreshNotes } = useCompanyNotes();
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>(ALL);
@@ -104,30 +109,40 @@ export default function CompaniesPage() {
   const loading = companiesLoading || stepsLoading || eventsLoading;
 
   // application_steps/events를 직접 사용해 기업별 "현재 전형", "다음 일정"을 계산한다.
+  // currentStepKey는 전형 필터(stepFilter)와의 비교 기준으로, 기본 전형이면 step_key(언어와
+  // 무관한 안정적인 값), 사용자 커스텀 전형이면 null이다. 화면 표시는 currentStepDisplayName
+  // (locale 번역)을 별도로 둬서, 필터 비교가 번역된 문자열에 의존하지 않게 한다.
   const companyRows = companies.map((company) => {
     const companySteps = steps.filter((step) => step.companyId === company.id);
     const companyEvents = events.filter((event) => event.companyId === company.id);
     const nextEvent = getNextEvent(companyEvents);
     const nextEventAt = nextEvent ? (nextEvent.startsAt ?? nextEvent.dueAt) : null;
+    const nextEventStep = nextEvent
+      ? companySteps.find((s) => s.id === nextEvent.applicationStepId)
+      : undefined;
     const nextEventStepName = nextEvent
-      ? (companySteps.find((s) => s.id === nextEvent.applicationStepId)?.name ?? nextEvent.title)
+      ? (nextEventStep ? getStepDisplayName(nextEventStep, t) : nextEvent.title)
       : null;
+    const currentStep = getCurrentStep(companySteps);
 
     return {
       company,
-      currentStepName: getCurrentStep(companySteps)?.name ?? t("dashboard.noStepLabel"),
+      currentStepKey: currentStep?.stepKey ?? null,
+      currentStepDisplayName: currentStep
+        ? getStepDisplayName(currentStep, t)
+        : t("dashboard.noStepLabel"),
       nextEventAt,
       nextEventStepName,
     };
   });
 
   // 상태 탭 건수는 검색/우선순위/전형 필터까지만 반영하고, 상태 자체는 제외해서 계산한다.
-  const baseFilteredRows = companyRows.filter(({ company, currentStepName }) => {
+  const baseFilteredRows = companyRows.filter(({ company, currentStepKey }) => {
     const matchesSearch = company.name
       .toLowerCase()
       .includes(search.trim().toLowerCase());
     const matchesPriority = priorityFilter === ALL || company.priority === priorityFilter;
-    const matchesStep = stepFilter === ALL || currentStepName === stepFilter;
+    const matchesStep = stepFilter === ALL || currentStepKey === stepFilter;
     return matchesSearch && matchesPriority && matchesStep;
   });
 
@@ -189,7 +204,18 @@ export default function CompaniesPage() {
 
   async function handleConfirmDelete() {
     if (!deleteTarget) return;
-    await deleteCompany(deleteTarget.id);
+    const ok = await deleteCompany(deleteTarget.id);
+    if (ok) {
+      showToast(t("companies.list.deleteSuccessToast", { name: deleteTarget.name }));
+      // DB에서는 ON DELETE CASCADE로 정리되지만, 다른 Context(steps/events/contacts/notes)의
+      // 로컬 state는 companies와 별개라 자동으로 갱신되지 않는다. 삭제 성공 시에만 각자의
+      // refresh()로 서버 최신 상태를 다시 받아와, 새로고침 없이 다른 화면으로 이동해도
+      // 삭제된 기업의 유령 데이터가 보이지 않게 한다.
+      refreshSteps();
+      refreshEvents();
+      refreshContacts();
+      refreshNotes();
+    }
     setDeleteTarget(null);
   }
 
@@ -231,9 +257,9 @@ export default function CompaniesPage() {
           containerClassName="w-36"
         >
           <option value={ALL}>{t("companies.list.filters.allStep")}</option>
-          {DEFAULT_STEP_NAMES.map((step) => (
-            <option key={step} value={step}>
-              {step}
+          {DEFAULT_STEP_KEYS.map((key) => (
+            <option key={key} value={key}>
+              {t(`applicationSteps.default.${key}`)}
             </option>
           ))}
         </Select>
@@ -276,9 +302,7 @@ export default function CompaniesPage() {
       )}
 
       {loading ? (
-        <div className="rounded-lg border border-border bg-card px-6 py-10 text-center text-sm text-secondary">
-          {t("companies.list.loading")}
-        </div>
+        <LoadingState>{t("companies.list.loading")}</LoadingState>
       ) : (
         <>
         {/* 데스크톱/태블릿: 기존 테이블 그대로 (md 이상) */}
@@ -302,7 +326,7 @@ export default function CompaniesPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {paginatedRows.map(({ company, currentStepName, nextEventAt, nextEventStepName }) => (
+              {paginatedRows.map(({ company, currentStepDisplayName, nextEventAt, nextEventStepName }) => (
                 <tr key={company.id} className="transition-colors duration-150 hover:bg-background">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
@@ -318,7 +342,7 @@ export default function CompaniesPage() {
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <Badge variant="neutral">{currentStepName}</Badge>
+                    <Badge variant="neutral">{currentStepDisplayName}</Badge>
                   </td>
                   <td className="px-6 py-4">
                     <StatusBadge status={company.overallStatus} />
@@ -432,7 +456,7 @@ export default function CompaniesPage() {
               )}
             </div>
           ) : (
-            paginatedRows.map(({ company, currentStepName, nextEventAt, nextEventStepName }) => (
+            paginatedRows.map(({ company, currentStepDisplayName, nextEventAt, nextEventStepName }) => (
               <div key={company.id} className="rounded-lg border border-border bg-card p-4">
                 <div className="flex items-start justify-between gap-2">
                   <Link
@@ -486,7 +510,7 @@ export default function CompaniesPage() {
                 </div>
 
                 <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <Badge variant="neutral">{currentStepName}</Badge>
+                  <Badge variant="neutral">{currentStepDisplayName}</Badge>
                   <StatusBadge status={company.overallStatus} />
                   <Badge variant={PRIORITY_BADGE_VARIANT[company.priority]}>
                     {priorityLabels[company.priority]}

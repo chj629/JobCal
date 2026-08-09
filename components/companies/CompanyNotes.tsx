@@ -77,14 +77,14 @@ export default function CompanyNotes({ companyId }: CompanyNotesProps) {
                   <button
                     type="button"
                     onClick={() => setFormState({ note })}
-                    className="text-secondary hover:text-primary hover:underline"
+                    className="-my-3 py-3 text-secondary hover:text-primary hover:underline"
                   >
                     {t("common.edit")}
                   </button>
                   <button
                     type="button"
                     onClick={() => setDeleteTarget(note)}
-                    className="text-secondary hover:text-error hover:underline"
+                    className="-my-3 py-3 text-secondary hover:text-error hover:underline"
                   >
                     {t("common.delete")}
                   </button>

@@ -6,6 +6,7 @@ import { useEvents } from "@/lib/events-context";
 import { useApplicationSteps } from "@/lib/application-steps-context";
 import { dateKeyOf, todayKey } from "@/lib/date";
 import { useT } from "@/lib/locale-context";
+import LoadingState from "@/components/ui/LoadingState";
 import StatusDonutChart from "@/components/analytics/StatusDonutChart";
 import StepFunnelChart from "@/components/analytics/StepFunnelChart";
 import CompanyTrendChart from "@/components/analytics/CompanyTrendChart";
@@ -63,16 +64,16 @@ export default function AnalyticsPage() {
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-[1320px] px-7 pt-7 pb-8 text-sm text-secondary">
-        {t("common.loading")}
+      <div className="mx-auto max-w-[1200px] px-8 py-8">
+        <LoadingState>{t("common.loading")}</LoadingState>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-[1320px] px-7 pt-7 pb-8">
+    <div className="mx-auto max-w-[1200px] px-8 py-8">
       <header className="mb-8">
-        <h1 className="text-[24px] font-bold text-foreground">{t("analytics.title")}</h1>
+        <h1 className="text-[28px] font-semibold text-foreground">{t("analytics.title")}</h1>
         <p className="mt-1 text-sm text-secondary">{t("analytics.description")}</p>
       </header>
 
@@ -108,16 +109,21 @@ export default function AnalyticsPage() {
       {/* 11_analytics.png 기준 데스크톱 다단 그리드: 상태 도넛/전형 퍼널, 응모 추이/향후 일정을
           각각 한 행에 배치하고, 선고 결과 서머리는 전체 폭으로 마지막에 둔다. 미만에서는
           grid-cols-1로 모두 세로 1열 스택된다.
-          응모 추이 차트는 min-w-[600px] SVG를 그대로 쓰므로, 사이드바(240px)를 뺀 실제 폭이
-          2열 모두 600px 이상을 확보하려면 최소 1224px가 필요하다. lg/xl에서는 이 폭을
-          확보하지 못해 항상 카드 내부 가로 스크롤이 생기므로, 실측 기준으로 맞아떨어지는
-          1600px에서 전환한다(calendar/page.tsx와 동일 breakpoint). */}
-      <div className="mt-6 grid grid-cols-1 gap-6 min-[1600px]:grid-cols-2 min-[1600px]:items-start">
+          2단 전환은 뷰포트가 아니라 app/(app)/layout.tsx의 <main @container/main> 실제 폭을
+          기준으로 한다(AI Drawer가 push로 열려 main이 좁아지면 자동 1단 유지, 닫히면 자동
+          2단 복귀 — calendar/page.tsx와 동일한 컨테이너 쿼리 방식).
+          2열 각각이 CompanyTrendChart.tsx의 min-w-[600px](1600px 미만 구간의 값, 이번에
+          손대지 않음)를 스크롤 없이 담으려면 main이 최소 600*2+gap-6(24)+px-8(64)=1288px
+          있어야 하므로, calendar/page.tsx와 동일하게 여유를 둔 1320px를 기준으로 삼는다.
+          이 기준을 넘기면 열 폭은 항상 (1320-64-24)/2=616px 이상이라, 뷰포트가 아직
+          1600px 미만이라 CompanyTrendChart.tsx가 아직 600px 값을 쓰는 경우까지 포함해
+          항상 안전하다(뷰포트가 1600px를 넘어 자체적으로 480px로 낮아지면 여유는 더 커짐). */}
+      <div className="mt-6 grid grid-cols-1 gap-6 @min-[1320px]/main:grid-cols-2 @min-[1320px]/main:items-start">
         <StatusDonutChart companies={companies} />
         <StepFunnelChart companies={companies} steps={steps} />
       </div>
 
-      <div className="mt-6 grid grid-cols-1 gap-6 min-[1600px]:grid-cols-2 min-[1600px]:items-start">
+      <div className="mt-6 grid grid-cols-1 gap-6 @min-[1320px]/main:grid-cols-2 @min-[1320px]/main:items-start">
         <CompanyTrendChart companies={companies} />
         <UpcomingEventsCard companies={companies} events={events} steps={steps} />
       </div>
