@@ -52,8 +52,8 @@ export default function Header({ aiDrawerOpen, onOpenAiDrawer }: HeaderProps) {
   const initials = profile ? getInitials(profile.primaryLine) : "";
 
   return (
-    <header className="flex h-16 shrink-0 items-center border-b border-stitch-border bg-card px-8 font-[family-name:var(--font-hanken-grotesk)] tracking-[-0.025em]">
-      <div className="mx-auto flex h-full w-full max-w-[960px] items-center justify-between">
+    <header className="flex h-16 shrink-0 items-center border-b border-stitch-border bg-card font-[family-name:var(--font-hanken-grotesk)] tracking-[-0.025em]">
+      <div className="flex h-full w-full items-center px-6">
         <div className="flex-1">
           {/* docs/stitch: 모바일(<md)에서만 보이는 메뉴 버튼. Stitch에도 열린 상태(드로어)
               목업은 없고, 이 앱은 <md에서 Sidebar.tsx의 하단 내비게이션으로 이동을 대신
@@ -67,7 +67,7 @@ export default function Header({ aiDrawerOpen, onOpenAiDrawer }: HeaderProps) {
           </button>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="ml-auto flex items-center gap-3">
           {!aiDrawerOpen && (
             <button
               type="button"

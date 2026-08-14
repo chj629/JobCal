@@ -30,8 +30,8 @@ export default function MypageInfoCard({ company }: MypageInfoCardProps) {
 
   return (
     <section>
-      <h2 className="mb-4 flex items-center gap-1.5 text-[13px] font-[400] text-stitch-ink">
-        <MaterialIcon name="language" size={15} className="text-secondary" />
+      <h2 className="mb-4 flex items-center gap-1.5 text-[15px] font-[500] text-stitch-ink">
+        <MaterialIcon name="language" size={17} className="text-secondary" />
         {t("companies.detail.mypageInfo.title")}
       </h2>
       <div className="space-y-4 pl-6">

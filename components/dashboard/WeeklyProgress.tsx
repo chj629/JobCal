@@ -30,16 +30,16 @@ export default function WeeklyProgress({ events }: WeeklyProgressProps) {
   return (
     <div className="mb-3 flex items-center gap-4 rounded-stitch-xl border border-stitch-border bg-card px-6 py-3 shadow-sm">
       <div className="flex shrink-0 items-center gap-3">
-        <span className="text-[13px] font-[400] text-stitch-ink">
+        <span className="text-[14px] font-[400] text-stitch-ink">
           {t("dashboard.weeklyProgress.title")}
         </span>
-        <span className="text-[13px] font-[500] text-primary-navy">🔥 {percent}%</span>
+        <span className="text-[14px] font-[500] text-primary-navy">🔥 {percent}%</span>
       </div>
-      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-background">
+      <div className="h-2 flex-1 overflow-hidden rounded-full bg-background">
         <div className="h-full rounded-full bg-primary-navy" style={{ width: `${percent}%` }} />
       </div>
       <div className="shrink-0">
-        <span className="text-[11px] font-[400] text-secondary">
+        <span className="text-[12px] font-[400] text-secondary">
           {t("dashboard.weeklyProgress.completed", { done: completedCount, total: totalCount })}
         </span>
       </div>

@@ -10,6 +10,10 @@ export const OVERALL_STATUSES: OverallStatus[] = [
   "cancelled",
 ];
 
+// 더 이상 전형이 진행되지 않는 최종 상태. 이 상태로 "새로" 바뀔 때만 미완료
+// application_steps 확인 흐름(useStepReconcileCheck)을 거친다.
+export const FINAL_OVERALL_STATUSES: OverallStatus[] = ["offer", "joined", "rejected", "cancelled"];
+
 export const OVERALL_STATUS_LABELS: Record<OverallStatus, string> = {
   in_progress: "진행 중",
   offer: "내정",

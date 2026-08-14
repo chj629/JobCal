@@ -11,6 +11,8 @@ import type { AppEvent } from "@/lib/events";
 import { getStepDisplayName, type ApplicationStep } from "@/lib/applicationSteps";
 import EmptyState from "@/components/ui/EmptyState";
 import MaterialIcon from "@/components/ui/MaterialIcon";
+import ScrollFade from "@/components/ui/ScrollFade";
+import { useScrollFade } from "@/lib/useScrollFade";
 
 interface UpcomingScheduleProps {
   companies: Company[];
@@ -68,11 +70,12 @@ export default function UpcomingSchedule({ companies, events, steps }: UpcomingS
   const rows = Array.from(combined.values())
     .sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime())
     .slice(0, MAX_ROWS);
+  const { scrollRef, canScrollDown, onScroll } = useScrollFade([rows.length]);
 
   return (
-    <div className="flex h-[275px] flex-col rounded-stitch-xl border border-stitch-border bg-card p-6 shadow-sm">
-      <h3 className="mb-3 flex shrink-0 items-center gap-1.5 text-[13px] font-[400] text-stitch-ink">
-        <MaterialIcon name="schedule" size={15} className="text-secondary" />
+    <div className="flex h-[340px] flex-col rounded-stitch-xl border border-stitch-border bg-card p-6 shadow-sm">
+      <h3 className="mb-3 flex shrink-0 items-center gap-1.5 text-[15px] font-[500] text-stitch-ink">
+        <MaterialIcon name="schedule" size={17} className="text-secondary" />
         {t("dashboard.upcomingSchedule.title")}
       </h3>
 
@@ -81,7 +84,12 @@ export default function UpcomingSchedule({ companies, events, steps }: UpcomingS
           <EmptyState icon="schedule" title={t("dashboard.upcomingSchedule.empty")} />
         </div>
       ) : (
-        <div className="flex-1 space-y-1 overflow-y-auto overflow-x-hidden stitch-scrollbar-hidden pr-1">
+        <div className="relative min-h-0 flex-1">
+        <div
+          ref={scrollRef}
+          onScroll={onScroll}
+          className="h-full space-y-1.5 overflow-y-auto overflow-x-hidden stitch-scrollbar-hidden pr-1"
+        >
           {rows.map(({ event, at }) => {
             const company = companies.find((c) => c.id === event.companyId);
             const step = steps.find((s) => s.id === event.applicationStepId);
@@ -93,14 +101,14 @@ export default function UpcomingSchedule({ companies, events, steps }: UpcomingS
                 className="-mx-2 flex items-center justify-between gap-3 rounded-stitch-xl p-2 transition-colors hover:bg-black/[0.015]"
               >
                 <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                  <p className="truncate text-[10px] text-secondary">{company?.name ?? ""}</p>
-                  <p className="truncate text-[12px] font-[400] leading-tight text-stitch-ink">
+                  <p className="truncate text-[12px] text-secondary">{company?.name ?? ""}</p>
+                  <p className="truncate text-[14px] font-[400] leading-tight text-stitch-ink">
                     {step ? getStepDisplayName(step, t) : event.title}
                   </p>
                 </div>
                 <span
                   className={
-                    "shrink-0 whitespace-nowrap rounded-stitch-md px-2 py-1 text-[10px] font-[400] " +
+                    "shrink-0 whitespace-nowrap rounded-stitch-md px-2 py-1 text-[11px] font-[400] " +
                     (badge.urgent
                       ? "bg-error/10 text-error"
                       : "border border-stitch-border bg-background text-secondary")
@@ -112,16 +120,18 @@ export default function UpcomingSchedule({ companies, events, steps }: UpcomingS
             );
           })}
         </div>
+        <ScrollFade visible={canScrollDown} />
+        </div>
       )}
 
       <div className="mt-2 flex shrink-0 justify-end">
         <button
           type="button"
           onClick={() => router.push("/calendar")}
-          className="flex items-center gap-0.5 text-[11px] font-[400] text-primary-navy transition-colors hover:opacity-80"
+          className="flex items-center gap-0.5 text-[12px] font-[400] text-primary-navy transition-colors hover:opacity-80"
         >
           {t("dashboard.upcomingSchedule.viewAll")}
-          <MaterialIcon name="chevron_right" size={14} />
+          <MaterialIcon name="chevron_right" size={15} />
         </button>
       </div>
     </div>

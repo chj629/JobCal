@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useApplicationSteps } from "@/lib/application-steps-context";
 import {
   STEP_STATUSES,
+  STEP_STATUS_LABEL_KEYS,
   getCurrentStep,
   getStepDisplayName,
   type StepStatus,
@@ -12,13 +13,6 @@ import { useEvents } from "@/lib/events-context";
 import { useT } from "@/lib/locale-context";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import MaterialIcon from "@/components/ui/MaterialIcon";
-
-const STEP_STATUS_LABEL_KEYS: Record<StepStatus, string> = {
-  waiting: "companies.steps.statusLabels.waiting",
-  action_required: "companies.steps.statusLabels.actionRequired",
-  scheduled: "companies.steps.statusLabels.scheduled",
-  completed: "companies.steps.statusLabels.completed",
-};
 
 interface StepDetailPanelProps {
   companyId: string;
@@ -95,8 +89,8 @@ export default function StepDetailPanel({ companyId, selectedStepId }: StepDetai
         </p>
       )}
 
-      <h2 className="mb-4 flex items-center gap-1.5 text-[13px] font-[400] text-stitch-ink">
-        <MaterialIcon name="assignment" size={15} className="text-secondary" />
+      <h2 className="mb-4 flex items-center gap-1.5 text-[15px] font-[500] text-stitch-ink">
+        <MaterialIcon name="assignment" size={17} className="text-secondary" />
         {t("companies.detail.selectionDetail.title")}
       </h2>
 
@@ -116,7 +110,7 @@ export default function StepDetailPanel({ companyId, selectedStepId }: StepDetai
               <button
                 type="button"
                 onClick={startRename}
-                className="block w-full px-3 py-2 text-left text-[12px] text-stitch-ink hover:bg-[#f8f9ff]"
+                className="block w-full px-3 py-2 text-left text-[13px] text-stitch-ink hover:bg-[#f8f9ff]"
               >
                 {t("companies.steps.rename")}
               </button>
@@ -127,7 +121,7 @@ export default function StepDetailPanel({ companyId, selectedStepId }: StepDetai
                   moveStep(step!.id, "up");
                   setIsMenuOpen(false);
                 }}
-                className="block w-full px-3 py-2 text-left text-[12px] text-stitch-ink hover:bg-[#f8f9ff] disabled:cursor-not-allowed disabled:opacity-40"
+                className="block w-full px-3 py-2 text-left text-[13px] text-stitch-ink hover:bg-[#f8f9ff] disabled:cursor-not-allowed disabled:opacity-40"
               >
                 {t("companies.steps.moveUp")}
               </button>
@@ -138,7 +132,7 @@ export default function StepDetailPanel({ companyId, selectedStepId }: StepDetai
                   moveStep(step!.id, "down");
                   setIsMenuOpen(false);
                 }}
-                className="block w-full px-3 py-2 text-left text-[12px] text-stitch-ink hover:bg-[#f8f9ff] disabled:cursor-not-allowed disabled:opacity-40"
+                className="block w-full px-3 py-2 text-left text-[13px] text-stitch-ink hover:bg-[#f8f9ff] disabled:cursor-not-allowed disabled:opacity-40"
               >
                 {t("companies.steps.moveDown")}
               </button>
@@ -148,7 +142,7 @@ export default function StepDetailPanel({ companyId, selectedStepId }: StepDetai
                   setIsDeleteConfirmOpen(true);
                   setIsMenuOpen(false);
                 }}
-                className="block w-full px-3 py-2 text-left text-[12px] text-error hover:bg-[#f8f9ff]"
+                className="block w-full px-3 py-2 text-left text-[13px] text-error hover:bg-[#f8f9ff]"
               >
                 {t("common.delete")}
               </button>
@@ -165,7 +159,7 @@ export default function StepDetailPanel({ companyId, selectedStepId }: StepDetai
               <select
                 value={step.stepStatus}
                 onChange={(e) => updateStepStatus(step!.id, e.target.value as StepStatus)}
-                className="cursor-pointer appearance-none rounded-stitch-md border border-stitch-border bg-[#f8f9ff] py-1 pl-3 pr-8 text-[12px] text-stitch-ink outline-none focus:ring-1 focus:ring-primary-navy/50"
+                className="cursor-pointer appearance-none rounded-stitch-md border border-stitch-border bg-[#f8f9ff] py-1 pl-3 pr-8 text-[13px] text-stitch-ink outline-none focus:ring-1 focus:ring-primary-navy/50"
               >
                 {STEP_STATUSES.map((status) => (
                   <option key={status} value={status}>
@@ -192,7 +186,7 @@ export default function StepDetailPanel({ companyId, selectedStepId }: StepDetai
                   autoFocus
                   value={renameValue}
                   onChange={(e) => setRenameValue(e.target.value)}
-                  className="w-full rounded-stitch-md border border-primary-navy bg-white px-2 py-1 text-[12px] text-stitch-ink outline-none"
+                  className="w-full rounded-stitch-md border border-primary-navy bg-white px-2 py-1 text-[13px] text-stitch-ink outline-none"
                 />
                 <button
                   type="button"
@@ -210,7 +204,7 @@ export default function StepDetailPanel({ companyId, selectedStepId }: StepDetai
                 </button>
               </div>
             ) : (
-              <span className="text-[12px] font-[400] text-stitch-ink">
+              <span className="text-[13px] font-[400] text-stitch-ink">
                 {getStepDisplayName(step, t)}
               </span>
             )}
@@ -220,7 +214,7 @@ export default function StepDetailPanel({ companyId, selectedStepId }: StepDetai
             <span className="w-20 shrink-0 pt-0.5 text-[11px] font-[400] text-secondary">
               {t("companies.detail.selectionDetail.datetime")}
             </span>
-            <span className="text-[12px] text-stitch-ink">
+            <span className="text-[13px] text-stitch-ink">
               {nextEvent
                 ? formatDateTime(nextEvent.at, nextEvent.event.endsAt)
                 : t("companies.detail.selectionDetail.noDateSet")}
@@ -231,7 +225,7 @@ export default function StepDetailPanel({ companyId, selectedStepId }: StepDetai
             <span className="w-20 shrink-0 pt-0.5 text-[11px] font-[400] text-secondary">
               {t("companies.detail.selectionDetail.format")}
             </span>
-            <span className="text-[12px] text-stitch-ink">
+            <span className="text-[13px] text-stitch-ink">
               {nextEvent?.event.onlineUrl
                 ? t("companies.detail.selectionDetail.online")
                 : (nextEvent?.event.location ?? t("companies.detail.selectionDetail.noDateSet"))}

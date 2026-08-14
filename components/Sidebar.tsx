@@ -45,13 +45,13 @@ export default function Sidebar() {
                 key={item.href}
                 href={item.href}
                 className={
-                  "flex items-center gap-3 rounded-stitch-xl px-3 py-2 text-[13px] font-[350] transition-all duration-200 " +
+                  "flex items-center gap-3 rounded-stitch-xl px-3 py-2 text-[15px] font-[350] transition-all duration-200 " +
                   (isActive
                     ? "bg-white/10 text-white"
                     : "text-white/70 hover:bg-white/5 hover:text-white")
                 }
               >
-                <MaterialIcon name={item.icon} size={18} filled={isActive} />
+                <MaterialIcon name={item.icon} size={19} filled={isActive} />
                 {t(item.labelKey)}
               </Link>
             );
@@ -70,7 +70,7 @@ export default function Sidebar() {
           >
             <MaterialIcon
               name={SETTINGS_ITEM.icon}
-              size={18}
+              size={19}
               filled={isActiveHref(pathname, SETTINGS_ITEM.href)}
             />
             {t(SETTINGS_ITEM.labelKey)}

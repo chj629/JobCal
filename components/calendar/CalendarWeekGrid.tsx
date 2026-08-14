@@ -8,6 +8,8 @@ import type { Company } from "@/lib/companies";
 import type { ApplicationStep } from "@/lib/applicationSteps";
 import { getStepDisplayName } from "@/lib/applicationSteps";
 import { useT } from "@/lib/locale-context";
+import ScrollFade from "@/components/ui/ScrollFade";
+import { useScrollFade } from "@/lib/useScrollFade";
 
 interface CalendarWeekGridProps {
   weekDays: Date[]; // 일~토 7일
@@ -19,7 +21,7 @@ interface CalendarWeekGridProps {
   onSelectEvent: (event: AppEvent) => void;
 }
 
-const HOUR_ROW_HEIGHT = 64; // px. code.html의 h-16과 동일.
+const HOUR_ROW_HEIGHT = 56; // px. 월간 뷰 컴팩트화와 맞춰 h-16(64px)에서 h-14(56px)로 축소.
 const DEFAULT_START_HOUR = 9;
 const DEFAULT_END_HOUR = 20; // 이 시각의 "시작"까지 행을 그린다(즉 20:00 행까지 표시).
 const MIN_DURATION_MINUTES = 40;
@@ -62,6 +64,8 @@ export default function CalendarWeekGrid({
     [startHour, endHour]
   );
 
+  const { scrollRef, canScrollDown, onScroll } = useScrollFade([hours.length]);
+
   function eventPosition(event: AppEvent) {
     const at = event.startsAt ?? event.dueAt;
     if (!at) return null;
@@ -87,7 +91,7 @@ export default function CalendarWeekGrid({
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-stitch-2xl border border-stitch-border bg-card shadow-sm">
+    <div className="relative flex h-[847px] min-h-0 max-h-full flex-1 flex-col self-start overflow-hidden rounded-stitch-2xl border border-stitch-border bg-card shadow-sm">
       <div className="grid shrink-0 grid-cols-8 border-b border-stitch-border">
         <div className="col-span-1" />
         {weekDays.map((date, index) => {
@@ -117,11 +121,15 @@ export default function CalendarWeekGrid({
         })}
       </div>
 
-      <div className="stitch-scrollbar-hidden relative flex-1 overflow-y-auto">
+      <div
+        ref={scrollRef}
+        onScroll={onScroll}
+        className="stitch-scrollbar-hidden relative flex-1 overflow-y-auto"
+      >
         <div className="relative grid grid-cols-8" style={{ minHeight: hours.length * HOUR_ROW_HEIGHT }}>
           <div className="relative col-span-1 border-r border-stitch-border">
             {hours.map((hour) => (
-              <div key={hour} className="relative h-16 pb-1 pr-3 text-right">
+              <div key={hour} className="relative h-14 pb-1 pr-3 text-right">
                 <span className="absolute bottom-[-8px] right-3 bg-card px-1 text-[11px] text-secondary">
                   {String(hour).padStart(2, "0")}:00
                 </span>
@@ -132,7 +140,7 @@ export default function CalendarWeekGrid({
           <div className="relative col-span-7">
             <div className="pointer-events-none absolute inset-0 flex flex-col">
               {hours.map((hour) => (
-                <div key={hour} className="h-16 w-full border-b border-stitch-border" />
+                <div key={hour} className="h-14 w-full border-b border-stitch-border" />
               ))}
             </div>
             <div className="pointer-events-none absolute inset-0 grid grid-cols-7">
@@ -188,8 +196,8 @@ export default function CalendarWeekGrid({
                       <span className="truncate text-[12px] font-[500] leading-tight">
                         {company?.name ?? ""}
                       </span>
-                      <span className="mt-0.5 truncate text-[11px] opacity-80">{stepName}</span>
-                      <span className="mt-auto truncate text-[10px] opacity-60">{timeLabel}</span>
+                      <span className="mt-0.5 truncate text-[11px] leading-tight opacity-80">{stepName}</span>
+                      <span className="mt-auto truncate text-[10px] leading-tight opacity-60">{timeLabel}</span>
                     </button>
                   </div>
                 );
@@ -198,6 +206,8 @@ export default function CalendarWeekGrid({
           </div>
         </div>
       </div>
+
+      <ScrollFade visible={canScrollDown} />
     </div>
   );
 }

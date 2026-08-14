@@ -90,7 +90,7 @@ export default function StepTimeline({ companyId, selectedStepId, onSelect }: St
                 </span>
                 <span
                   className={
-                    "w-full truncate text-center text-[10px] font-[400] " +
+                    "w-full truncate text-center text-[11px] font-[400] " +
                     (isSelected || isCurrent ? "text-stitch-ink" : "text-secondary")
                   }
                 >
@@ -122,7 +122,7 @@ export default function StepTimeline({ companyId, selectedStepId, onSelect }: St
                 <MaterialIcon name="add" size={14} />
               </button>
             )}
-            <span className="w-full truncate text-center text-[10px] font-[400] text-secondary">
+            <span className="w-full truncate text-center text-[11px] font-[400] text-secondary">
               {t("companies.steps.addStep")}
             </span>
           </div>

@@ -36,7 +36,7 @@ export default function InlineEditField({
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           className={
-            "w-full rounded-stitch-md border border-primary-navy bg-white px-2 py-1 text-[12px] text-stitch-ink outline-none " +
+            "w-full rounded-stitch-md border border-primary-navy bg-white px-2 py-1 text-[13px] text-stitch-ink outline-none " +
             (type === "textarea" ? "min-h-[60px] resize-none" : "")
           }
         />
@@ -44,7 +44,7 @@ export default function InlineEditField({
           <button
             type="button"
             onClick={() => setIsEditing(false)}
-            className="rounded px-2 py-0.5 text-[10px] text-secondary transition-colors hover:bg-black/[0.02]"
+            className="rounded px-2 py-0.5 text-[11px] text-secondary transition-colors hover:bg-black/[0.02]"
           >
             {t("common.cancel")}
           </button>
@@ -54,7 +54,7 @@ export default function InlineEditField({
               onSave(draft);
               setIsEditing(false);
             }}
-            className="rounded bg-primary-navy px-2 py-0.5 text-[10px] text-white transition-opacity hover:opacity-90"
+            className="rounded bg-primary-navy px-2 py-0.5 text-[11px] text-white transition-opacity hover:opacity-90"
           >
             {t("common.save")}
           </button>
@@ -71,7 +71,7 @@ export default function InlineEditField({
             setDraft(value);
             setIsEditing(true);
           }}
-          className="cursor-pointer text-[12px] text-stitch-ink hover:underline"
+          className="cursor-pointer text-[13px] text-stitch-ink hover:underline"
         >
           {value ? (showPassword ? value : "•".repeat(Math.min(value.length, 12))) : emptyLabel}
         </span>
@@ -97,7 +97,7 @@ export default function InlineEditField({
         setDraft(value);
         setIsEditing(true);
       }}
-      className="block cursor-pointer whitespace-pre-wrap text-[12px] text-stitch-ink hover:underline"
+      className="block cursor-pointer whitespace-pre-wrap text-[13px] text-stitch-ink hover:underline"
     >
       {value ? renderDisplay ? renderDisplay(value) : value : <span className="text-secondary">{emptyLabel}</span>}
     </span>

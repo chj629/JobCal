@@ -270,6 +270,25 @@
       "passed": "통과",
       "failed": "불합격",
       "empty": "표시할 결과 데이터가 없습니다."
+    },
+    "monthlyActivity": {
+      "title": "이번 달 활동량",
+      "newApplications": "신규 지원",
+      "scheduledEvents": "면접·설명회",
+      "deadlines": "마감 예정"
+    },
+    "deadlineRisk": {
+      "title": "7일 이내 일정",
+      "empty": "7일 이내 대응이 필요한 일정이 없습니다."
+    },
+    "stalled": {
+      "title": "14일 이상 업데이트 없음",
+      "empty": "14일 이상 변화 없는 기업이 없습니다.",
+      "daysSince": "{days}일간 변화 없음"
+    },
+    "byPriority": {
+      "title": "우선순위별 현황",
+      "inProgressCount": "진행중 {count}건"
     }
   },
   "dashboard": {
@@ -466,6 +485,14 @@
       "addEvent": "+ 일정 추가",
       "addEventModalTitle": "일정 추가",
       "editEventModalTitle": "일정 수정"
+    },
+    "stepReconcile": {
+      "title": "미완료 전형이 있습니다",
+      "description": "'{name}'의 상태를 변경하기 전에, 아직 완료되지 않은 전형을 확인해주세요.",
+      "cancel": "취소",
+      "saveWithoutChanges": "그대로 저장",
+      "saveWithChanges": "선택 반영 후 저장",
+      "stepUpdateError": "일부 전형 상태 저장에 실패했습니다. 다시 시도해주세요."
     },
     "events": {
       "type": "종류",

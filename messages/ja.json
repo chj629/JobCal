@@ -270,6 +270,25 @@
       "passed": "通過",
       "failed": "不合格",
       "empty": "表示できる結果データがありません。"
+    },
+    "monthlyActivity": {
+      "title": "今月の活動量",
+      "newApplications": "新規応募",
+      "scheduledEvents": "面接・説明会",
+      "deadlines": "締切予定"
+    },
+    "deadlineRisk": {
+      "title": "7日以内の予定",
+      "empty": "7日以内に対応が必要な予定はありません。"
+    },
+    "stalled": {
+      "title": "14日以上更新なし",
+      "empty": "14日以上動きのない企業はありません。",
+      "daysSince": "{days}日間動きなし"
+    },
+    "byPriority": {
+      "title": "優先度別の状況",
+      "inProgressCount": "進行中{count}件"
     }
   },
   "dashboard": {
@@ -466,6 +485,14 @@
       "addEvent": "+ 予定を追加",
       "addEventModalTitle": "予定を追加",
       "editEventModalTitle": "予定を編集"
+    },
+    "stepReconcile": {
+      "title": "未完了の選考ステップがあります",
+      "description": "「{name}」のステータスを変更する前に、未完了の選考ステップを確認してください。",
+      "cancel": "キャンセル",
+      "saveWithoutChanges": "そのまま保存",
+      "saveWithChanges": "変更を反映して保存",
+      "stepUpdateError": "一部の選考ステップの保存に失敗しました。もう一度お試しください。"
     },
     "events": {
       "type": "種類",

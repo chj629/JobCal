@@ -99,8 +99,8 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-stitch-bg">
-        <div className="mx-auto max-w-[880px] px-6 py-6">
+      <div className="min-h-screen bg-stitch-bg min-[1600px]:min-h-full">
+        <div className="mx-auto max-w-[880px] px-6 pb-6 pt-14">
           <LoadingState>{t("dashboard.loading")}</LoadingState>
         </div>
       </div>
@@ -108,17 +108,17 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-stitch-bg">
-      <div className="mx-auto max-w-[880px] px-6 py-6 font-[family-name:var(--font-hanken-grotesk)] font-[350] tracking-[-0.025em] text-stitch-ink">
-        <section className="mb-8 flex flex-col gap-4">
-          <div className="flex w-full items-end justify-between">
+    <div className="min-h-screen bg-stitch-bg min-[1600px]:min-h-full">
+      <div className="mx-auto max-w-[880px] px-6 pb-6 pt-14 font-[family-name:var(--font-hanken-grotesk)] font-[350] tracking-[-0.025em] text-stitch-ink">
+        <section className="mb-4 flex flex-col gap-14">
+          <div className="flex w-full items-start justify-between">
             <div>
-              <h2 className="mb-1.5 text-[32px] font-[400] leading-[1.2] tracking-tight text-stitch-ink">
+              <h2 className="mb-2 text-[36px] font-[400] leading-[1.2] tracking-tight text-stitch-ink">
                 {displayName
                   ? t("dashboard.greeting", { name: displayName })
                   : t("dashboard.greetingGeneric")}
               </h2>
-              <p className="text-[15px] text-secondary">{t("dashboard.description")}</p>
+              <p className="text-[16px] text-secondary">{t("dashboard.description")}</p>
             </div>
             <button
               type="button"
@@ -130,58 +130,58 @@ export default function DashboardPage() {
             </button>
           </div>
 
-          <div className="flex w-full gap-8 pt-2">
-            <div className="flex min-w-[80px] flex-col gap-0.5">
-              <span className="text-[11px] font-[400] text-secondary">
+          <div className="flex w-full gap-16">
+            <div className="flex min-w-[80px] flex-col gap-1">
+              <span className="text-[13px] font-[400] text-secondary">
                 {t("dashboard.kpi.entryInProgress")}
               </span>
               <div className="flex items-end gap-2">
-                <span className="text-[32px] font-[400] leading-none tracking-tight text-stitch-ink">
+                <span className="text-[36px] font-[400] leading-none tracking-tight text-stitch-ink">
                   {entryInProgressCount}
                 </span>
                 {entryDelta > 0 && (
-                  <span className="mb-1 rounded-full bg-success/10 px-1.5 py-0.5 text-[10px] font-[400] text-success">
+                  <span className="mb-1 rounded-full bg-success/10 px-1.5 py-0.5 text-[11px] font-[400] text-success">
                     +{entryDelta}
                   </span>
                 )}
               </div>
             </div>
-            <div className="flex min-w-[80px] flex-col gap-0.5">
-              <span className="text-[11px] font-[400] text-secondary">
+            <div className="flex min-w-[80px] flex-col gap-1">
+              <span className="text-[13px] font-[400] text-secondary">
                 {t("dashboard.kpi.interviewScheduled")}
               </span>
-              <span className="text-[32px] font-[400] leading-none tracking-tight text-stitch-ink">
+              <span className="text-[36px] font-[400] leading-none tracking-tight text-stitch-ink">
                 {interviewScheduledCount}
               </span>
             </div>
-            <div className="flex min-w-[80px] flex-col gap-0.5">
-              <span className="text-[11px] font-[400] text-secondary">{t("dashboard.kpi.offer")}</span>
+            <div className="flex min-w-[80px] flex-col gap-1">
+              <span className="text-[13px] font-[400] text-secondary">{t("dashboard.kpi.offer")}</span>
               <div className="flex items-end gap-2">
-                <span className="text-[32px] font-[400] leading-none tracking-tight text-success">
+                <span className="text-[36px] font-[400] leading-none tracking-tight text-success">
                   {offerCount}
                 </span>
                 {offerDelta > 0 && (
-                  <span className="mb-1 rounded-full bg-success/10 px-1.5 py-0.5 text-[10px] font-[400] text-success">
+                  <span className="mb-1 rounded-full bg-success/10 px-1.5 py-0.5 text-[11px] font-[400] text-success">
                     +{offerDelta}
                   </span>
                 )}
               </div>
             </div>
 
-            <div className="mx-2 h-10 w-px shrink-0 self-center bg-border" />
+            <div className="mx-2 h-14 w-px shrink-0 self-center bg-border" />
 
-            <div className="flex min-w-[80px] flex-col gap-0.5">
+            <div className="flex min-w-[80px] flex-col gap-1">
               <div className="flex items-center gap-1">
-                <MaterialIcon name="schedule" size={14} className="text-secondary" />
-                <span className="text-[11px] font-[400] text-secondary">
+                <MaterialIcon name="schedule" size={16} className="text-secondary" />
+                <span className="text-[13px] font-[400] text-secondary">
                   {t("dashboard.kpi.deadlineSoon")}
                 </span>
               </div>
               <div className="flex items-end gap-2">
-                <span className="text-[32px] font-[400] leading-none tracking-tight text-[#f97316]">
+                <span className="text-[36px] font-[400] leading-none tracking-tight text-[#f97316]">
                   {deadlineSoonCount}
                 </span>
-                <span className="mb-1 text-[10px] font-[400] text-secondary">
+                <span className="mb-1 text-[11px] font-[400] text-secondary">
                   {t("dashboard.kpi.deadlineSoonSubtext", { days: DEADLINE_SOON_DAYS })}
                 </span>
               </div>

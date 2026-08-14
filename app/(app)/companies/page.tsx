@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import CompanyForm from "@/components/CompanyForm";
+import StepReconcileDialog from "@/components/companies/StepReconcileDialog";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import EmptyState from "@/components/ui/EmptyState";
 import LoadingState from "@/components/ui/LoadingState";
@@ -25,6 +26,7 @@ import { useCompanyContacts } from "@/lib/company-contacts-context";
 import { useCompanyNotes } from "@/lib/company-notes-context";
 import { diffInDays, formatTimeOfDay, todayKey } from "@/lib/date";
 import { useT } from "@/lib/locale-context";
+import { useStepReconcileCheck } from "@/lib/useStepReconcileCheck";
 
 const ALL = "전체";
 const PAGE_SIZE_OPTIONS = [10, 25, 50];
@@ -88,6 +90,7 @@ export default function CompaniesPage() {
   const { events, loading: eventsLoading, refresh: refreshEvents } = useEvents();
   const { refresh: refreshContacts } = useCompanyContacts();
   const { refresh: refreshNotes } = useCompanyNotes();
+  const stepReconcile = useStepReconcileCheck();
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>(ALL);
@@ -201,14 +204,14 @@ export default function CompaniesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-stitch-bg">
-      <div className="mx-auto max-w-[960px] px-6 py-6 font-[family-name:var(--font-hanken-grotesk)] font-[350] tracking-[-0.025em] text-stitch-ink">
-        <div className="mb-8 flex w-full items-end justify-between">
+    <div className="min-h-screen bg-stitch-bg min-[1600px]:min-h-full">
+      <div className="mx-auto max-w-[1200px] px-6 pb-6 pt-14 font-[family-name:var(--font-hanken-grotesk)] font-[350] tracking-[-0.025em] text-stitch-ink">
+        <div className="mb-16 flex w-full items-end justify-between">
           <div>
-            <h2 className="mb-1.5 text-[32px] font-[400] leading-[1.2] tracking-tight text-stitch-ink">
+            <h2 className="mb-1.5 text-[36px] font-[400] leading-[1.2] tracking-tight text-stitch-ink">
               {t("companies.list.title")}
             </h2>
-            <p className="text-[15px] text-secondary">{t("companies.list.description")}</p>
+            <p className="text-[16px] text-secondary">{t("companies.list.description")}</p>
           </div>
           <div className="flex h-fit items-center gap-2">
             {SHOW_ADD_FROM_EMAIL_LINK && (
@@ -230,8 +233,8 @@ export default function CompaniesPage() {
           </div>
         </div>
 
-        <div className="rounded-stitch-xl border border-stitch-border bg-card p-8 shadow-sm">
-          <div className="mb-6 flex flex-col items-center justify-between gap-4 md:flex-row">
+        <div className="flex h-[710px] flex-col rounded-stitch-xl border border-stitch-border bg-card p-8 shadow-sm">
+          <div className="mb-6 flex shrink-0 flex-col items-center justify-between gap-4 md:flex-row">
             <div className="flex gap-6">
               {statusTabs.map((tab) => (
                 <button
@@ -239,7 +242,7 @@ export default function CompaniesPage() {
                   type="button"
                   onClick={() => setStatusFilter(tab.key)}
                   className={
-                    "pb-1 text-[12px] transition-colors " +
+                    "pb-1 text-[13px] transition-colors " +
                     (statusFilter === tab.key
                       ? "border-b-[1.5px] border-stitch-ink font-[400] text-stitch-ink"
                       : "text-secondary hover:text-stitch-ink")
@@ -262,7 +265,7 @@ export default function CompaniesPage() {
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder={t("companies.list.searchPlaceholder")}
-                  className="w-full rounded-stitch-xl border border-stitch-border bg-[#f8f9ff] py-1.5 pl-9 pr-4 text-[12px] text-stitch-ink outline-none placeholder:text-secondary focus:ring-1 focus:ring-stitch-border md:w-56"
+                  className="w-full rounded-stitch-xl border border-stitch-border bg-[#f8f9ff] py-1.5 pl-9 pr-4 text-[13px] text-stitch-ink outline-none placeholder:text-secondary focus:ring-1 focus:ring-stitch-border md:w-56"
                 />
               </div>
 
@@ -270,7 +273,7 @@ export default function CompaniesPage() {
                 <select
                   value={priorityFilter}
                   onChange={(e) => setPriorityFilter(e.target.value)}
-                  className="cursor-pointer appearance-none rounded-stitch-xl border border-stitch-border bg-[#f8f9ff] py-1.5 pl-3 pr-8 text-[12px] text-stitch-ink outline-none focus:ring-1 focus:ring-stitch-border"
+                  className="cursor-pointer appearance-none rounded-stitch-xl border border-stitch-border bg-[#f8f9ff] py-1.5 pl-3 pr-8 text-[13px] text-stitch-ink outline-none focus:ring-1 focus:ring-stitch-border"
                 >
                   <option value={ALL}>{t("companies.list.filters.priorityPlaceholder")}</option>
                   {PRIORITIES.map((priority) => (
@@ -290,7 +293,7 @@ export default function CompaniesPage() {
                 <select
                   value={stepFilter}
                   onChange={(e) => setStepFilter(e.target.value)}
-                  className="cursor-pointer appearance-none rounded-stitch-xl border border-stitch-border bg-[#f8f9ff] py-1.5 pl-3 pr-8 text-[12px] text-stitch-ink outline-none focus:ring-1 focus:ring-stitch-border"
+                  className="cursor-pointer appearance-none rounded-stitch-xl border border-stitch-border bg-[#f8f9ff] py-1.5 pl-3 pr-8 text-[13px] text-stitch-ink outline-none focus:ring-1 focus:ring-stitch-border"
                 >
                   <option value={ALL}>{t("companies.list.filters.stepPlaceholder")}</option>
                   {DEFAULT_STEP_KEYS.map((key) => (
@@ -310,7 +313,7 @@ export default function CompaniesPage() {
                 <button
                   type="button"
                   onClick={resetFilters}
-                  className="text-[11px] text-secondary underline-offset-2 hover:text-stitch-ink hover:underline"
+                  className="text-[12px] text-secondary underline-offset-2 hover:text-stitch-ink hover:underline"
                 >
                   {t("companies.list.filters.reset")}
                 </button>
@@ -319,7 +322,7 @@ export default function CompaniesPage() {
           </div>
 
           {error && (
-            <p className="mb-4 rounded-[10px] border border-error/40 bg-error/10 px-4 py-3 text-sm text-error">
+            <p className="mb-4 shrink-0 rounded-[10px] border border-error/40 bg-error/10 px-4 py-3 text-sm text-error">
               {error}
             </p>
           )}
@@ -327,27 +330,27 @@ export default function CompaniesPage() {
           {loading ? (
             <LoadingState>{t("companies.list.loading")}</LoadingState>
           ) : (
-            <>
+            <div className="flex flex-1 flex-col">
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[720px] table-fixed border-collapse text-left">
                   <thead>
                     <tr className="border-b border-stitch-border">
-                      <th className="w-[30%] py-3 px-3 text-[11px] font-[400] tracking-normal text-secondary">
+                      <th className="w-[36%] py-3 px-3 text-[11px] font-[400] tracking-normal text-secondary">
                         {t("companies.list.columns.company")}
                       </th>
-                      <th className="w-[15%] whitespace-nowrap py-3 px-2 text-[11px] font-[400] tracking-normal text-secondary">
+                      <th className="w-[19%] whitespace-nowrap py-3 px-2 text-[11px] font-[400] tracking-normal text-secondary">
                         {t("companies.list.columns.currentStep")}
                       </th>
-                      <th className="w-[10%] whitespace-nowrap py-3 px-2 text-[11px] font-[400] tracking-normal text-secondary">
+                      <th className="w-[90px] whitespace-nowrap py-3 px-2 text-[11px] font-[400] tracking-normal text-secondary">
                         {t("companies.list.columns.status")}
                       </th>
                       <th className="w-[15%] whitespace-nowrap py-3 px-2 text-[11px] font-[400] tracking-normal text-secondary">
                         {t("companies.list.columns.nextSchedule")}
                       </th>
-                      <th className="w-[10%] whitespace-nowrap py-3 px-2 text-[11px] font-[400] tracking-normal text-secondary">
+                      <th className="w-[80px] whitespace-nowrap py-3 px-2 text-[11px] font-[400] tracking-normal text-secondary">
                         {t("companies.list.columns.priority")}
                       </th>
-                      <th className="w-[10%] whitespace-nowrap py-3 px-2 text-[11px] font-[400] tracking-normal text-secondary">
+                      <th className="w-[100px] whitespace-nowrap py-3 px-2 text-[11px] font-[400] tracking-normal text-secondary">
                         {t("companies.list.columns.updatedAt")}
                       </th>
                       <th className="w-8 py-3 px-2" />
@@ -360,40 +363,40 @@ export default function CompaniesPage() {
                         onClick={() => router.push(`/companies/${company.id}`)}
                         className="group cursor-pointer transition-colors hover:bg-black/[0.015]"
                       >
-                        <td className="overflow-hidden text-ellipsis whitespace-nowrap py-3 px-3 text-[12px] text-stitch-ink">
+                        <td className="overflow-hidden text-ellipsis whitespace-nowrap py-3 px-3 text-[14px] text-stitch-ink">
                           <span className="overflow-hidden text-ellipsis font-[400]">
                             {company.name}
                           </span>
                         </td>
-                        <td className="whitespace-nowrap py-3 px-2 text-[11px] text-secondary">
+                        <td className="whitespace-nowrap py-3 px-2 text-[12px] text-secondary">
                           {currentStepDisplayName}
                         </td>
                         <td className="py-3 px-2">
                           {company.overallStatus === "offer" ? (
-                            <span className="whitespace-nowrap rounded-stitch-md border border-success/20 bg-success/10 px-2 py-0.5 text-[10px] font-[400] text-success">
+                            <span className="whitespace-nowrap rounded-stitch-md border border-success/20 bg-success/10 px-2 py-0.5 text-[11px] font-[400] text-success">
                               {statusLabels.offer}
                             </span>
                           ) : (
-                            <span className="whitespace-nowrap rounded-stitch-md border border-stitch-border bg-[#f8f9ff] px-2 py-0.5 text-[10px] text-secondary">
+                            <span className="whitespace-nowrap rounded-stitch-md border border-stitch-border bg-[#f8f9ff] px-2 py-0.5 text-[11px] text-secondary">
                               {statusLabels[company.overallStatus]}
                             </span>
                           )}
                         </td>
-                        <td className="whitespace-nowrap py-3 px-2 text-[11px] tracking-normal text-secondary">
+                        <td className="whitespace-nowrap py-3 px-2 text-[12px] tracking-normal text-secondary">
                           {nextEventAt ? formatNextSchedule(nextEventAt) : "-"}
                         </td>
                         <td className="py-3 px-2">
                           {PRIORITY_IS_HIGH(company.priority) ? (
-                            <span className="whitespace-nowrap rounded-stitch-md bg-error/10 px-2 py-0.5 text-[10px] font-[400] text-error">
+                            <span className="whitespace-nowrap rounded-stitch-md bg-error/10 px-2 py-0.5 text-[11px] font-[400] text-error">
                               {priorityLabels[company.priority]}
                             </span>
                           ) : (
-                            <span className="whitespace-nowrap rounded-stitch-md border border-stitch-border bg-[#f8f9ff] px-2 py-0.5 text-[10px] font-[400] text-secondary">
+                            <span className="whitespace-nowrap rounded-stitch-md border border-stitch-border bg-[#f8f9ff] px-2 py-0.5 text-[11px] font-[400] text-secondary">
                               {priorityLabels[company.priority]}
                             </span>
                           )}
                         </td>
-                        <td className="whitespace-nowrap py-3 px-2 text-[11px] tracking-normal text-secondary">
+                        <td className="whitespace-nowrap py-3 px-2 text-[12px] tracking-normal text-secondary">
                           {formatUpdatedRelative(company.updatedAt, t)}
                         </td>
                         <td className="relative py-3 px-2 text-center">
@@ -425,7 +428,7 @@ export default function CompaniesPage() {
                                     setEditingCompany(company);
                                     setActiveMenuId(null);
                                   }}
-                                  className="block w-full px-3 py-2 text-left text-[12px] text-stitch-ink hover:bg-[#f8f9ff]"
+                                  className="block w-full px-3 py-2 text-left text-[13px] text-stitch-ink hover:bg-[#f8f9ff]"
                                 >
                                   {t("companies.list.actions.edit")}
                                 </button>
@@ -435,7 +438,7 @@ export default function CompaniesPage() {
                                     e.stopPropagation();
                                     handleDeleteClick(company);
                                   }}
-                                  className="block w-full px-3 py-2 text-left text-[12px] text-error hover:bg-[#f8f9ff]"
+                                  className="block w-full px-3 py-2 text-left text-[13px] text-error hover:bg-[#f8f9ff]"
                                 >
                                   {t("companies.list.actions.delete")}
                                 </button>
@@ -474,7 +477,7 @@ export default function CompaniesPage() {
                 </table>
               </div>
 
-              <div className="flex flex-wrap items-center justify-between gap-3 pt-6 pb-2">
+              <div className="mt-auto flex flex-wrap items-center justify-between gap-3 pt-6 pb-2">
                 <div className="flex items-center gap-3">
                   <span className="text-[11px] tracking-normal text-secondary">
                     {t("companies.list.pagination.rangeLabel", {
@@ -541,7 +544,7 @@ export default function CompaniesPage() {
                   </button>
                 </div>
               </div>
-            </>
+            </div>
           )}
         </div>
 
@@ -569,10 +572,22 @@ export default function CompaniesPage() {
             title={t("companies.list.editCompanyModalTitle")}
             initialValues={companyToFormValues(editingCompany)}
             onCancel={() => setEditingCompany(null)}
-            onSubmit={async (values) => {
+            onSubmit={stepReconcile.guardSubmit(editingCompany, async (values) => {
               const ok = await updateCompany(editingCompany.id, values);
               if (ok) setEditingCompany(null);
-            }}
+            })}
+          />
+        )}
+
+        {stepReconcile.reconcileState && (
+          <StepReconcileDialog
+            companyName={stepReconcile.reconcileState.company.name}
+            incompleteSteps={stepReconcile.reconcileState.incompleteSteps}
+            isSaving={stepReconcile.isSaving}
+            error={stepReconcile.stepError}
+            onCancel={stepReconcile.cancel}
+            onSaveWithoutChanges={stepReconcile.saveWithoutStepChanges}
+            onSaveWithChanges={stepReconcile.saveWithStepChanges}
           />
         )}
 

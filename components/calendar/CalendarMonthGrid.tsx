@@ -47,7 +47,7 @@ export default function CalendarMonthGrid({
   const todayKeyStr = formatDateKey(today);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-stitch-2xl border border-stitch-border bg-card shadow-sm">
+    <div className="flex h-[847px] min-h-0 max-h-full flex-1 flex-col self-start overflow-hidden rounded-stitch-2xl border border-stitch-border bg-card shadow-sm">
       <div className="grid shrink-0 grid-cols-7 border-b border-stitch-border">
         {weekdayLabels.map((label, index) => (
           <div key={index} className="py-4 text-center">

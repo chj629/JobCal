@@ -57,8 +57,8 @@ export default function CompanySchedulePanel({ companyId }: CompanySchedulePanel
   return (
     <div className="rounded-stitch-xl border border-stitch-border bg-card p-6 shadow-sm">
       <div className="mb-4 flex items-center justify-between">
-        <h3 className="flex items-center gap-1.5 text-[13px] font-[400] text-stitch-ink">
-          <MaterialIcon name="schedule" size={15} className="text-secondary" />
+        <h3 className="flex items-center gap-1.5 text-[15px] font-[500] text-stitch-ink">
+          <MaterialIcon name="schedule" size={17} className="text-secondary" />
           {t("companies.detail.schedulePanel.title")}
         </h3>
         {currentStep && (
@@ -83,10 +83,10 @@ export default function CompanySchedulePanel({ companyId }: CompanySchedulePanel
               className="group -mx-2 flex items-start gap-3 rounded-stitch-xl px-2 py-1.5 transition-colors hover:bg-black/[0.015]"
             >
               <div className="flex w-10 shrink-0 flex-col items-end pt-0.5">
-                <p className="text-[11px] font-[400] leading-none tracking-tight text-stitch-ink">
+                <p className="text-[12px] font-[400] leading-none tracking-tight text-stitch-ink">
                   {formatDate(at)}
                 </p>
-                <p className="mt-1 text-[10px] leading-none tracking-tight text-secondary">
+                <p className="mt-1 text-[11px] leading-none tracking-tight text-secondary">
                   {formatTimeOfDay(at)}
                 </p>
               </div>
@@ -97,7 +97,7 @@ export default function CompanySchedulePanel({ companyId }: CompanySchedulePanel
                 }
               >
                 <div className="flex items-center justify-between gap-1">
-                  <p className="truncate text-[12px] font-[400] leading-tight text-stitch-ink">
+                  <p className="truncate text-[13px] font-[400] leading-tight text-stitch-ink">
                     {event.title}
                   </p>
                   <div className="relative shrink-0">
@@ -121,7 +121,7 @@ export default function CompanySchedulePanel({ companyId }: CompanySchedulePanel
                               setEventFormState({ event });
                               setActiveMenuId(null);
                             }}
-                            className="block w-full px-3 py-1.5 text-left text-[11px] text-stitch-ink hover:bg-[#f8f9ff]"
+                            className="block w-full px-3 py-1.5 text-left text-[13px] text-stitch-ink hover:bg-[#f8f9ff]"
                           >
                             {t("common.edit")}
                           </button>
@@ -131,7 +131,7 @@ export default function CompanySchedulePanel({ companyId }: CompanySchedulePanel
                               setDeleteTarget(event);
                               setActiveMenuId(null);
                             }}
-                            className="block w-full px-3 py-1.5 text-left text-[11px] text-error hover:bg-[#f8f9ff]"
+                            className="block w-full px-3 py-1.5 text-left text-[13px] text-error hover:bg-[#f8f9ff]"
                           >
                             {t("common.delete")}
                           </button>

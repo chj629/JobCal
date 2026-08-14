@@ -6,6 +6,8 @@ import { getStepDisplayName, type ApplicationStep } from "@/lib/applicationSteps
 import { buildStepFunnelRows } from "@/lib/stepFunnel";
 import { useT } from "@/lib/locale-context";
 import EmptyState from "@/components/ui/EmptyState";
+import ScrollFade from "@/components/ui/ScrollFade";
+import { useScrollFade } from "@/lib/useScrollFade";
 
 interface StepFunnelChartProps {
   companies: Company[];
@@ -19,11 +21,12 @@ export default function StepFunnelChart({ companies, steps }: StepFunnelChartPro
   const t = useT();
   const rows = buildStepFunnelRows(companies, steps);
   const maxCount = Math.max(1, ...rows.map((r) => r.count));
+  const { scrollRef, canScrollDown, onScroll } = useScrollFade([rows.length]);
 
   return (
     <section className="flex h-[340px] flex-col rounded-stitch-xl border border-stitch-border bg-card p-6 shadow-sm">
-      <h2 className="mb-6 flex items-center gap-2 text-[13px] font-[400] text-stitch-ink">
-        <MaterialIcon name="filter_list" size={15} className="text-secondary" />
+      <h2 className="mb-6 flex items-center gap-2 text-[15px] font-[500] text-stitch-ink">
+        <MaterialIcon name="filter_list" size={17} className="text-secondary" />
         {t("analytics.funnel.title")}
       </h2>
 
@@ -32,7 +35,12 @@ export default function StepFunnelChart({ companies, steps }: StepFunnelChartPro
           <EmptyState icon="filter_list" title={t("analytics.funnel.empty")} />
         </div>
       ) : (
-        <div className="flex flex-1 flex-col justify-center gap-5 overflow-y-auto stitch-scrollbar-hidden">
+        <div className="relative min-h-0 flex-1">
+        <div
+          ref={scrollRef}
+          onScroll={onScroll}
+          className="flex h-full flex-col justify-start gap-5 overflow-y-auto stitch-scrollbar-hidden"
+        >
           {rows.map((row) => {
             const displayName = getStepDisplayName({ name: row.name, stepKey: row.stepKey }, t);
             const widthPercent = (row.count / maxCount) * 100;
@@ -40,7 +48,7 @@ export default function StepFunnelChart({ companies, steps }: StepFunnelChartPro
             return (
               <div key={row.name} className="flex items-center gap-4">
                 <span
-                  className="w-20 shrink-0 truncate text-right text-[11px] text-secondary"
+                  className="w-24 shrink-0 truncate text-left text-[13px] text-secondary"
                   title={displayName}
                 >
                   {displayName}
@@ -51,12 +59,14 @@ export default function StepFunnelChart({ companies, steps }: StepFunnelChartPro
                     style={{ width: `${widthPercent}%` }}
                   />
                 </div>
-                <span className="w-6 shrink-0 text-right text-[12px] font-[400] text-stitch-ink">
+                <span className="w-6 shrink-0 text-right text-[14px] font-[400] text-stitch-ink">
                   {row.count}
                 </span>
               </div>
             );
           })}
+        </div>
+        <ScrollFade visible={canScrollDown} />
         </div>
       )}
     </section>

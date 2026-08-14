@@ -51,8 +51,8 @@ export default function CompanyNotes({ companyId }: CompanyNotesProps) {
   return (
     <section>
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="flex items-center gap-1.5 text-[13px] font-[400] text-stitch-ink">
-          <MaterialIcon name="notes" size={15} className="text-secondary" />
+        <h2 className="flex items-center gap-1.5 text-[15px] font-[500] text-stitch-ink">
+          <MaterialIcon name="notes" size={17} className="text-secondary" />
           {t("companies.notes.heading")}
         </h2>
         <button
@@ -100,9 +100,9 @@ export default function CompanyNotes({ companyId }: CompanyNotesProps) {
                   </button>
                 </div>
                 {note.title && (
-                  <p className="mb-1 text-[11px] font-[400] text-secondary">{note.title}</p>
+                  <p className="mb-1 text-[12px] font-[400] text-secondary">{note.title}</p>
                 )}
-                <p className="whitespace-pre-wrap pr-16 text-[12px] leading-relaxed text-stitch-ink">
+                <p className="whitespace-pre-wrap pr-16 text-[13px] leading-relaxed text-stitch-ink">
                   {note.content}
                 </p>
               </div>

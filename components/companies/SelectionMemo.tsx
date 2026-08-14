@@ -16,8 +16,8 @@ export default function SelectionMemo() {
   return (
     <section>
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="flex items-center gap-1.5 text-[13px] font-[400] text-stitch-ink">
-          <MaterialIcon name="notes" size={15} className="text-secondary" />
+        <h2 className="flex items-center gap-1.5 text-[15px] font-[500] text-stitch-ink">
+          <MaterialIcon name="notes" size={17} className="text-secondary" />
           {t("companies.detail.selectionMemo.title")}
         </h2>
         {/* isEditing이어도 버튼을 DOM에서 없애지 않고 invisible로만 감춘다. 조건부 렌더로
@@ -48,7 +48,7 @@ export default function SelectionMemo() {
               autoFocus
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
-              className="mb-2 min-h-[100px] w-full resize-none border-none bg-transparent p-0 text-[12px] leading-relaxed text-stitch-ink outline-none focus:ring-0"
+              className="mb-2 min-h-[100px] w-full resize-none border-none bg-transparent p-0 text-[13px] leading-relaxed text-stitch-ink outline-none focus:ring-0"
             />
             <div className="flex justify-end gap-2">
               <button
@@ -76,7 +76,7 @@ export default function SelectionMemo() {
               setDraft(saved);
               setIsEditing(true);
             }}
-            className="min-h-[60px] cursor-pointer whitespace-pre-wrap rounded-stitch-xl border border-transparent bg-[#f8f9ff] p-4 text-[12px] leading-relaxed text-stitch-ink transition-colors hover:border-stitch-border"
+            className="min-h-[60px] cursor-pointer whitespace-pre-wrap rounded-stitch-xl border border-transparent bg-[#f8f9ff] p-4 text-[13px] leading-relaxed text-stitch-ink transition-colors hover:border-stitch-border"
           >
             {saved || (
               <span className="text-secondary">{t("companies.detail.selectionMemo.empty")}</span>

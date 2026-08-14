@@ -41,8 +41,8 @@ export default function NextActions() {
   return (
     <div className="rounded-stitch-xl border border-stitch-border bg-card p-6 shadow-sm">
       <div className="mb-4 flex items-center justify-between">
-        <h3 className="flex items-center gap-1.5 text-[13px] font-[400] text-stitch-ink">
-          <MaterialIcon name="check_circle" size={15} className="text-secondary" />
+        <h3 className="flex items-center gap-1.5 text-[15px] font-[500] text-stitch-ink">
+          <MaterialIcon name="check_circle" size={17} className="text-secondary" />
           {t("companies.detail.nextActions.title")}
         </h3>
         <button
@@ -56,7 +56,7 @@ export default function NextActions() {
       </div>
 
       {items.length === 0 && !isAdding && (
-        <p className="text-[12px] text-secondary">{t("companies.detail.nextActions.empty")}</p>
+        <p className="text-[13px] text-secondary">{t("companies.detail.nextActions.empty")}</p>
       )}
 
       <div className="space-y-3">
@@ -73,7 +73,7 @@ export default function NextActions() {
             />
             <span
               className={
-                "text-[12px] font-[400] leading-tight " +
+                "text-[13px] font-[400] leading-tight " +
                 (item.done ? "text-secondary line-through" : "text-stitch-ink")
               }
             >
@@ -92,7 +92,7 @@ export default function NextActions() {
               onKeyDown={(e) => e.key === "Enter" && addItem()}
               onBlur={addItem}
               placeholder={t("companies.detail.nextActions.placeholder")}
-              className="w-full rounded-stitch-md border border-primary-navy bg-white px-2 py-1 text-[12px] text-stitch-ink outline-none"
+              className="w-full rounded-stitch-md border border-primary-navy bg-white px-2 py-1 text-[13px] text-stitch-ink outline-none"
             />
           </div>
         )}

@@ -59,12 +59,12 @@ export default function TodayEventsCard({ events, companies, onSelectEvent }: To
         >
           <p
             className={
-              "truncate text-[12px] font-[400] " + (checked ? "text-secondary line-through" : "text-stitch-ink")
+              "truncate text-[13px] font-[400] " + (checked ? "text-secondary line-through" : "text-stitch-ink")
             }
           >
             {event.title}
           </p>
-          <p className="mt-0.5 truncate text-[10px] text-secondary">
+          <p className="mt-0.5 truncate text-[11px] text-secondary">
             {company?.name ?? ""}
             {company && timeLabel ? " · " : ""}
             {timeLabel}

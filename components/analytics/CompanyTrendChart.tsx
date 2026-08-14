@@ -33,8 +33,8 @@ export default function CompanyTrendChart({ companies }: CompanyTrendChartProps)
   if (companies.length === 0) {
     return (
       <section className="flex h-[340px] flex-col rounded-stitch-xl border border-stitch-border bg-card p-6 shadow-sm">
-        <h2 className="mb-4 flex items-center gap-2 text-[13px] font-[400] text-stitch-ink">
-          <MaterialIcon name="show_chart" size={15} className="text-secondary" />
+        <h2 className="mb-4 flex items-center gap-2 text-[15px] font-[500] text-stitch-ink">
+          <MaterialIcon name="show_chart" size={17} className="text-secondary" />
           {t("analytics.trendChart.title")}
         </h2>
         <div className="flex flex-1 items-center justify-center">
@@ -80,8 +80,8 @@ export default function CompanyTrendChart({ companies }: CompanyTrendChartProps)
 
   return (
     <section className="flex h-[340px] flex-col rounded-stitch-xl border border-stitch-border bg-card p-6 shadow-sm">
-      <h2 className="mb-4 flex items-center gap-2 text-[13px] font-[400] text-stitch-ink">
-        <MaterialIcon name="show_chart" size={15} className="text-secondary" />
+      <h2 className="mb-4 flex items-center gap-2 text-[15px] font-[500] text-stitch-ink">
+        <MaterialIcon name="show_chart" size={17} className="text-secondary" />
         {t("analytics.trendChart.title")}
       </h2>
 

@@ -28,8 +28,8 @@ export default function CompanyInfoCard({ company }: CompanyInfoCardProps) {
 
   return (
     <section>
-      <h2 className="mb-4 flex items-center gap-1.5 text-[13px] font-[400] text-stitch-ink">
-        <MaterialIcon name="domain" size={15} className="text-secondary" />
+      <h2 className="mb-4 flex items-center gap-1.5 text-[15px] font-[500] text-stitch-ink">
+        <MaterialIcon name="domain" size={17} className="text-secondary" />
         {t("companies.detail.companyInfo.title")}
       </h2>
       <div className="grid grid-cols-1 gap-x-6 gap-y-4 pl-6 sm:grid-cols-2">

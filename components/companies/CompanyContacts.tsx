@@ -50,12 +50,12 @@ export default function CompanyContacts({ companyId }: CompanyContactsProps) {
     <section>
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-1.5">
-          <h3 className="flex items-center gap-1.5 text-[13px] font-[400] text-stitch-ink">
-            <MaterialIcon name="person" size={15} className="text-secondary" />
+          <h3 className="flex items-center gap-1.5 text-[15px] font-[500] text-stitch-ink">
+            <MaterialIcon name="person" size={17} className="text-secondary" />
             {t("companies.contacts.heading")}
           </h3>
           {companyContacts.length > 0 && (
-            <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary-navy text-[9px] font-[400] text-white">
+            <span className="flex h-[18px] w-[18px] items-center justify-center rounded-full bg-primary-navy text-[11px] font-[400] text-white">
               {companyContacts.length}
             </span>
           )}
@@ -91,11 +91,11 @@ export default function CompanyContacts({ companyId }: CompanyContactsProps) {
                     {getInitials(contact.name)}
                   </span>
                   <div>
-                    <p className="text-[12px] font-[400] leading-tight text-stitch-ink">
+                    <p className="text-[13px] font-[400] leading-tight text-stitch-ink">
                       {contact.name}
                     </p>
                     {(contact.role || contact.email || contact.phone) && (
-                      <p className="mt-0.5 text-[10px] text-secondary">
+                      <p className="mt-0.5 text-[12px] text-secondary">
                         {[contact.role, contact.email, contact.phone].filter(Boolean).join(" · ")}
                       </p>
                     )}

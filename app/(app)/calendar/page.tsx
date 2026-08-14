@@ -213,13 +213,13 @@ export default function CalendarPage() {
     // 메인 그리드가 grid-rows-N(1fr씩 균등 분할)으로 남은 세로 공간을 꽉 채운다.
     // md 미만은 대응하는 Stitch 화면이 없어 기존처럼 일반 스크롤을 그대로 둔다.
     <div className="min-h-screen bg-stitch-bg md:flex md:h-[calc(100vh_-_65px)] md:min-h-0 md:flex-col md:overflow-hidden">
-      <div className="mx-auto flex w-full max-w-[1440px] flex-col px-6 py-6 font-[family-name:var(--font-hanken-grotesk)] font-[350] tracking-[-0.025em] text-stitch-ink md:h-full md:min-h-0">
+      <div className="mx-auto flex w-full max-w-[1440px] flex-col px-6 py-6 font-[family-name:var(--font-hanken-grotesk)] font-[350] tracking-[-0.025em] text-stitch-ink md:h-full md:min-h-0 md:pb-6 md:pt-14">
         <div className="mb-6 flex shrink-0 flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="mb-1.5 text-[32px] font-[400] leading-[1.2] tracking-tight text-stitch-ink">
+            <h1 className="mb-1.5 text-[36px] font-[400] leading-[1.2] tracking-tight text-stitch-ink">
               {t("calendar.title")}
             </h1>
-            <p className="text-[15px] text-secondary">{t("calendar.description")}</p>
+            <p className="text-[16px] text-secondary">{t("calendar.description")}</p>
           </div>
 
           {/* 데스크톱(md 이상) 전용 Stitch 툴바. 월/주 토글은 이번에 새로 생긴 기능이라

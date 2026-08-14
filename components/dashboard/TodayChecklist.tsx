@@ -7,6 +7,8 @@ import type { Company } from "@/lib/companies";
 import { useT } from "@/lib/locale-context";
 import EmptyState from "@/components/ui/EmptyState";
 import MaterialIcon from "@/components/ui/MaterialIcon";
+import ScrollFade from "@/components/ui/ScrollFade";
+import { useScrollFade } from "@/lib/useScrollFade";
 
 // 오늘 마감 체크리스트의 데이터/토글 로직. 통합 뷰(TodaySchedule)가 재사용할 수 있도록
 // 훅으로 분리했다. 체크 상태 자체는 lib/event-completions.ts의 공용 훅을 그대로 쓰고,
@@ -34,27 +36,33 @@ interface TodayChecklistCardProps {
 export default function TodayChecklistCard({ companies, events }: TodayChecklistCardProps) {
   const t = useT();
   const { todayDeadlines, checkedIds, loaded, toggle, taskError } = useTodayChecklist(events);
+  const { scrollRef, canScrollDown, onScroll } = useScrollFade([todayDeadlines.length]);
 
   return (
-    <div className="flex h-[275px] flex-col rounded-stitch-xl border border-stitch-border bg-card p-6 shadow-sm">
+    <div className="flex h-[340px] flex-col rounded-stitch-xl border border-stitch-border bg-card p-6 shadow-sm">
       <div className="mb-3 shrink-0">
-        <h3 className="flex items-center gap-1.5 text-[13px] font-[400] text-stitch-ink">
-          <MaterialIcon name="check_box" size={15} className="text-secondary" />
+        <h3 className="flex items-center gap-1.5 text-[15px] font-[500] text-stitch-ink">
+          <MaterialIcon name="check_box" size={17} className="text-secondary" />
           {t("dashboard.todayChecklist.title")}
         </h3>
-        <span className="mt-0.5 block text-[11px] text-secondary">
+        <span className="mt-0.5 block text-[12px] text-secondary">
           {t("dashboard.todayChecklist.taskCount", { count: todayDeadlines.length })}
         </span>
       </div>
 
-      {taskError && <p className="mb-2 shrink-0 text-[11px] text-error">{taskError}</p>}
+      {taskError && <p className="mb-2 shrink-0 text-[12px] text-error">{taskError}</p>}
 
       {todayDeadlines.length === 0 ? (
         <div className="flex flex-1 items-center justify-center">
           <EmptyState icon="check_box" title={t("dashboard.todayChecklist.empty")} />
         </div>
       ) : (
-        <div className="min-w-0 flex-1 space-y-3 overflow-y-auto overflow-x-hidden stitch-scrollbar-hidden pr-1">
+        <div className="relative min-h-0 min-w-0 flex-1">
+        <div
+          ref={scrollRef}
+          onScroll={onScroll}
+          className="h-full min-w-0 space-y-3 overflow-y-auto overflow-x-hidden stitch-scrollbar-hidden pr-1"
+        >
           {todayDeadlines.map((event) => {
             const company = companies.find((c) => c.id === event.companyId);
             const checked = checkedIds.has(event.id);
@@ -79,17 +87,19 @@ export default function TodayChecklistCard({ companies, events }: TodayChecklist
                 <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                   <p
                     className={
-                      "truncate text-[12px] font-[400] leading-tight " +
+                      "truncate text-[14px] font-[400] leading-tight " +
                       (checked ? "text-secondary line-through" : "text-stitch-ink")
                     }
                   >
                     {event.title}
                   </p>
-                  <span className="truncate text-[11px] text-secondary">{company?.name ?? ""}</span>
+                  <span className="truncate text-[12px] text-secondary">{company?.name ?? ""}</span>
                 </div>
               </label>
             );
           })}
+        </div>
+        <ScrollFade visible={canScrollDown} />
         </div>
       )}
     </div>

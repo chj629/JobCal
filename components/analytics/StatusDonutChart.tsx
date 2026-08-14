@@ -68,12 +68,12 @@ export default function StatusDonutChart({ companies }: StatusDonutChartProps) {
 
   return (
     <section className="flex h-[340px] flex-col rounded-stitch-xl border border-stitch-border bg-card p-6 shadow-sm">
-      <h2 className="mb-6 flex items-center gap-2 text-[13px] font-[400] text-stitch-ink">
-        <MaterialIcon name="donut_large" size={15} className="text-secondary" />
+      <h2 className="mb-6 flex items-center gap-2 text-[15px] font-[500] text-stitch-ink">
+        <MaterialIcon name="donut_large" size={17} className="text-secondary" />
         {t("analytics.statusChart.title")}
       </h2>
 
-      <div className="flex flex-1 items-center justify-center gap-8">
+      <div className="flex flex-1 items-center justify-between gap-8 px-4">
         <div className="relative h-36 w-36 shrink-0">
           <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90">
             <circle
@@ -114,9 +114,9 @@ export default function StatusDonutChart({ companies }: StatusDonutChartProps) {
             <li key={status} className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <span className={"h-3 w-3 shrink-0 rounded-full " + STATUS_DOT_CLASS[status]} />
-                <span className="text-[12px] text-stitch-ink">{t(STATUS_LABEL_KEYS[status])}</span>
+                <span className="text-[13px] text-stitch-ink">{t(STATUS_LABEL_KEYS[status])}</span>
               </div>
-              <span className="text-[12px] font-[400] text-stitch-ink">{count}</span>
+              <span className="text-[13px] font-[400] text-stitch-ink">{count}</span>
             </li>
           ))}
         </ul>

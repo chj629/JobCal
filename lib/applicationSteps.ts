@@ -15,6 +15,14 @@ export const STEP_STATUS_LABELS: Record<StepStatus, string> = {
   completed: "완료",
 };
 
+// StepDetailPanel.tsx의 전형 상태 select와 StepReconcileDialog.tsx가 공유하는 i18n 키.
+export const STEP_STATUS_LABEL_KEYS: Record<StepStatus, string> = {
+  waiting: "companies.steps.statusLabels.waiting",
+  action_required: "companies.steps.statusLabels.actionRequired",
+  scheduled: "companies.steps.statusLabels.scheduled",
+  completed: "companies.steps.statusLabels.completed",
+};
+
 // 기업 생성 시 자동 생성되는 기본 전형 (docs/database.md 기준)
 export const DEFAULT_STEP_NAMES = [
   "엔트리",

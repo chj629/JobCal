@@ -9,6 +9,8 @@ import { diffInDays, dateKeyOf, todayKey, formatTimeOfDay } from "@/lib/date";
 import { useT } from "@/lib/locale-context";
 import EmptyState from "@/components/ui/EmptyState";
 import MaterialIcon from "@/components/ui/MaterialIcon";
+import ScrollFade from "@/components/ui/ScrollFade";
+import { useScrollFade } from "@/lib/useScrollFade";
 
 interface FocusCompaniesProps {
   companies: Company[];
@@ -55,10 +57,12 @@ export default function FocusCompanies({ companies, events, steps }: FocusCompan
     })
     .slice(0, MAX_ROWS);
 
+  const { scrollRef, canScrollDown, onScroll } = useScrollFade([focused.length]);
+
   return (
-    <div className="flex h-[250px] flex-col rounded-stitch-xl border border-stitch-border bg-card p-6 shadow-sm">
-      <h3 className="mb-3 flex shrink-0 items-center gap-1.5 text-[13px] font-[400] text-stitch-ink">
-        <MaterialIcon name="push_pin" size={15} className="text-secondary" />
+    <div className="flex h-[320px] flex-col rounded-stitch-xl border border-stitch-border bg-card p-6 shadow-sm">
+      <h3 className="mb-3 flex shrink-0 items-center gap-1.5 text-[15px] font-[500] text-stitch-ink">
+        <MaterialIcon name="push_pin" size={17} className="text-secondary" />
         {t("dashboard.focusCompanies.title")}
       </h3>
 
@@ -71,25 +75,30 @@ export default function FocusCompanies({ companies, events, steps }: FocusCompan
           />
         </div>
       ) : (
-        <div className="flex-1 space-y-1 overflow-y-auto overflow-x-hidden stitch-scrollbar-hidden pr-1">
+        <div className="relative min-h-0 flex-1">
+        <div
+          ref={scrollRef}
+          onScroll={onScroll}
+          className="h-full space-y-1.5 overflow-y-auto overflow-x-hidden stitch-scrollbar-hidden pr-1"
+        >
           {focused.map(({ company, currentStepName, nextEventAt }) => (
             <Link
               key={company.id}
               href={`/companies/${company.id}`}
               className="-mx-2 flex flex-col gap-1.5 rounded-stitch-xl p-2 transition-colors hover:bg-black/[0.015]"
             >
-              <p className="truncate text-[12px] font-[400] text-stitch-ink">{company.name}</p>
+              <p className="truncate text-[14px] font-[400] text-stitch-ink">{company.name}</p>
               <div className="flex flex-wrap gap-1.5">
-                <span className="rounded-stitch-md border border-stitch-border bg-background px-2 py-0.5 text-[10px] text-secondary">
+                <span className="rounded-stitch-md border border-stitch-border bg-background px-2 py-0.5 text-[11px] text-secondary">
                   {currentStepName}
                 </span>
                 {company.overallStatus === "offer" ? (
-                  <span className="rounded-stitch-md bg-primary-navy px-2 py-0.5 text-[10px] font-[400] text-white">
+                  <span className="rounded-stitch-md bg-primary-navy px-2 py-0.5 text-[11px] font-[400] text-white">
                     {t("companies.list.status.offer")}
                   </span>
                 ) : (
                   nextEventAt && (
-                    <span className="rounded-stitch-md border border-stitch-border bg-background px-2 py-0.5 text-[10px] text-secondary">
+                    <span className="rounded-stitch-md border border-stitch-border bg-background px-2 py-0.5 text-[11px] text-secondary">
                       {formatRelativeTime(nextEventAt, t)}
                     </span>
                   )
@@ -98,16 +107,18 @@ export default function FocusCompanies({ companies, events, steps }: FocusCompan
             </Link>
           ))}
         </div>
+        <ScrollFade visible={canScrollDown} />
+        </div>
       )}
 
       <div className="mt-2 flex shrink-0 justify-end">
         <button
           type="button"
           onClick={() => router.push("/companies")}
-          className="flex items-center gap-0.5 text-[11px] font-[400] text-primary-navy transition-colors hover:opacity-80"
+          className="flex items-center gap-0.5 text-[12px] font-[400] text-primary-navy transition-colors hover:opacity-80"
         >
           {t("dashboard.focusCompanies.viewAll")}
-          <MaterialIcon name="chevron_right" size={14} />
+          <MaterialIcon name="chevron_right" size={15} />
         </button>
       </div>
     </div>

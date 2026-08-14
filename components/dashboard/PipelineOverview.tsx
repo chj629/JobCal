@@ -11,6 +11,8 @@ import type { Company } from "@/lib/companies";
 import { useT } from "@/lib/locale-context";
 import EmptyState from "@/components/ui/EmptyState";
 import MaterialIcon from "@/components/ui/MaterialIcon";
+import ScrollFade from "@/components/ui/ScrollFade";
+import { useScrollFade } from "@/lib/useScrollFade";
 
 interface PipelineOverviewProps {
   companies: Company[];
@@ -33,8 +35,13 @@ export default function PipelineOverview({ companies, steps }: PipelineOverviewP
   const t = useT();
   const [filter, setFilter] = useState<PipelineFilter>("all");
 
-  const filteredCompanies =
-    filter === "high" ? companies.filter((company) => company.priority === "high") : companies;
+  // "選考中 KPI"(overallStatus === in_progress)와 같은 모집단을 기준으로 삼는다.
+  // offer/joined/rejected/cancelled로 이미 결과가 난 기업은 application_steps가 갱신되지
+  // 않은 채로 남아있을 수 있어(자동 동기화 없음), 파이프라인 집계에서 제외한다.
+  const filteredCompanies = companies.filter(
+    (company) =>
+      company.overallStatus === "in_progress" && (filter === "all" || company.priority === "high")
+  );
 
   // 값이 0인 전형은 표시하지 않으므로, 실제 기업이 있는 전형만 담는다.
   // 그룹핑 키는 기본 전형이면 step_key(언어 무관), 사용자 커스텀 전형이면 이름을 그대로
@@ -71,12 +78,13 @@ export default function PipelineOverview({ companies, steps }: PipelineOverviewP
     return b[1] - a[1];
   });
   const maxStepCount = Math.max(1, ...sortedStepCounts.map(([, count]) => count));
+  const { scrollRef, canScrollDown, onScroll } = useScrollFade([sortedStepCounts.length]);
 
   return (
-    <div className="flex h-[250px] flex-col rounded-stitch-xl border border-stitch-border bg-card p-6 shadow-sm">
+    <div className="flex h-[320px] flex-col rounded-stitch-xl border border-stitch-border bg-card p-6 shadow-sm">
       <div className="mb-4 flex shrink-0 items-center justify-between">
-        <h3 className="flex items-center gap-1.5 text-[13px] font-[400] text-stitch-ink">
-          <MaterialIcon name="monitoring" size={15} className="text-secondary" />
+        <h3 className="flex items-center gap-1.5 text-[15px] font-[500] text-stitch-ink">
+          <MaterialIcon name="monitoring" size={17} className="text-secondary" />
           {t("dashboard.pipeline.title")}
         </h3>
         <div className="flex items-center gap-4">
@@ -86,7 +94,7 @@ export default function PipelineOverview({ companies, steps }: PipelineOverviewP
               type="button"
               onClick={() => setFilter(key)}
               className={
-                "pb-0.5 text-[11px] transition-colors " +
+                "pb-0.5 text-[12px] transition-colors " +
                 (filter === key
                   ? "border-b-[1.5px] border-foreground font-[400] text-stitch-ink"
                   : "text-secondary hover:text-stitch-ink")
@@ -103,13 +111,18 @@ export default function PipelineOverview({ companies, steps }: PipelineOverviewP
           <EmptyState icon="apartment" title={t("dashboard.pipeline.empty")} />
         </div>
       ) : (
-        <div className="flex flex-1 flex-col justify-center space-y-4 overflow-y-auto overflow-x-hidden stitch-scrollbar-hidden">
+        <div className="relative min-h-0 flex-1">
+        <div
+          ref={scrollRef}
+          onScroll={onScroll}
+          className="flex h-full flex-col justify-start space-y-4 overflow-y-auto overflow-x-hidden stitch-scrollbar-hidden"
+        >
           {sortedStepCounts.map(([key, count], index) => {
             const opacity = 0.4 + (index / Math.max(1, sortedStepCounts.length - 1)) * 0.6;
 
             return (
               <div key={key} className="flex w-full items-center gap-3">
-                <span className="w-20 shrink-0 truncate text-right text-[11px] text-secondary">
+                <span className="w-24 shrink-0 truncate text-left text-[13px] text-secondary">
                   {groupDisplayName.get(key)}
                 </span>
                 <div className="h-2 flex-1 overflow-hidden rounded-full bg-background">
@@ -118,12 +131,14 @@ export default function PipelineOverview({ companies, steps }: PipelineOverviewP
                     style={{ width: `${(count / maxStepCount) * 100}%`, opacity }}
                   />
                 </div>
-                <span className="w-6 shrink-0 text-right text-[12px] font-[400] text-stitch-ink">
+                <span className="w-6 shrink-0 text-right text-[14px] font-[400] text-stitch-ink">
                   {count}
                 </span>
               </div>
             );
           })}
+        </div>
+        <ScrollFade visible={canScrollDown} />
         </div>
       )}
     </div>

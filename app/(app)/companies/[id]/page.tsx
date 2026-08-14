@@ -12,6 +12,7 @@ import MypageInfoCard from "@/components/companies/MypageInfoCard";
 import CompanyContacts from "@/components/companies/CompanyContacts";
 import CompanySchedulePanel from "@/components/companies/CompanySchedulePanel";
 import NextActions from "@/components/companies/NextActions";
+import StepReconcileDialog from "@/components/companies/StepReconcileDialog";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import LoadingState from "@/components/ui/LoadingState";
 import MaterialIcon from "@/components/ui/MaterialIcon";
@@ -23,6 +24,7 @@ import { useEvents } from "@/lib/events-context";
 import { useCompanyContacts } from "@/lib/company-contacts-context";
 import { useCompanyNotes } from "@/lib/company-notes-context";
 import { useT } from "@/lib/locale-context";
+import { useStepReconcileCheck } from "@/lib/useStepReconcileCheck";
 
 export default function CompanyDetailPage() {
   const t = useT();
@@ -42,8 +44,8 @@ export default function CompanyDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-stitch-bg">
-        <div className="mx-auto max-w-[880px] px-6 py-6">
+      <div className="min-h-screen bg-stitch-bg min-[1600px]:min-h-full">
+        <div className="mx-auto max-w-[1200px] px-6 pb-6 pt-14">
           <LoadingState>{t("companies.detail.loading")}</LoadingState>
         </div>
       </div>
@@ -112,28 +114,29 @@ function CompanyDetailView({ company, error, onDeleteClick }: CompanyDetailViewP
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
+  const stepReconcile = useStepReconcileCheck();
 
   return (
-    <div className="min-h-screen bg-stitch-bg">
-      <div className="mx-auto max-w-[880px] px-6 py-6 font-[family-name:var(--font-hanken-grotesk)] font-[350] tracking-[-0.025em] text-stitch-ink">
+    <div className="min-h-screen bg-stitch-bg min-[1600px]:min-h-full">
+      <div className="mx-auto max-w-[1200px] px-6 pb-6 pt-14 font-[family-name:var(--font-hanken-grotesk)] font-[350] tracking-[-0.025em] text-stitch-ink">
         <div className="mb-8 flex flex-col justify-between gap-4 md:flex-row md:items-start">
           <div>
-            <h1 className="mb-2 text-[32px] font-[400] leading-[1.2] tracking-tight text-stitch-ink">
+            <h1 className="mb-2 text-[36px] font-[400] leading-[1.2] tracking-tight text-stitch-ink">
               {company.name}
             </h1>
             <div className="flex items-center gap-2">
               {company.overallStatus === "offer" ? (
-                <span className="rounded-full border border-success/20 bg-success/10 px-2.5 py-1 text-[10px] font-[400] text-success">
+                <span className="rounded-full border border-success/20 bg-success/10 px-2.5 py-1 text-[11px] font-[400] text-success">
                   {t("companies.list.status.offer")}
                 </span>
               ) : (
-                <span className="rounded-full border border-stitch-border bg-[#f8f9ff] px-2.5 py-1 text-[10px] font-[400] text-secondary">
+                <span className="rounded-full border border-stitch-border bg-[#f8f9ff] px-2.5 py-1 text-[11px] font-[400] text-secondary">
                   {t(`companies.list.status.${company.overallStatus === "in_progress" ? "inProgress" : company.overallStatus}`)}
                 </span>
               )}
               <span
                 className={
-                  "rounded-full px-2.5 py-1 text-[10px] font-[400] " +
+                  "rounded-full px-2.5 py-1 text-[11px] font-[400] " +
                   (company.priority === "high"
                     ? "bg-[#fef2f2] text-error"
                     : "bg-[#f8f9ff] text-secondary")
@@ -181,7 +184,7 @@ function CompanyDetailView({ company, error, onDeleteClick }: CompanyDetailViewP
                         setIsMenuOpen(false);
                         onDeleteClick();
                       }}
-                      className="block w-full px-3 py-2 text-left text-[12px] text-error hover:bg-[#f8f9ff]"
+                      className="block w-full px-3 py-2 text-left text-[13px] text-error hover:bg-[#f8f9ff]"
                     >
                       {t("common.delete")}
                     </button>
@@ -238,10 +241,22 @@ function CompanyDetailView({ company, error, onDeleteClick }: CompanyDetailViewP
             title={t("companies.list.editCompanyModalTitle")}
             initialValues={companyToFormValues(company)}
             onCancel={() => setIsEditOpen(false)}
-            onSubmit={async (values) => {
+            onSubmit={stepReconcile.guardSubmit(company, async (values) => {
               const ok = await updateCompany(company.id, values);
               if (ok) setIsEditOpen(false);
-            }}
+            })}
+          />
+        )}
+
+        {stepReconcile.reconcileState && (
+          <StepReconcileDialog
+            companyName={stepReconcile.reconcileState.company.name}
+            incompleteSteps={stepReconcile.reconcileState.incompleteSteps}
+            isSaving={stepReconcile.isSaving}
+            error={stepReconcile.stepError}
+            onCancel={stepReconcile.cancel}
+            onSaveWithoutChanges={stepReconcile.saveWithoutStepChanges}
+            onSaveWithChanges={stepReconcile.saveWithStepChanges}
           />
         )}
       </div>

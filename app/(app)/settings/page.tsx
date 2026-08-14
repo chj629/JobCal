@@ -141,12 +141,12 @@ export default function SettingsPage() {
     // docs/stitch/설정페이지/*는 다른 Stitch 배치와 달리 카드 없이 페이지 배경 위에 내용이
     // 바로 놓이고(premium-card 없음), 좌측 세로 메뉴가 아니라 제목 아래 가로 탭 + 밑줄로
     // 메뉴를 표현한다. code.html보다 screen.png(가로 탭)를 기준으로 그대로 재현했다.
-    <div className="min-h-screen bg-[var(--color-settings-bg)]">
-      <div className="mx-auto max-w-[960px] px-6 py-6 font-[family-name:var(--font-dm-sans)] tracking-[-0.025em] text-[var(--color-settings-ink)]">
-        <h1 className="mb-1.5 text-[32px] font-[400] leading-[1.2] tracking-tight text-[var(--color-settings-ink)]">
+    <div className="min-h-screen bg-stitch-bg min-[1600px]:min-h-full">
+      <div className="mx-auto max-w-[960px] px-6 pb-6 pt-14 font-[family-name:var(--font-dm-sans)] tracking-[-0.025em] text-[var(--color-settings-ink)]">
+        <h1 className="mb-1.5 text-[36px] font-[400] leading-[1.2] tracking-tight text-[var(--color-settings-ink)]">
           {t("settings.title")}
         </h1>
-        <p className="text-[15px] text-[var(--color-settings-secondary)]">
+        <p className="text-[16px] text-[var(--color-settings-secondary)]">
           {t("settings.description")}
         </p>
 

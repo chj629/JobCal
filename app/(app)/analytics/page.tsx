@@ -10,6 +10,10 @@ import StepFunnelChart from "@/components/analytics/StepFunnelChart";
 import CompanyTrendChart from "@/components/analytics/CompanyTrendChart";
 import UpcomingEventsCard from "@/components/analytics/UpcomingEventsCard";
 import ResultSummaryCard from "@/components/analytics/ResultSummaryCard";
+import MonthlyActivityCard from "@/components/analytics/MonthlyActivityCard";
+import DeadlineRiskCard from "@/components/analytics/DeadlineRiskCard";
+import StalledCompaniesCard from "@/components/analytics/StalledCompaniesCard";
+import PriorityBreakdownCard from "@/components/analytics/PriorityBreakdownCard";
 
 // docs/stitch/메인페이지 5개/jobcal_analytics_standardized_design_refresh에는
 // "今後の予定" 카드가 없다(2x2 그리드: 상태 도넛/선고 스텝, 응모 추이/선고 결과). 기존
@@ -30,8 +34,8 @@ export default function AnalyticsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-stitch-bg">
-        <div className="mx-auto max-w-[880px] px-6 py-6">
+      <div className="min-h-screen bg-stitch-bg min-[1600px]:min-h-full">
+        <div className="mx-auto max-w-[1200px] px-6 pb-6 pt-14">
           <LoadingState>{t("common.loading")}</LoadingState>
         </div>
       </div>
@@ -39,14 +43,14 @@ export default function AnalyticsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-stitch-bg">
-      <div className="mx-auto max-w-[880px] px-6 py-6 font-[family-name:var(--font-hanken-grotesk)] font-[350] tracking-[-0.025em] text-stitch-ink">
+    <div className="min-h-screen bg-stitch-bg min-[1600px]:min-h-full">
+      <div className="mx-auto max-w-[1200px] px-6 pb-6 pt-14 font-[family-name:var(--font-hanken-grotesk)] font-[350] tracking-[-0.025em] text-stitch-ink">
         <div className="mb-8 flex flex-col gap-4">
           <div>
-            <h1 className="mb-1.5 text-[32px] font-[400] leading-[1.2] tracking-tight text-stitch-ink">
+            <h1 className="mb-1.5 text-[36px] font-[400] leading-[1.2] tracking-tight text-stitch-ink">
               {t("analytics.title")}
             </h1>
-            <p className="text-[15px] text-secondary">{t("analytics.description")}</p>
+            <p className="text-[16px] text-secondary">{t("analytics.description")}</p>
           </div>
 
           {error && (
@@ -56,36 +60,36 @@ export default function AnalyticsPage() {
           )}
 
           <div className="flex w-full flex-wrap items-center gap-8 pt-2">
-            <div className="flex min-w-[80px] flex-col gap-0.5">
-              <span className="text-[11px] font-[400] tracking-normal text-secondary">
+            <div className="flex min-w-[80px] flex-col gap-1">
+              <span className="text-[13px] font-[400] tracking-normal text-secondary">
                 {t("analytics.kpi.totalCompanies")}
               </span>
-              <span className="text-[32px] font-[400] leading-none tracking-tight text-stitch-ink">
+              <span className="text-[36px] font-[400] leading-none tracking-tight text-stitch-ink">
                 {totalCount}
               </span>
             </div>
-            <div className="flex min-w-[80px] flex-col gap-0.5">
-              <span className="text-[11px] font-[400] tracking-normal text-secondary">
+            <div className="flex min-w-[80px] flex-col gap-1">
+              <span className="text-[13px] font-[400] tracking-normal text-secondary">
                 {t("companies.list.status.inProgress")}
               </span>
-              <span className="text-[32px] font-[400] leading-none tracking-tight text-stitch-ink">
+              <span className="text-[36px] font-[400] leading-none tracking-tight text-stitch-ink">
                 {inProgressCount}
               </span>
             </div>
-            <div className="flex min-w-[80px] flex-col gap-0.5">
-              <span className="text-[11px] font-[400] tracking-normal text-secondary">
+            <div className="flex min-w-[80px] flex-col gap-1">
+              <span className="text-[13px] font-[400] tracking-normal text-secondary">
                 {t("companies.list.status.offer")}
               </span>
-              <span className="text-[32px] font-[400] leading-none tracking-tight text-success">
+              <span className="text-[36px] font-[400] leading-none tracking-tight text-success">
                 {offerCount}
               </span>
             </div>
-            <div className="mx-2 h-10 w-px shrink-0 self-center bg-stitch-border" />
-            <div className="flex min-w-[80px] flex-col gap-0.5">
-              <span className="text-[11px] font-[400] tracking-normal text-secondary">
+            <div className="mx-2 h-14 w-px shrink-0 self-center bg-stitch-border" />
+            <div className="flex min-w-[80px] flex-col gap-1">
+              <span className="text-[13px] font-[400] tracking-normal text-secondary">
                 {t("analytics.kpi.offerRate")}
               </span>
-              <span className="text-[32px] font-[400] leading-none tracking-tight text-stitch-ink">
+              <span className="text-[36px] font-[400] leading-none tracking-tight text-stitch-ink">
                 {offerRate}%
               </span>
             </div>
@@ -100,6 +104,16 @@ export default function AnalyticsPage() {
         <div className="mt-3 grid grid-cols-1 gap-3 @min-[960px]/main:grid-cols-2">
           <CompanyTrendChart companies={companies} />
           <ResultSummaryCard companies={companies} steps={steps} />
+        </div>
+
+        <div className="mt-3 grid grid-cols-1 gap-3 @min-[960px]/main:grid-cols-2">
+          <MonthlyActivityCard companies={companies} events={events} />
+          <DeadlineRiskCard companies={companies} events={events} />
+        </div>
+
+        <div className="mt-3 grid grid-cols-1 gap-3 @min-[960px]/main:grid-cols-2">
+          <StalledCompaniesCard companies={companies} steps={steps} />
+          <PriorityBreakdownCard companies={companies} />
         </div>
 
         {SHOW_UPCOMING_EVENTS_CARD && (
