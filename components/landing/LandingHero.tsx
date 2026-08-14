@@ -1,151 +1,61 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { ArrowRight, CalendarDays, CheckCircle2, Lock, Monitor, Sparkles } from "lucide-react";
 import { useT } from "@/lib/locale-context";
-import Button from "@/components/ui/Button";
+import MaterialIcon from "@/components/ui/MaterialIcon";
 
-// 34_landingPage.png Hero. 오른쪽 대시보드 미리보기는 실제 Supabase 데이터를 쓰지 않고
-// 시안과 동일한 성격의 더미 수치・더미 기업명(サンプル 등)만 표시하는 정적 UI다.
-const TRUST_ITEMS = [
-  { icon: CheckCircle2, key: "landing.hero.trustFree" },
-  { icon: Lock, key: "landing.hero.trustNoCard" },
-  { icon: Monitor, key: "landing.hero.trustDevice" },
-] as const;
-
-const PREVIEW_KPIS = [
-  { key: "landing.hero.previewKpiEntry", value: 32 },
-  { key: "landing.hero.previewKpiInProgress", value: 15 },
-  { key: "landing.hero.previewKpiOffer", value: 2 },
-  { key: "landing.hero.previewKpiInterview", value: 3 },
-] as const;
-
-const PREVIEW_TODAY_ITEMS = [
-  {
-    companyKey: "landing.hero.previewTodayItem1Company",
-    stepKey: "landing.hero.previewTodayItem1Step",
-    timeKey: "landing.hero.previewTodayItem1Time",
-  },
-  {
-    companyKey: "landing.hero.previewTodayItem2Company",
-    stepKey: "landing.hero.previewTodayItem2Step",
-    timeKey: "landing.hero.previewTodayItem2Time",
-  },
-] as const;
-
-const PREVIEW_FUNNEL_ROWS = [
-  { key: "landing.hero.previewFunnelEntry", percent: 100 },
-  { key: "landing.hero.previewFunnelDocument", percent: 70 },
-  { key: "landing.hero.previewFunnelInterview", percent: 45 },
-  { key: "landing.hero.previewFunnelFinal", percent: 15 },
-] as const;
-
+// docs/stitch/랜딩페이지/screen.png Hero. 기존 2단(텍스트+KPI 미리보기 카드) 레이아웃 대신
+// 시안대로 가운데 정렬 + 버튼 2개 + 하단 제품 미리보기 이미지 구조로 교체한다. 헤드라인은
+// sidebar.tagline("就活を、もっとスマートに。")과 완전히 동일한 문구라 새 키를 만들지 않고
+// 재사용한다(하단 최종 CTA도 동일 문구를 재사용). 제품 미리보기는 실제 이미지가 아직 없어
+// (사용자 지시: 이미지 영역은 나중에 채움) 시안과 동일한 비율/브라우저 크롬 프레임만
+// 재현하고 내부는 placeholder 아이콘으로 채운다.
 export default function LandingHero() {
   const t = useT();
   const router = useRouter();
 
   return (
-    <section className="mx-auto max-w-[1200px] px-6 pt-16 pb-20">
-      <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-2">
-        <div>
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
-            <Sparkles size={14} />
-            {t("landing.hero.badge")}
-          </span>
+    <header className="mx-auto flex max-w-[1200px] flex-col items-center px-6 pt-40 pb-24 text-center md:px-12">
+      <h1 className="mb-6 max-w-4xl text-[40px] leading-[1.1] font-[400] tracking-tight text-neutral-900 sm:text-[64px]">
+        {t("sidebar.tagline")}
+      </h1>
+      <p className="mb-12 max-w-2xl text-[18px] leading-[1.4] text-neutral-600">
+        {t("landing.hero.description")}
+      </p>
 
-          <h1 className="mt-6 text-4xl leading-tight font-bold text-foreground sm:text-5xl">
-            {t("landing.hero.titleLine1")}
-            <br />
-            {t("landing.hero.titlePrefix")}
-            <span className="text-primary">{t("landing.hero.titleHighlight")}</span>
-            {t("landing.hero.titleSuffix")}
-          </h1>
+      <div className="mb-24 flex flex-col justify-center gap-4 sm:flex-row">
+        <button
+          type="button"
+          onClick={() => router.push("/signup")}
+          className="flex items-center justify-center gap-2 rounded-stitch-2xl bg-primary-navy px-6 py-3 text-[14px] font-[400] text-white shadow-[0_2px_10px_rgba(30,58,138,0.15)] transition-all hover:bg-[#152c6e]"
+        >
+          {t("landing.hero.getStarted")}
+          <MaterialIcon name="arrow_forward" size={16} />
+        </button>
+        <button
+          type="button"
+          onClick={() => router.push("/login")}
+          className="rounded-stitch-2xl border border-neutral-200 bg-white px-6 py-3 text-[14px] font-[400] text-neutral-800 transition-all hover:border-neutral-300 hover:bg-neutral-50"
+        >
+          {t("landing.hero.login")}
+        </button>
+      </div>
 
-          <p className="mt-5 max-w-md text-base text-secondary">{t("landing.hero.description")}</p>
-
-          <div className="mt-8">
-            <Button size="lg" variant="primary" onClick={() => router.push("/signup")}>
-              {t("landing.hero.getStarted")}
-              <ArrowRight size={18} />
-            </Button>
-          </div>
-
-          <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-2">
-            {TRUST_ITEMS.map(({ icon: Icon, key }) => (
-              <span key={key} className="flex items-center gap-1.5 text-xs text-secondary">
-                <Icon size={14} />
-                {t(key)}
-              </span>
-            ))}
-          </div>
+      {/* 제품 미리보기: 실제 대시보드 이미지는 추후 삽입 예정. 지금은 시안과 동일한
+          브라우저 크롬 프레임 + 16:9 비율만 재현한다. */}
+      <div className="w-full max-w-6xl overflow-hidden rounded-stitch-lg border border-neutral-200 bg-white shadow-[0_4px_40px_rgba(0,0,0,0.03)]">
+        <div className="flex h-10 items-center gap-2 border-b border-neutral-200 bg-neutral-50 px-4">
+          <span className="h-2.5 w-2.5 rounded-full bg-neutral-300" />
+          <span className="h-2.5 w-2.5 rounded-full bg-neutral-300" />
+          <span className="h-2.5 w-2.5 rounded-full bg-neutral-300" />
         </div>
-
         <div
           aria-hidden="true"
-          className="rounded-2xl border border-border bg-card p-5 shadow-xl"
+          className="flex aspect-[16/9] items-center justify-center bg-neutral-50 text-neutral-300"
         >
-          <div className="flex items-center gap-2 border-b border-border pb-4">
-            <span className="flex h-6 w-6 items-center justify-center rounded-md bg-primary text-white">
-              <CalendarDays size={14} />
-            </span>
-            <span className="text-sm font-semibold text-foreground">{t("common.appName")}</span>
-          </div>
-
-          <p className="mt-4 text-sm font-semibold text-foreground">
-            {t("landing.hero.previewGreeting")}
-          </p>
-          <p className="text-xs text-secondary">{t("landing.hero.previewSubtitle")}</p>
-
-          <div className="mt-4 grid grid-cols-4 gap-2">
-            {PREVIEW_KPIS.map(({ key, value }) => (
-              <div key={key} className="rounded-lg border border-border p-2">
-                <p className="text-lg font-bold text-foreground">{value}</p>
-                <p className="mt-0.5 truncate text-[10px] text-secondary">{t(key)}</p>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-4 rounded-lg border border-border p-3">
-            <p className="text-xs font-semibold text-foreground">
-              {t("landing.hero.previewTodayTitle")}
-            </p>
-            <div className="mt-2 flex flex-col gap-2">
-              {PREVIEW_TODAY_ITEMS.map((item) => (
-                <div key={item.companyKey} className="flex items-center justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="truncate text-xs font-medium text-foreground">
-                      {t(item.companyKey)}
-                    </p>
-                    <p className="text-[10px] text-secondary">{t(item.stepKey)}</p>
-                  </div>
-                  <span className="shrink-0 text-[10px] text-secondary">{t(item.timeKey)}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="mt-4 rounded-lg border border-border p-3">
-            <p className="text-xs font-semibold text-foreground">
-              {t("landing.hero.previewFunnelTitle")}
-            </p>
-            <div className="mt-2 flex flex-col gap-1.5">
-              {PREVIEW_FUNNEL_ROWS.map((row) => (
-                <div key={row.key} className="flex items-center gap-2">
-                  <span className="w-14 shrink-0 truncate text-[10px] text-secondary">
-                    {t(row.key)}
-                  </span>
-                  <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-background">
-                    <div
-                      className="h-full rounded-full bg-primary"
-                      style={{ width: `${row.percent}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+          <MaterialIcon name="dashboard" size={48} />
         </div>
       </div>
-    </section>
+    </header>
   );
 }

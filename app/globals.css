@@ -19,6 +19,41 @@
   --color-sidebar-foreground: #94a3b8;
   --font-sans: var(--font-sans-app);
 
+  /* docs/stitch/ 리뉴얼: Stitch 디자인의 유일한 브랜드/액션 색상(#1E3A8A).
+     기존 --color-primary(#2563eb)는 아직 리뉴얼하지 않은 화면이 계속 쓰므로 그대로 두고,
+     리뉴얼된 화면(Sidebar/Header/Dashboard 등)에서만 이 토큰을 사용한다. */
+  --color-primary-navy: #1e3a8a;
+
+  /* docs/stitch/ 리뉴얼 전용 색상. screen.png를 픽셀 단위로 실측해 확인한 값이며,
+     기존 --color-background/--color-foreground/--color-border는 아직 리뉴얼하지
+     않은 화면이 계속 쓰므로 덮어쓰지 않고 별도 토큰으로 추가한다. */
+  --color-stitch-bg: #eff4ff;
+  --color-stitch-ink: #0d1c2f;
+  --color-stitch-border: #e9e8ea;
+
+  /* docs/stitch/ 리뉴얼 전용 radius. code.html의 tailwind.config(theme.extend.borderRadius)가
+     DEFAULT/lg/xl을 이 프로젝트의 --radius-*(44_designtoken.png 기준, 아래)와 전혀 다른 값으로
+     재정의해서 쓴다. 기존 --radius-*를 덮어쓰면 아직 리뉴얼하지 않은 화면이 전부 깨지므로,
+     rounded-xl 등 기존 유틸리티와 이름이 겹치지 않는 별도 토큰(rounded-stitch-*)으로 추가한다.
+     md는 Stitch가 커스터마이즈하지 않아 Tailwind 기본값(0.375rem=6px)을 그대로 쓴다. */
+  --radius-stitch-md: 6px;
+  --radius-stitch: 16px;
+  --radius-stitch-lg: 32px;
+  --radius-stitch-xl: 48px;
+  /* 캘린더 화면의 premium-card(미니 캘린더/오늘의 예정/주간 진행률/메인 캘린더)만
+     쓰는 radius. code.html의 .premium-card{border-radius:24px}는 이 요소들에
+     rounded-xl 등 경쟁하는 Tailwind 유틸리티가 붙어있지 않아 그대로 적용되고,
+     screen.png 실측(약 24~28px)도 이 값과 일치한다. */
+  --radius-stitch-2xl: 24px;
+
+  /* docs/stitch/설정페이지/*(DM Sans + 보라 계열) 전용 색상. 같은 "Stitch 리뉴얼"이지만
+     다른 배치(메인페이지 5개, Hanken Grotesk + 네이비)와 팔레트가 완전히 달라 별도 토큰으로
+     둔다. /settings 화면에서만 쓴다. border는 두 배치 모두 동일한 #e9e8ea라 기존
+     --color-stitch-border를 그대로 재사용한다. */
+  --color-settings-bg: #fdfcfe;
+  --color-settings-ink: #3c315b;
+  --color-settings-secondary: #86848d;
+
   /* 44_designtoken.png: Colors - Brand states / Semantic */
   --color-primary-hover: #1d4ed8;
   --color-primary-active: #1e40af;
@@ -56,4 +91,50 @@ body {
   background: var(--color-background);
   color: var(--color-foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+/* components/ui/SiteHeader.tsx가 마운트되어 있는 동안(랜딩 + 인증 6개 페이지)에만
+   documentElement에 붙였다 떼는 클래스. 페이지마다 세로 스크롤바 유무가 달라(콘텐츠가
+   긴 랜딩 vs 한 화면에 다 들어가는 로그인 등) position:fixed 헤더가 기준으로 삼는
+   window.innerWidth가 페이지마다 몇 px씩 달라지던 문제를, 이 화면들끼리는 항상 스크롤바
+   자리를 예약해 폭을 통일시켜 해결한다. (app) 내부 페이지는 이 클래스가 절대 붙지 않아
+   기존 스크롤 동작(1600px 미만 body 스크롤 / 1600px 이상 main 자체 스크롤)에 영향이 없다. */
+.force-scrollbar-gutter {
+  overflow-y: scroll;
+}
+
+/* docs/stitch/ 리뉴얼: Stitch가 쓰는 Google Material Symbols Outlined 아이콘 폰트.
+   폰트 자체는 app/layout.tsx의 <link>로 불러오고, 여기서는 Google이 권장하는
+   표준 사용법(리거처 텍스트 → 아이콘)을 위한 보일러플레이트만 둔다.
+   components/ui/MaterialIcon.tsx를 통해서만 사용한다. */
+.material-symbols-outlined {
+  font-family: "Material Symbols Outlined";
+  font-weight: normal;
+  font-style: normal;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-smoothing: antialiased;
+  font-variation-settings: "FILL" 0, "wght" 300, "GRAD" 0, "opsz" 20;
+}
+
+.material-symbols-outlined.fill {
+  font-variation-settings: "FILL" 1;
+}
+
+/* docs/stitch/ 리뉴얼: code.html에는 스크롤바 커스텀 CSS가 없고 screen.png에도
+   스크롤바가 보이지 않는다(자동 숨김 환경에서 캡처된 것으로 보임). screen.png 재현을
+   위해 스크롤 동작은 유지하되 항상 숨김 처리한다. 전역이 아니라 리뉴얼 영역의 스크롤
+   컨테이너에만 이 클래스를 붙여서 쓴다. */
+.stitch-scrollbar-hidden {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* 레거시 Edge/IE */
+}
+
+.stitch-scrollbar-hidden::-webkit-scrollbar {
+  display: none; /* Chrome/Safari/Edge Chromium */
 }

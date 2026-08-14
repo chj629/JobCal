@@ -1,48 +1,34 @@
 "use client";
 
 import { useT } from "@/lib/locale-context";
-import Logo from "@/components/ui/Logo";
-import LanguageSwitcher from "@/components/ui/LanguageSwitcher";
 
-// 34_landingPage.png 푸터. 기능만 실제 섹션(#features)이 있어 앵커로 연결하고,
-// 나머지(요금제/사용법/FAQ/개인정보처리방침/이용약관)는 아직 페이지가 없어 비활성 텍스트로 둔다.
+// docs/stitch/랜딩페이지/screen.png 푸터. 시안은 로고+Privacy/Terms/Contact 3개 링크+저작권
+// 뿐이라 기존의 요금제/사용법/FAQ 비활성 링크는 제거한다(해당 페이지가 없어 시안에도 없음).
+// 언어 전환은 상단 헤더(LandingNav)에 이미 있어 여기서는 중복으로 두지 않는다.
 export default function LandingFooter() {
   const t = useT();
   const year = new Date().getFullYear();
 
   return (
-    <footer className="border-t border-border py-10">
-      <div className="mx-auto flex max-w-[1200px] flex-col items-center gap-4 px-6 sm:flex-row sm:justify-between">
-        <Logo size="sm" />
+    <footer className="border-t border-neutral-200 bg-white">
+      <div className="mx-auto flex max-w-[1200px] flex-col items-center gap-6 px-6 py-10 md:flex-row md:justify-between md:px-12">
+        <span className="text-[18px] font-[400] tracking-tight text-neutral-900">
+          {t("common.appName")}
+        </span>
 
-        <nav className="flex flex-wrap items-center justify-center gap-6">
-          <a
-            href="#features"
-            className="text-xs text-secondary transition-colors duration-150 hover:text-foreground"
-          >
-            {t("landing.nav.features")}
-          </a>
-          <span className="text-xs text-secondary/50" aria-disabled="true">
-            {t("landing.footer.pricing")}
-          </span>
-          <span className="text-xs text-secondary/50" aria-disabled="true">
-            {t("landing.footer.howItWorks")}
-          </span>
-          <span className="text-xs text-secondary/50" aria-disabled="true">
-            {t("landing.footer.faq")}
-          </span>
-          <span className="text-xs text-secondary/50" aria-disabled="true">
+        <nav className="flex gap-8 text-[13px]">
+          <span className="font-[400] text-neutral-400" aria-disabled="true">
             {t("landing.footer.privacy")}
           </span>
-          <span className="text-xs text-secondary/50" aria-disabled="true">
+          <span className="font-[400] text-neutral-400" aria-disabled="true">
             {t("landing.footer.terms")}
+          </span>
+          <span className="font-[400] text-neutral-400" aria-disabled="true">
+            {t("landing.footer.contact")}
           </span>
         </nav>
 
-        <div className="flex items-center gap-4">
-          <LanguageSwitcher />
-          <p className="text-xs text-secondary">{t("landing.footer.copyright", { year })}</p>
-        </div>
+        <p className="text-[13px] text-neutral-400">{t("landing.footer.copyright", { year })}</p>
       </div>
     </footer>
   );

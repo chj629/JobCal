@@ -1,165 +1,124 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CalendarClock, ChevronRight } from "lucide-react";
-import { useTodayChecklist } from "@/components/dashboard/TodayChecklist";
 import { getTodaySchedules } from "@/components/dashboard/TodayTimetable";
 import { formatTimeOfDay } from "@/lib/date";
-import { useT } from "@/lib/locale-context";
+import { useLocale, useT } from "@/lib/locale-context";
+import type { Locale } from "@/lib/i18n/messages";
 import type { Company } from "@/lib/companies";
-import type { AppEvent, EventType } from "@/lib/events";
-import { getStepDisplayName, type ApplicationStep } from "@/lib/applicationSteps";
-import Badge, { type BadgeVariant } from "@/components/ui/Badge";
-import Button from "@/components/ui/Button";
+import type { AppEvent } from "@/lib/events";
 import EmptyState from "@/components/ui/EmptyState";
+import MaterialIcon from "@/components/ui/MaterialIcon";
 
 interface TodayScheduleProps {
   companies: Company[];
   events: AppEvent[];
-  steps: ApplicationStep[];
 }
 
-interface ScheduleItem {
-  event: AppEvent;
-  at: string;
-}
-
-// lib/events.ts의 EVENT_TYPE_BADGE_CLASS와 동일한 색 의미를 Badge variant로 재사용한다.
-const EVENT_TYPE_BADGE_VARIANT: Record<EventType, BadgeVariant> = {
-  schedule: "primary",
-  deadline: "warning",
-  result_announcement: "purple",
+const WEEKDAY_LABELS: Record<Locale, string[]> = {
+  ja: ["日", "月", "火", "水", "木", "金", "土"],
+  ko: ["일", "월", "화", "수", "목", "금", "토"],
 };
 
-// 현재 시각 이후 중 가장 가까운 항목을 찾는다. 컴포넌트 렌더 함수 밖의 순수 함수로 분리해
+// 현재 시각 이후 중 가장 가까운 항목을 찾는다. 렌더 함수 밖의 순수 함수로 분리해
 // react-hooks/purity(렌더 중 Date.now() 직접 호출 금지) 규칙을 지킨다.
-function findNextItem(items: ScheduleItem[]): ScheduleItem | undefined {
+function findNextIndex(schedules: AppEvent[]): number {
   const now = Date.now();
-  return items.find((item) => new Date(item.at).getTime() >= now);
+  return schedules.findIndex(
+    (event) => event.startsAt !== null && new Date(event.startsAt).getTime() >= now
+  );
 }
 
-// 6_homeAIOFF.png의 "오늘 할 일" 카드. 데이터는 TodayChecklist(마감 체크리스트)와
-// TodayTimetable(오늘 일정)의 기존 훅/계산을 그대로 재사용해 시간순으로 합쳐 보여준다.
-export default function TodaySchedule({ companies, events, steps }: TodayScheduleProps) {
+// docs/stitch/메인페이지 5개/jobcal_dashboard_added_weekly_progress_summary의 "本日の予定" 카드.
+// 시간이 있는 일정(event_type=schedule)만 다룬다. 오늘 마감 체크리스트는
+// TodayChecklist.tsx의 카드가 별도로 담당한다(Stitch가 두 카드를 분리해서 보여줌).
+export default function TodaySchedule({ companies, events }: TodayScheduleProps) {
   const t = useT();
   const router = useRouter();
-  const { todayDeadlines, checkedIds, loaded, toggle, taskError } = useTodayChecklist(events);
+  const { locale } = useLocale();
+  const weekdayLabels = WEEKDAY_LABELS[locale];
   const todaySchedules = getTodaySchedules(events);
+  const nextIndex = findNextIndex(todaySchedules);
 
-  const items = [
-    ...todaySchedules.map((event) => ({ event, at: event.startsAt as string })),
-    ...todayDeadlines.map((event) => ({ event, at: event.dueAt as string })),
-  ].sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
-
-  // 현재 시각 이후 중 가장 가까운 일정 하나만 파란색으로 강조하고 나머지는 회색으로 표시한다.
-  const nextItem = findNextItem(items);
+  const now = new Date();
+  const dateLabel = t("dashboard.todaySchedule.dateLabel", {
+    month: now.getMonth() + 1,
+    day: now.getDate(),
+    weekday: weekdayLabels[now.getDay()],
+  });
 
   return (
-    <section className="flex h-[372px] flex-col rounded-[10px] border border-border bg-card">
-      <div className="flex items-center justify-between border-b border-border px-6 py-4">
-        <h2 className="text-[16px] font-semibold text-foreground">
+    <div className="flex h-[275px] flex-col rounded-stitch-xl border border-stitch-border bg-card p-6 shadow-sm">
+      <div className="mb-3 flex shrink-0 items-center justify-between">
+        <h3 className="flex items-center gap-1.5 text-[13px] font-[400] text-stitch-ink">
+          <MaterialIcon name="calendar_today" size={15} className="text-secondary" />
           {t("dashboard.todaySchedule.title")}
-        </h2>
-        <Button type="button" variant="ghost" size="sm" onClick={() => router.push("/calendar")}>
-          {t("dashboard.todaySchedule.viewAll")}
-        </Button>
+        </h3>
+        <span className="text-[11px] text-secondary">{dateLabel}</span>
       </div>
 
-      {taskError && (
-        <p className="border-b border-error/40 bg-error/10 px-6 py-2 text-xs text-error">
-          {taskError}
-        </p>
-      )}
-
-      {items.length === 0 ? (
-        <div className="flex flex-1 items-center justify-center px-6">
-          <EmptyState icon={CalendarClock} title={t("dashboard.todaySchedule.empty")} />
+      {todaySchedules.length === 0 ? (
+        <div className="flex flex-1 items-center justify-center">
+          <EmptyState icon="calendar_today" title={t("dashboard.todaySchedule.empty")} />
         </div>
       ) : (
-        <ul className="flex-1 overflow-y-auto">
-          {items.map(({ event, at }, index) => {
+        <div className="flex-1 space-y-1 overflow-y-auto overflow-x-hidden stitch-scrollbar-hidden pr-1">
+          {todaySchedules.map((event, index) => {
             const company = companies.find((c) => c.id === event.companyId);
-            const step = steps.find((s) => s.id === event.applicationStepId);
-            const isDeadline = event.eventType === "deadline";
-            const checked = isDeadline && checkedIds.has(event.id);
-            const isNext = nextItem?.event.id === event.id;
-            const isLast = index === items.length - 1;
+            const isNext = index === nextIndex;
 
             return (
-              <li key={event.id} className="transition-colors duration-150 hover:bg-background">
-                <div className={"mx-4 " + (isLast ? "" : "border-b border-border")}>
-                  <div className="flex items-center gap-3 px-2 py-3">
-                    {isDeadline ? (
-                      <button
-                        type="button"
-                        onClick={() => toggle(event.id)}
-                        disabled={!loaded}
-                        aria-pressed={checked}
-                        aria-label={t("dashboard.todaySchedule.completeLabel", {
-                          title: event.title,
-                        })}
-                        className={
-                          "flex h-5 w-5 shrink-0 items-center justify-center rounded-[4px] border text-xs disabled:cursor-not-allowed disabled:opacity-50 " +
-                          (checked
-                            ? "border-primary bg-primary text-white"
-                            : "border-border text-transparent")
-                        }
-                      >
-                        ✓
-                      </button>
-                    ) : (
-                      // 체크 대상이 아닌 일반 일정 항목. 체크박스와 같은 폭의 슬롯에 정적 점만
-                      // 표시해, 마감(체크 가능) 항목과의 정렬은 맞추면서 상호작용 대상이 아님을
-                      // 자연스럽게 구분한다.
-                      <span
-                        aria-hidden="true"
-                        className="flex h-5 w-5 shrink-0 items-center justify-center"
-                      >
-                        <span className="h-1.5 w-1.5 rounded-full bg-secondary/40" />
-                      </span>
-                    )}
-                    <span
-                      className={
-                        "h-9 w-0.5 shrink-0 rounded-full " + (isNext ? "bg-primary" : "bg-border")
-                      }
-                    />
-                    <span
-                      className={
-                        "w-14 shrink-0 self-start text-sm font-semibold " +
-                        (isNext ? "text-primary" : "text-secondary")
-                      }
-                    >
-                      {formatTimeOfDay(at)}
-                    </span>
-                    <Link href={`/companies/${event.companyId}`} className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <p
-                          className={
-                            "truncate text-sm font-bold " +
-                            (checked ? "text-secondary line-through" : "text-foreground")
-                          }
-                        >
-                          {company?.name ?? ""}
-                        </p>
-                        <Badge
-                          variant={EVENT_TYPE_BADGE_VARIANT[event.eventType]}
-                          size="sm"
-                          className="shrink-0"
-                        >
-                          {step ? getStepDisplayName(step, t) : event.title}
-                        </Badge>
-                      </div>
-                      <p className="mt-0.5 truncate text-xs text-secondary">{event.title}</p>
-                    </Link>
-                    <ChevronRight size={16} className="shrink-0 text-secondary" />
-                  </div>
+              <div
+                key={event.id}
+                className="-mx-2 flex items-start gap-3 rounded-stitch-xl px-2 py-1.5 transition-colors hover:bg-black/[0.015]"
+              >
+                <div className="flex w-10 shrink-0 flex-col items-end pt-0.5">
+                  <p className="text-[12px] font-[400] leading-none tracking-tight text-stitch-ink">
+                    {event.startsAt ? formatTimeOfDay(event.startsAt) : ""}
+                  </p>
+                  {event.endsAt && (
+                    <p className="mt-1 text-[10px] leading-none tracking-tight text-secondary">
+                      {formatTimeOfDay(event.endsAt)}
+                    </p>
+                  )}
                 </div>
-              </li>
+                <div
+                  className={
+                    "flex min-w-0 flex-1 flex-col gap-0.5 border-l-[3px] py-0.5 pl-3 " +
+                    (isNext ? "border-primary-navy" : "border-stitch-border")
+                  }
+                >
+                  <div className="flex items-center gap-1">
+                    <p className="truncate text-[12px] font-[400] leading-tight text-stitch-ink">
+                      {event.title}
+                    </p>
+                    {isNext && (
+                      <MaterialIcon
+                        name="check_circle"
+                        size={13}
+                        filled
+                        className="shrink-0 text-primary-navy"
+                      />
+                    )}
+                  </div>
+                  <p className="mt-0.5 truncate text-[11px] text-secondary">{company?.name ?? ""}</p>
+                </div>
+              </div>
             );
           })}
-        </ul>
+        </div>
       )}
-    </section>
+
+      <div className="mt-2 flex shrink-0 justify-end">
+        <button
+          type="button"
+          onClick={() => router.push("/calendar")}
+          className="flex items-center gap-0.5 text-[11px] font-[400] text-primary-navy transition-colors hover:opacity-80"
+        >
+          {t("dashboard.todaySchedule.viewAll")}
+          <MaterialIcon name="chevron_right" size={14} />
+        </button>
+      </div>
+    </div>
   );
 }

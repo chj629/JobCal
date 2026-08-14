@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect } from "react";
-import { AlertTriangle } from "lucide-react";
 import { useT } from "@/lib/locale-context";
 import Logo from "@/components/ui/Logo";
 import Button from "@/components/ui/Button";
@@ -28,7 +27,7 @@ export default function ErrorPage({ error, reset }: ErrorPageProps) {
     <div className="flex min-h-screen flex-col items-center justify-center gap-8 bg-background px-6 py-16">
       <Logo size="lg" />
       <EmptyState
-        icon={AlertTriangle}
+        icon="error"
         title={t("errorPages.error.title")}
         description={t("errorPages.error.description")}
       />

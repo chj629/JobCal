@@ -1,31 +1,28 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import { CalendarDays, ChevronRight, ExternalLink, Globe, Home } from "lucide-react";
 import { notFound, useParams, useRouter } from "next/navigation";
-import StatusBadge from "@/components/StatusBadge";
 import CompanyForm from "@/components/CompanyForm";
 import StepTimeline from "@/components/companies/StepTimeline";
 import StepDetailPanel from "@/components/companies/StepDetailPanel";
-import CompanyContacts from "@/components/companies/CompanyContacts";
+import SelectionMemo from "@/components/companies/SelectionMemo";
 import CompanyNotes from "@/components/companies/CompanyNotes";
+import CompanyInfoCard from "@/components/companies/CompanyInfoCard";
+import MypageInfoCard from "@/components/companies/MypageInfoCard";
+import CompanyContacts from "@/components/companies/CompanyContacts";
 import CompanySchedulePanel from "@/components/companies/CompanySchedulePanel";
+import NextActions from "@/components/companies/NextActions";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
-import Button from "@/components/ui/Button";
-import Badge from "@/components/ui/Badge";
 import LoadingState from "@/components/ui/LoadingState";
+import MaterialIcon from "@/components/ui/MaterialIcon";
 import { useToast } from "@/components/ui/Toast";
 import { companyToFormValues, type Company } from "@/lib/companies";
 import { useCompanies } from "@/lib/companies-context";
 import { useApplicationSteps } from "@/lib/application-steps-context";
-import { getCurrentStep, getStepDisplayName } from "@/lib/applicationSteps";
 import { useEvents } from "@/lib/events-context";
-import { getNextEvent } from "@/lib/events";
 import { useCompanyContacts } from "@/lib/company-contacts-context";
 import { useCompanyNotes } from "@/lib/company-notes-context";
-import { dateKeyOf, diffInDays, todayKey } from "@/lib/date";
-import { useLocale, useT } from "@/lib/locale-context";
+import { useT } from "@/lib/locale-context";
 
 export default function CompanyDetailPage() {
   const t = useT();
@@ -45,20 +42,19 @@ export default function CompanyDetailPage() {
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-[1200px] px-8 py-8">
-        <LoadingState>{t("companies.detail.loading")}</LoadingState>
+      <div className="min-h-screen bg-stitch-bg">
+        <div className="mx-auto max-w-[880px] px-6 py-6">
+          <LoadingState>{t("companies.detail.loading")}</LoadingState>
+        </div>
       </div>
     );
   }
 
   if (!company) {
-    // Deleting removes this company from context, which re-renders this
-    // page with company === undefined right before router.push("/companies")
-    // finishes navigating away. Without this guard, notFound() would fire
-    // during that transient render instead of the intended navigation.
-    if (isDeleting) {
-      return null;
-    }
+    // 삭제로 이 기업이 context에서 사라지면 router.push("/companies")가 끝나기 직전
+    // company === undefined인 채로 한 번 더 렌더링된다. 이 경우엔 notFound() 대신
+    // 그냥 아무것도 보여주지 않고 이동이 끝나길 기다린다.
+    if (isDeleting) return null;
     notFound();
   }
 
@@ -67,10 +63,8 @@ export default function CompanyDetailPage() {
     const ok = await deleteCompany(company!.id);
     if (ok) {
       showToast(t("companies.list.deleteSuccessToast", { name: company!.name }));
-      // companies/page.tsx의 handleConfirmDelete와 동일한 이유: DB는 CASCADE로 정리되지만
-      // 다른 Context의 로컬 state는 그대로라, 삭제 성공 시에만 각자 refresh()로 최신 상태를
-      // 다시 받아온다. /companies로 이동한 뒤에도 같은 레이아웃(Provider)이 유지되므로
-      // 여기서 갱신해 둬야 Calendar 등에서 유령 데이터가 보이지 않는다.
+      // companies/page.tsx handleConfirmDelete와 동일한 이유로, 다른 Context의 로컬 state를
+      // 삭제 성공 시에만 갱신한다.
       refreshSteps();
       refreshEvents();
       refreshContacts();
@@ -113,194 +107,144 @@ interface CompanyDetailViewProps {
 
 function CompanyDetailView({ company, error, onDeleteClick }: CompanyDetailViewProps) {
   const t = useT();
-  const { locale } = useLocale();
+  const router = useRouter();
   const { updateCompany } = useCompanies();
-  const { steps } = useApplicationSteps();
-  const { events } = useEvents();
   const [isEditOpen, setIsEditOpen] = useState(false);
-
-  const companySteps = steps.filter((step) => step.companyId === company.id);
-  const currentStep = getCurrentStep(companySteps);
-  const companyEvents = events.filter((event) => event.companyId === company.id);
-  const nextEvent = getNextEvent(companyEvents);
-  const nextEventAt = nextEvent ? (nextEvent.startsAt ?? nextEvent.dueAt) : null;
-
-  // CompanySchedulePanel.tsx, UpcomingEventsCard.tsx와 동일한 D-day 규칙(오늘/내일/{N}일 후)을 재사용한다.
-  function formatDDay(at: string) {
-    const diff = diffInDays(todayKey(), dateKeyOf(at));
-    if (diff === 0) return t("dashboard.today");
-    if (diff === 1) return t("dashboard.tomorrow");
-    return t("companies.detail.schedulePanel.dDay", { days: diff });
-  }
-
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
 
   return (
-    <div className="mx-auto max-w-[1200px] px-8 py-8">
-      <div className="flex items-center justify-between">
-        <nav aria-label="breadcrumb" className="flex items-center gap-1.5 text-sm text-secondary">
-          <Link href="/dashboard" aria-label={t("sidebar.dashboard")} className="hover:text-foreground">
-            <Home size={15} />
-          </Link>
-          <ChevronRight size={14} className="shrink-0 text-border" />
-          <Link href="/companies" className="hover:text-foreground">
-            {t("sidebar.companies")}
-          </Link>
-          <ChevronRight size={14} className="shrink-0 text-border" />
-          <span className="truncate font-medium text-foreground">{company.name}</span>
-        </nav>
-        <div className="flex gap-2">
-          <Button type="button" variant="secondary" onClick={() => setIsEditOpen(true)}>
-            {t("common.edit")}
-          </Button>
-          <Button type="button" variant="danger" onClick={onDeleteClick}>
-            {t("common.delete")}
-          </Button>
+    <div className="min-h-screen bg-stitch-bg">
+      <div className="mx-auto max-w-[880px] px-6 py-6 font-[family-name:var(--font-hanken-grotesk)] font-[350] tracking-[-0.025em] text-stitch-ink">
+        <div className="mb-8 flex flex-col justify-between gap-4 md:flex-row md:items-start">
+          <div>
+            <h1 className="mb-2 text-[32px] font-[400] leading-[1.2] tracking-tight text-stitch-ink">
+              {company.name}
+            </h1>
+            <div className="flex items-center gap-2">
+              {company.overallStatus === "offer" ? (
+                <span className="rounded-full border border-success/20 bg-success/10 px-2.5 py-1 text-[10px] font-[400] text-success">
+                  {t("companies.list.status.offer")}
+                </span>
+              ) : (
+                <span className="rounded-full border border-stitch-border bg-[#f8f9ff] px-2.5 py-1 text-[10px] font-[400] text-secondary">
+                  {t(`companies.list.status.${company.overallStatus === "in_progress" ? "inProgress" : company.overallStatus}`)}
+                </span>
+              )}
+              <span
+                className={
+                  "rounded-full px-2.5 py-1 text-[10px] font-[400] " +
+                  (company.priority === "high"
+                    ? "bg-[#fef2f2] text-error"
+                    : "bg-[#f8f9ff] text-secondary")
+                }
+              >
+                {t("companies.detail.priorityPrefix")}
+                {t(`companies.list.priority.${company.priority}`)}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 pt-1">
+            <button
+              type="button"
+              onClick={() => setIsEditOpen(true)}
+              className="flex h-fit items-center gap-1 rounded-stitch-xl bg-primary-navy px-4 py-2 text-[12px] font-[400] text-white shadow-sm transition-all hover:opacity-90"
+            >
+              <MaterialIcon name="edit" size={16} />
+              {t("common.edit")}
+            </button>
+            <button
+              type="button"
+              onClick={() => router.push("/companies")}
+              aria-label={t("companies.detail.backToList")}
+              className="flex h-8 w-8 items-center justify-center rounded-stitch-xl border border-stitch-border bg-card text-secondary shadow-sm transition-colors hover:bg-[#f8f9ff]"
+            >
+              <MaterialIcon name="close" size={18} />
+            </button>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setIsMenuOpen((v) => !v)}
+                aria-label={t("companies.detail.moreMenu")}
+                className="flex h-8 w-8 items-center justify-center rounded-stitch-xl border border-stitch-border bg-card text-secondary shadow-sm transition-colors hover:bg-[#f8f9ff]"
+              >
+                <MaterialIcon name="more_vert" size={18} />
+              </button>
+              {isMenuOpen && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setIsMenuOpen(false)} />
+                  <div className="absolute right-0 top-10 z-20 w-32 rounded-stitch-md border border-stitch-border bg-card py-1 text-left shadow-lg">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        onDeleteClick();
+                      }}
+                      className="block w-full px-3 py-2 text-left text-[12px] text-error hover:bg-[#f8f9ff]"
+                    >
+                      {t("common.delete")}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
         </div>
-      </div>
 
-      <header className="mt-6 mb-8 flex flex-wrap items-center gap-3">
-        <h1 className="text-[28px] font-semibold text-foreground">{company.name}</h1>
-        <StatusBadge status={company.overallStatus} />
-      </header>
+        {error && (
+          <p className="mb-8 rounded-[10px] border border-error/40 bg-error/10 px-4 py-3 text-sm text-error">
+            {error}
+          </p>
+        )}
 
-      <div
-        className={
-          "mb-8 flex items-center gap-3 rounded-lg border px-5 py-4 " +
-          (nextEventAt && nextEvent
-            ? "border-primary/30 bg-primary/5"
-            : "border-border bg-card")
-        }
-      >
-        <CalendarDays
-          size={20}
-          className={"shrink-0 " + (nextEventAt && nextEvent ? "text-primary" : "text-secondary")}
+        <StepTimeline
+          companyId={company.id}
+          selectedStepId={selectedStepId}
+          onSelect={setSelectedStepId}
         />
-        <div className="min-w-0 flex-1">
-          <p className="text-xs font-medium text-secondary">{t("companies.detail.nextSchedule")}</p>
-          {nextEventAt && nextEvent ? (
-            <p className="mt-0.5 truncate text-sm font-semibold text-foreground">
-              {nextEvent.title} ·{" "}
-              {new Date(nextEventAt).toLocaleString(locale === "ja" ? "ja-JP" : "ko-KR", {
-                year: "numeric",
-                month: "2-digit",
-                day: "2-digit",
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
-            </p>
-          ) : (
-            <p className="mt-0.5 text-sm text-secondary">{t("companies.detail.noSchedule")}</p>
-          )}
+
+        <div className="grid grid-cols-1 items-start gap-4 pb-10 lg:grid-cols-12">
+          <div className="flex flex-col gap-6 lg:col-span-8">
+            <div className="flex flex-col gap-6 rounded-stitch-xl border border-stitch-border bg-card p-6 shadow-sm">
+              <StepDetailPanel
+                companyId={company.id}
+                selectedStepId={selectedStepId}
+                onClose={() => setSelectedStepId(null)}
+              />
+              <div className="h-px bg-stitch-border" />
+              <SelectionMemo />
+            </div>
+
+            <div className="flex flex-col gap-6 rounded-stitch-xl border border-stitch-border bg-card p-6 shadow-sm">
+              <CompanyNotes companyId={company.id} />
+              <div className="h-px bg-stitch-border" />
+              <CompanyInfoCard company={company} />
+              <div className="h-px bg-stitch-border" />
+              <MypageInfoCard company={company} />
+              <div className="h-px bg-stitch-border" />
+              <CompanyContacts companyId={company.id} />
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-4 lg:col-span-4">
+            <CompanySchedulePanel companyId={company.id} />
+            <NextActions />
+          </div>
         </div>
-        {nextEventAt && nextEvent && (
-          <Badge variant="primary" size="md" className="shrink-0">
-            {formatDDay(nextEventAt)}
-          </Badge>
+
+        {isEditOpen && (
+          <CompanyForm
+            title={t("companies.list.editCompanyModalTitle")}
+            initialValues={companyToFormValues(company)}
+            onCancel={() => setIsEditOpen(false)}
+            onSubmit={async (values) => {
+              const ok = await updateCompany(company.id, values);
+              if (ok) setIsEditOpen(false);
+            }}
+          />
         )}
       </div>
-
-      {error && (
-        <p className="mb-8 rounded-[10px] border border-error/40 bg-error/10 px-4 py-3 text-sm text-error">
-          {error}
-        </p>
-      )}
-
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
-        <div className="min-w-0">
-          <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <section className="rounded-lg border border-border bg-card p-6">
-              <h2 className="mb-5 text-[16px] font-semibold text-foreground">
-                {t("companies.detail.basicInfo")}
-              </h2>
-              <dl className="grid grid-cols-2 gap-x-6 gap-y-5 text-sm">
-                <div>
-                  <dt className="text-secondary">{t("companies.detail.currentStep")}</dt>
-                  <dd className="mt-1 text-foreground">
-                    {currentStep ? getStepDisplayName(currentStep, t) : t("dashboard.noStepLabel")}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-secondary">{t("companies.detail.priority")}</dt>
-                  <dd className="mt-1 text-foreground">
-                    {t(`companies.list.priority.${company.priority}`)}
-                  </dd>
-                </div>
-                <div className="col-span-2">
-                  <dt className="text-secondary">{t("companies.detail.homepage")}</dt>
-                  <dd className="mt-1">
-                    {company.websiteUrl ? (
-                      <a
-                        href={company.websiteUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 text-primary hover:underline"
-                      >
-                        <Globe size={14} className="shrink-0" />
-                        {company.websiteUrl}
-                      </a>
-                    ) : (
-                      <span className="text-secondary">{t("companies.detail.homepageEmpty")}</span>
-                    )}
-                  </dd>
-                </div>
-              </dl>
-            </section>
-
-            <section className="rounded-lg border border-border bg-card p-6">
-              <h2 className="mb-5 text-[16px] font-semibold text-foreground">
-                {t("companies.detail.mypage")}
-              </h2>
-              {company.mypageUrl ? (
-                <a
-                  href={company.mypageUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
-                >
-                  <ExternalLink size={14} className="shrink-0" />
-                  {company.mypageUrl}
-                </a>
-              ) : (
-                <p className="text-sm text-secondary">{t("companies.detail.mypageEmpty")}</p>
-              )}
-            </section>
-          </div>
-
-          <StepTimeline
-            companyId={company.id}
-            selectedStepId={selectedStepId}
-            onSelect={setSelectedStepId}
-          />
-          {selectedStepId && (
-            <StepDetailPanel
-              companyId={company.id}
-              selectedStepId={selectedStepId}
-              onClose={() => setSelectedStepId(null)}
-            />
-          )}
-
-          <div className="mb-8">
-            <CompanyContacts companyId={company.id} />
-          </div>
-
-          <CompanyNotes companyId={company.id} />
-        </div>
-
-        <CompanySchedulePanel companyId={company.id} />
-      </div>
-
-      {isEditOpen && (
-        <CompanyForm
-          title={t("companies.list.editCompanyModalTitle")}
-          initialValues={companyToFormValues(company)}
-          onCancel={() => setIsEditOpen(false)}
-          onSubmit={async (values) => {
-            const ok = await updateCompany(company.id, values);
-            if (ok) setIsEditOpen(false);
-          }}
-        />
-      )}
     </div>
   );
 }

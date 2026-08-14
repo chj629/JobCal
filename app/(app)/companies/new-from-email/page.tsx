@@ -38,6 +38,7 @@ export default function NewFromEmailPage() {
         {step === "match" && analysis && (
           <CompanyMatchPicker
             suggestedName={analysis.companyName}
+            onBack={() => setStep("paste")}
             onSelectNew={() => {
               setExistingCompany(null);
               setStep("review");

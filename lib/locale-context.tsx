@@ -40,7 +40,7 @@ function applyVars(text: string, vars?: TranslateVars): string {
 }
 
 // 현재 locale 사전 → 일본어 사전 → 키 문자열 순으로 대체한다.
-function translate(locale: Locale, key: string, vars?: TranslateVars): string {
+export function translate(locale: Locale, key: string, vars?: TranslateVars): string {
   const primary = getByPath(messages[locale], key);
   if (typeof primary === "string") return applyVars(primary, vars);
 

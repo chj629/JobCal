@@ -1,0 +1,522 @@
+<!DOCTYPE html><html class="light" lang="ja" style="width: 1280px; height: 1320px; overflow: hidden; position: relative;"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>JobCal - Company Detail</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,100..900;1,100..900&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+                "on-secondary-fixed": "#001c39",
+                "on-tertiary-fixed": "#171c1f",
+                "surface-container-high": "#dde9ff",
+                "on-tertiary-container": "#a8adb1",
+                "surface-container-low": "#eff4ff",
+                "secondary-container": "#64a8fe",
+                "tertiary-fixed-dim": "#c3c7cb",
+                "on-tertiary-fixed-variant": "#43474b",
+                "tertiary-fixed": "#dfe3e7",
+                "on-tertiary": "#ffffff",
+                "surface-dim": "#ccdbf4",
+                "error-container": "#ffdad6",
+                "primary-fixed-dim": "#b6c4ff",
+                "on-secondary-fixed-variant": "#004883",
+                "on-error-container": "#93000a",
+                "on-error": "#ffffff",
+                "inverse-surface": "#233144",
+                "on-primary": "#ffffff",
+                "surface-bright": "#f8f9ff",
+                "inverse-primary": "#b6c4ff",
+                "surface-tint": "#4059aa",
+                "error": "#ba1a1a",
+                "surface-variant": "#d5e3fd",
+                "on-secondary-container": "#003c70",
+                "primary": "#00236f",
+                "tertiary": "#262b2e",
+                "background": "#f8f9ff",
+                "tertiary-container": "#3c4144",
+                "on-surface-variant": "#444651",
+                "primary-fixed": "#dce1ff",
+                "secondary-fixed": "#d4e3ff",
+                "secondary": "#0060ac",
+                "outline-variant": "#c5c5d3",
+                "on-secondary": "#ffffff",
+                "on-background": "#0d1c2f",
+                "primary-container": "#1e3a8a",
+                "on-primary-fixed-variant": "#264191",
+                "surface-container-highest": "#d5e3fd",
+                "secondary-fixed-dim": "#a4c9ff",
+                "surface-container-lowest": "#ffffff",
+                "surface": "#f8f9ff",
+                "inverse-on-surface": "#ebf1ff",
+                "surface-container": "#e6eeff",
+                "on-primary-container": "#90a8ff",
+                "outline": "#757682",
+                "on-surface": "#0d1c2f",
+                "on-primary-fixed": "#00164e"
+        },
+        "borderRadius": {
+                "DEFAULT": "1rem",
+                "lg": "2rem",
+                "xl": "3rem",
+                "full": "9999px"
+        },
+        "spacing": {
+                "base": "8px",
+                "section-gap": "64px",
+                "pill-padding-y": "12px",
+                "pill-padding-x": "24px",
+                "container-margin": "32px",
+                "gutter": "24px"
+        },
+        "fontFamily": {
+                "label-sm": [
+                        "JetBrains Mono"
+                ],
+                "body-lg": [
+                        "Hanken Grotesk"
+                ],
+                "display-lg": [
+                        "Hanken Grotesk"
+                ],
+                "display-lg-mobile": [
+                        "Hanken Grotesk"
+                ],
+                "headline-md": [
+                        "Hanken Grotesk"
+                ],
+                "body-md": [
+                        "Hanken Grotesk"
+                ]
+        },
+        "fontSize": {
+                "label-sm": [
+                        "12px",
+                        {
+                                "lineHeight": "16px",
+                                "letterSpacing": "0.05em",
+                                "fontWeight": "500"
+                        }
+                ],
+                "body-lg": [
+                        "18px",
+                        {
+                                "lineHeight": "28px",
+                                "fontWeight": "350"
+                        }
+                ],
+                "display-lg": [
+                        "48px",
+                        {
+                                "lineHeight": "56px",
+                                "letterSpacing": "-0.02em",
+                                "fontWeight": "350"
+                        }
+                ],
+                "display-lg-mobile": [
+                        "32px",
+                        {
+                                "lineHeight": "40px",
+                                "letterSpacing": "-0.01em",
+                                "fontWeight": "350"
+                        }
+                ],
+                "headline-md": [
+                        "24px",
+                        {
+                                "lineHeight": "32px",
+                                "fontWeight": "500"
+                        }
+                ],
+                "body-md": [
+                        "16px",
+                        {
+                                "lineHeight": "24px",
+                                "fontWeight": "350"
+                        }
+                ]
+        }
+},
+    },
+  }
+</script>
+<style>
+        body { font-family: 'Hanken Grotesk', sans-serif; font-weight: 350; letter-spacing: -0.02em; background-color: var(--color-surface, #f8f9ff); color: #0d1c2f; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 20; }
+        .material-symbols-outlined.fill { font-variation-settings: 'FILL' 1; }
+        html { scroll-behavior: smooth; }
+        * { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+        .schedule-scroll::-webkit-scrollbar { width: 4px; }
+        .schedule-scroll::-webkit-scrollbar-track { background: transparent; }
+        .schedule-scroll::-webkit-scrollbar-thumb { background-color: #c5c5d3; border-radius: 20px; }
+        .shadow-glow-blue { box-shadow: 0 4px 20px -4px rgba(100, 168, 254, 0.15); }
+        .app-section { background-color: transparent; border-top: 1px solid rgba(197, 197, 211, 0.5); }
+        .list-item-hover:hover { background-color: #e6eeff; border-radius: 8px; }
+        h1, h2, h3, h4, p, span, td, th { letter-spacing: -0.02em; font-weight: 350; }
+        .font-medium { font-weight: 400; }
+        .font-bold { font-weight: 500; }
+        .rounded-full-capsule { border-radius: 8px; }
+    </style>
+</head>
+<body class="flex min-h-screen text-on-surface bg-white">
+<!-- SideNavBar -->
+<nav class="hidden md:flex fixed left-0 top-0 h-full w-64 flex-col z-50 py-8 border-r border-outline-variant/30 bg-white">
+<div class="px-6 mb-12">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-primary-container text-on-primary flex items-center justify-center font-medium text-[14px]">J</div>
+<div>
+<h1 class="font-headline-md text-[16px] font-medium text-on-surface tracking-tight">JobCal</h1>
+<p class="font-label-sm text-[10px] text-outline tracking-normal">就職活動状況</p>
+</div>
+</div>
+</div>
+<div class="flex-1 px-4 space-y-1">
+<a class="flex items-center gap-3 text-on-surface-variant px-4 py-2 hover:bg-surface-container hover:text-on-surface rounded-full transition-all duration-200 font-body-md text-[14px]" href="#">
+<span class="material-symbols-outlined text-[18px]" data-icon="home">home</span>
+            ホーム
+        </a>
+<a class="flex items-center gap-3 bg-surface-container-high text-primary-container rounded-full px-4 py-2 font-body-md text-[14px] shadow-sm border border-outline-variant/40" href="#">
+<span class="material-symbols-outlined fill text-[18px]" data-icon="business_center">business_center</span>
+            企業
+        </a>
+<a class="flex items-center gap-3 text-on-surface-variant px-4 py-2 hover:bg-surface-container hover:text-on-surface rounded-full transition-all duration-200 font-body-md text-[14px]" href="#">
+<span class="material-symbols-outlined text-[18px]" data-icon="calendar_today">calendar_today</span>
+            カレンダー
+        </a>
+<a class="flex items-center gap-3 text-on-surface-variant px-4 py-2 hover:bg-surface-container hover:text-on-surface rounded-full transition-all duration-200 font-body-md text-[14px]" href="#">
+<span class="material-symbols-outlined text-[18px]" data-icon="bar_chart">bar_chart</span>
+            アナリティクス
+        </a>
+</div>
+<div class="px-4 mt-auto">
+<a class="flex items-center gap-3 text-on-surface-variant px-4 py-2 hover:bg-surface-container hover:text-on-surface rounded-full transition-all duration-200 font-body-md text-[14px]" href="#">
+<span class="material-symbols-outlined text-[18px]" data-icon="settings">settings</span>
+            設定
+        </a>
+</div>
+</nav>
+<!-- Main Content Area -->
+<main class="flex-1 ml-0 md:ml-64 flex flex-col min-h-screen relative bg-white">
+<!-- TopAppBar -->
+<header class="flex justify-between items-center w-full px-10 h-16 backdrop-blur-md docked full-width top-0 sticky z-40 flat no shadows border-b border-outline-variant/20 bg-white/90">
+<div class="flex-1">
+<button class="md:hidden text-on-surface p-2">
+<span class="material-symbols-outlined">menu</span>
+</button>
+</div>
+<div class="flex items-center gap-4">
+<button class="flex items-center gap-2 bg-surface-container text-on-surface px-3 py-1.5 rounded-md font-label-sm text-[11px] hover:bg-surface-container-high transition-all border border-outline-variant/40">
+<span class="material-symbols-outlined text-[14px]">auto_awesome</span>
+                JobCal AI
+            </button>
+<button class="w-8 h-8 flex items-center justify-center rounded-md hover:bg-surface-container text-on-surface-variant transition-all">
+<span class="material-symbols-outlined text-[18px]" data-icon="notifications">notifications</span>
+</button>
+<button class="w-7 h-7 rounded-full overflow-hidden border border-outline-variant/40 hover:opacity-80 transition-opacity">
+<img alt="User profile photo" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBCSde5LELE9CUq1iAQn_0cXBq4rg9txgxeJLU_CousrdMYxudiIfc2ULcXBeLlEZsOtKq1TKaxCVPDcWswUl7ZigQF5wTLCXF8KbSmQXrMg9scV3PQQD_NijtWcg3rp3qSLMt5m8gE0KET_0VxAMH_Ek94Ge3thGzJ1OF3wsYX1ZThej_oCDVaLFKDP9BnXKahVL-9jtX7c79IyZMzlSH1bf3_-dtfBZ5CNxtY2crIITj3cCryQrBp0Q">
+</button>
+</div>
+</header>
+<!-- Scrollable Content -->
+<div class="max-w-[1000px] w-full px-10 pb-20 mx-auto mt-8">
+<div class="mb-12">
+<div class="flex justify-between items-end">
+<div>
+<h2 class="font-headline-md text-[24px] tracking-tight leading-[1.2] text-on-surface mb-1">企業</h2>
+<p class="font-body-md text-[14px] text-outline">管理中の企業一覧と選考状況</p>
+</div>
+<div class="flex gap-3">
+<button class="flex items-center gap-1.5 bg-primary-container text-on-primary px-4 py-2 rounded-md font-body-md text-[13px] hover:bg-primary-container/90 transition-all h-fit" onclick="document.getElementById('modal-overlay').style.display = 'flex'">
+<span class="material-symbols-outlined text-[16px]">add</span>企業を登録
+                        </button>
+</div>
+</div>
+</div>
+<div class="flex flex-col md:flex-row justify-between items-center gap-4 mb-8">
+<!-- Left: Status Tabs -->
+<div class="flex gap-4">
+<button class="text-primary-container font-label-sm text-[11px] hover:text-primary-container transition-colors border-b-2 border-primary-container pb-1">すべて</button>
+<button class="text-outline font-label-sm text-[11px] hover:text-on-surface transition-colors pb-1">選考中</button>
+<button class="text-outline font-label-sm text-[11px] hover:text-on-surface transition-colors pb-1">内定</button>
+<button class="text-outline font-label-sm text-[11px] hover:text-on-surface transition-colors pb-1">不採用</button>
+</div>
+<!-- Right: Search and Dropdowns -->
+<div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
+<div class="relative flex-1 md:flex-none">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[18px]">search</span>
+<input class="w-full md:w-56 pl-9 pr-4 py-1.5 bg-surface-container border border-outline-variant/40 rounded-md font-body-md text-[13px] focus:ring-2 focus:ring-primary-container/50 outline-none" placeholder="企業名で検索" type="text">
+</div>
+<div class="relative">
+<select class="appearance-none bg-surface-container border border-outline-variant/40 rounded-md pl-4 pr-8 py-1.5 font-body-md text-[13px] text-on-surface-variant focus:ring-2 focus:ring-primary-container/50 outline-none cursor-pointer">
+<option>優先度</option>
+<option>高</option>
+<option>中</option>
+<option>低</option>
+</select>
+<span class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-outline text-[16px] pointer-events-none">expand_more</span>
+</div>
+<div class="relative">
+<select class="appearance-none bg-surface-container border border-outline-variant/40 rounded-md pl-4 pr-8 py-1.5 font-body-md text-[13px] text-on-surface-variant focus:ring-2 focus:ring-primary-container/50 outline-none cursor-pointer">
+<option>選考フェーズ</option>
+<option>書類選考</option>
+<option>面接</option>
+<option>最終面接</option>
+</select>
+<span class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-outline text-[16px] pointer-events-none">expand_more</span>
+</div>
+</div>
+</div>
+<div class="bg-transparent border-none">
+<table class="w-full text-left border-collapse table-fixed">
+<thead class="rounded-md bg-white">
+<tr>
+<th class="py-2 px-4 font-label-sm text-[11px] text-outline w-[35%] tracking-normal rounded-tl-md">企業名</th>
+<th class="py-2 font-label-sm text-[11px] text-outline w-[15%] whitespace-nowrap tracking-normal">選考フェーズ</th>
+<th class="py-2 font-label-sm text-[11px] text-outline w-[10%] whitespace-nowrap tracking-normal">ステータス</th>
+<th class="py-2 font-label-sm text-[11px] text-outline w-[15%] whitespace-nowrap tracking-normal">次回予定</th>
+<th class="py-2 font-label-sm text-[11px] text-outline w-[10%] whitespace-nowrap tracking-normal">優先度</th>
+<th class="py-2 font-label-sm text-[11px] text-outline w-[10%] whitespace-nowrap tracking-normal">最終更新</th>
+<th class="py-2 font-label-sm text-[11px] text-outline text-center w-8 whitespace-nowrap tracking-normal rounded-tr-md" style="opacity: 0;"></th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant/10 border-t border-outline-variant/30 mt-2">
+<tr class="list-item-hover transition-colors group border-b border-transparent">
+<td class="font-body-md text-[14px] text-on-surface overflow-hidden text-ellipsis whitespace-nowrap py-2 px-4">
+<div class="flex items-center"><span class="overflow-hidden text-ellipsis font-medium">株式会社グローバルテクノロジーソリューションズ</span></div>
+</td>
+<td class="font-label-sm text-[12px] whitespace-nowrap text-outline py-2 pr-2">2次面接</td>
+<td class="py-2 pr-2"><span class="bg-surface-container text-on-surface px-2 py-0.5 rounded-full font-label-sm text-[10px] whitespace-nowrap border border-outline-variant/40">選考中</span></td>
+<td class="font-label-sm text-[11px] whitespace-nowrap text-outline py-2 pr-2 tracking-normal">10/24 14:00</td>
+<td class="py-2 pr-2"><span class="text-error bg-error-container px-2 py-0.5 rounded-full font-label-sm text-[10px] whitespace-nowrap border border-error/20">高</span></td>
+<td class="font-label-sm text-[11px] text-outline whitespace-nowrap py-2 pr-2 tracking-normal">今日 10:30</td>
+<td class="text-center py-2"><button class="text-outline hover:text-on-surface transition-colors flex items-center justify-center w-full opacity-0 group-hover:opacity-100"><span class="material-symbols-outlined text-[18px]">more_vert</span></button></td>
+</tr>
+<tr class="list-item-hover transition-colors group border-b border-transparent">
+<td class="font-body-md text-[14px] text-on-surface overflow-hidden text-ellipsis whitespace-nowrap py-2 px-4">
+<div class="flex items-center"><span class="overflow-hidden text-ellipsis font-medium">未来産業株式会社</span></div>
+</td>
+<td class="font-label-sm text-[12px] whitespace-nowrap text-outline py-2 pr-2">書類選考</td>
+<td class="py-2 pr-2"><span class="bg-surface-container text-on-surface px-2 py-0.5 rounded-full font-label-sm text-[10px] whitespace-nowrap border border-outline-variant/40">選考中</span></td>
+<td class="font-label-sm text-[11px] whitespace-nowrap text-outline py-2 pr-2 tracking-normal">-</td>
+<td class="py-2 pr-2"><span class="text-primary-container bg-primary-fixed px-2 py-0.5 rounded-full font-label-sm text-[10px] whitespace-nowrap border border-primary-container/20">中</span></td>
+<td class="font-label-sm text-[11px] text-outline whitespace-nowrap py-2 pr-2 tracking-normal">昨日 18:15</td>
+<td class="text-center py-2"><button class="text-outline hover:text-on-surface transition-colors flex items-center justify-center w-full opacity-0 group-hover:opacity-100"><span class="material-symbols-outlined text-[18px]">more_vert</span></button></td>
+</tr>
+<tr class="list-item-hover transition-colors group border-b border-transparent">
+<td class="font-body-md text-[14px] text-on-surface overflow-hidden text-ellipsis whitespace-nowrap py-2 px-4">
+<div class="flex items-center"><span class="overflow-hidden text-ellipsis font-medium">デジタルフロンティア合同会社</span></div>
+</td>
+<td class="font-label-sm text-[12px] whitespace-nowrap text-outline py-2 pr-2">最終面接</td>
+<td class="py-2 pr-2"><span class="bg-[#e2f5ee] text-[#1a7f5c] px-2 py-0.5 rounded-full font-label-sm text-[10px] whitespace-nowrap border border-[#1a7f5c]/20">内定</span></td>
+<td class="font-label-sm text-[11px] whitespace-nowrap text-outline py-2 pr-2 tracking-normal">10/28 11:00</td>
+<td class="py-2 pr-2"><span class="text-error bg-error-container px-2 py-0.5 rounded-full font-label-sm text-[10px] whitespace-nowrap border border-error/20">高</span></td>
+<td class="font-label-sm text-[11px] text-outline whitespace-nowrap py-2 pr-2 tracking-normal">2日前</td>
+<td class="text-center py-2"><button class="text-outline hover:text-on-surface transition-colors flex items-center justify-center w-full opacity-0 group-hover:opacity-100"><span class="material-symbols-outlined text-[18px]">more_vert</span></button></td>
+</tr>
+<tr class="list-item-hover transition-colors group border-b border-transparent">
+<td class="font-body-md text-[14px] text-on-surface overflow-hidden text-ellipsis whitespace-nowrap py-2 px-4">
+<div class="flex items-center"><span class="overflow-hidden text-ellipsis font-medium">日本システムエンジニアリング株式会社</span></div>
+</td>
+<td class="font-label-sm text-[12px] whitespace-nowrap text-outline py-2 pr-2">1次面接</td>
+<td class="py-2 pr-2"><span class="bg-surface-container text-on-surface px-2 py-0.5 rounded-full font-label-sm text-[10px] whitespace-nowrap border border-outline-variant/40">選考中</span></td>
+<td class="font-label-sm text-[11px] whitespace-nowrap text-outline py-2 pr-2 tracking-normal">11/02 10:00</td>
+<td class="py-2 pr-2"><span class="text-primary-container bg-primary-fixed px-2 py-0.5 rounded-full font-label-sm text-[10px] whitespace-nowrap border border-primary-container/20">中</span></td>
+<td class="font-label-sm text-[11px] text-outline whitespace-nowrap py-2 pr-2 tracking-normal">3日前</td>
+<td class="text-center py-2"><button class="text-outline hover:text-on-surface transition-colors flex items-center justify-center w-full opacity-0 group-hover:opacity-100"><span class="material-symbols-outlined text-[18px]">more_vert</span></button></td>
+</tr>
+<tr class="list-item-hover transition-colors group border-b border-transparent">
+<td class="font-body-md text-[14px] text-on-surface overflow-hidden text-ellipsis whitespace-nowrap py-2 px-4">
+<div class="flex items-center"><span class="overflow-hidden text-ellipsis font-medium">豊田イノベーションズ</span></div>
+</td>
+<td class="font-label-sm text-[12px] whitespace-nowrap text-outline py-2 pr-2">カジュアル面談</td>
+<td class="py-2 pr-2"><span class="bg-surface-container text-on-surface px-2 py-0.5 rounded-full font-label-sm text-[10px] whitespace-nowrap border border-outline-variant/40">選考中</span></td>
+<td class="font-label-sm text-[11px] whitespace-nowrap text-outline py-2 pr-2 tracking-normal">未定</td>
+<td class="py-2 pr-2"><span class="text-error bg-error-container px-2 py-0.5 rounded-full font-label-sm text-[10px] whitespace-nowrap border border-error/20">高</span></td>
+<td class="font-label-sm text-[11px] text-outline whitespace-nowrap py-2 pr-2 tracking-normal">4日前</td>
+<td class="text-center py-2"><button class="text-outline hover:text-on-surface transition-colors flex items-center justify-center w-full opacity-0 group-hover:opacity-100"><span class="material-symbols-outlined text-[18px]">more_vert</span></button></td>
+</tr>
+<tr class="list-item-hover transition-colors group border-b border-transparent">
+<td class="font-body-md text-[14px] text-on-surface overflow-hidden text-ellipsis whitespace-nowrap py-2 px-4">
+<div class="flex items-center"><span class="overflow-hidden text-ellipsis font-medium">楽天グループ株式会社</span></div>
+</td>
+<td class="font-label-sm text-[12px] whitespace-nowrap text-outline py-2 pr-2">書類選考</td>
+<td class="py-2 pr-2"><span class="bg-surface-container text-on-surface px-2 py-0.5 rounded-full font-label-sm text-[10px] whitespace-nowrap border border-outline-variant/40">選考中</span></td>
+<td class="font-label-sm text-[11px] whitespace-nowrap text-outline py-2 pr-2 tracking-normal">-</td>
+<td class="py-2 pr-2"><span class="text-primary-container bg-primary-fixed px-2 py-0.5 rounded-full font-label-sm text-[10px] whitespace-nowrap border border-primary-container/20">中</span></td>
+<td class="font-label-sm text-[11px] text-outline whitespace-nowrap py-2 pr-2 tracking-normal">5日前</td>
+<td class="text-center py-2"><button class="text-outline hover:text-on-surface transition-colors flex items-center justify-center w-full opacity-0 group-hover:opacity-100"><span class="material-symbols-outlined text-[18px]">more_vert</span></button></td>
+</tr>
+<tr class="list-item-hover transition-colors group border-b border-transparent">
+<td class="font-body-md text-[14px] text-on-surface overflow-hidden text-ellipsis whitespace-nowrap py-2 px-4">
+<div class="flex items-center"><span class="overflow-hidden text-ellipsis font-medium">ソフトバンクグループ</span></div>
+</td>
+<td class="font-label-sm text-[12px] whitespace-nowrap text-outline py-2 pr-2">最終面接</td>
+<td class="py-2 pr-2"><span class="bg-[#e2f5ee] text-[#1a7f5c] px-2 py-0.5 rounded-full font-label-sm text-[10px] whitespace-nowrap border border-[#1a7f5c]/20">内定</span></td>
+<td class="font-label-sm text-[11px] whitespace-nowrap text-outline py-2 pr-2 tracking-normal">11/05 15:00</td>
+<td class="py-2 pr-2"><span class="text-error bg-error-container px-2 py-0.5 rounded-full font-label-sm text-[10px] whitespace-nowrap border border-error/20">高</span></td>
+<td class="font-label-sm text-[11px] text-outline whitespace-nowrap py-2 pr-2 tracking-normal">1週間前</td>
+<td class="text-center py-2"><button class="text-outline hover:text-on-surface transition-colors flex items-center justify-center w-full opacity-0 group-hover:opacity-100"><span class="material-symbols-outlined text-[18px]">more_vert</span></button></td>
+</tr>
+<tr class="list-item-hover transition-colors group border-b border-transparent">
+<td class="font-body-md text-[14px] text-on-surface overflow-hidden text-ellipsis whitespace-nowrap py-2 px-4">
+<div class="flex items-center"><span class="overflow-hidden text-ellipsis font-medium">サイバーエージェント</span></div>
+</td>
+<td class="font-label-sm text-[12px] whitespace-nowrap text-outline py-2 pr-2">1次面接</td>
+<td class="py-2 pr-2"><span class="bg-surface-container text-on-surface px-2 py-0.5 rounded-full font-label-sm text-[10px] whitespace-nowrap border border-outline-variant/40">選考中</span></td>
+<td class="font-label-sm text-[11px] whitespace-nowrap text-outline py-2 pr-2 tracking-normal">11/08 13:00</td>
+<td class="py-2 pr-2"><span class="text-primary-container bg-primary-fixed px-2 py-0.5 rounded-full font-label-sm text-[10px] whitespace-nowrap border border-primary-container/20">中</span></td>
+<td class="font-label-sm text-[11px] text-outline whitespace-nowrap py-2 pr-2 tracking-normal">1週間前</td>
+<td class="text-center py-2"><button class="text-outline hover:text-on-surface transition-colors flex items-center justify-center w-full opacity-0 group-hover:opacity-100"><span class="material-symbols-outlined text-[18px]">more_vert</span></button></td>
+</tr>
+<tr class="list-item-hover transition-colors group border-b border-transparent">
+<td class="font-body-md text-[14px] text-on-surface overflow-hidden text-ellipsis whitespace-nowrap py-2 px-4">
+<div class="flex items-center"><span class="overflow-hidden text-ellipsis font-medium">株式会社メルカリ</span></div>
+</td>
+<td class="font-label-sm text-[12px] whitespace-nowrap text-outline py-2 pr-2">2次面接</td>
+<td class="py-2 pr-2"><span class="bg-surface-container text-on-surface px-2 py-0.5 rounded-full font-label-sm text-[10px] whitespace-nowrap border border-outline-variant/40">選考中</span></td>
+<td class="font-label-sm text-[11px] whitespace-nowrap text-outline py-2 pr-2 tracking-normal">11/12 10:00</td>
+<td class="py-2 pr-2"><span class="text-primary-container bg-primary-fixed px-2 py-0.5 rounded-full font-label-sm text-[10px] whitespace-nowrap border border-primary-container/20">中</span></td>
+<td class="font-label-sm text-[11px] text-outline whitespace-nowrap py-2 pr-2 tracking-normal">1週間前</td>
+<td class="text-center py-2"><button class="text-outline hover:text-on-surface transition-colors flex items-center justify-center w-full opacity-0 group-hover:opacity-100"><span class="material-symbols-outlined text-[18px]">more_vert</span></button></td>
+</tr>
+<tr class="list-item-hover transition-colors group border-b border-transparent">
+<td class="font-body-md text-[14px] text-on-surface overflow-hidden text-ellipsis whitespace-nowrap py-2 px-4">
+<div class="flex items-center"><span class="overflow-hidden text-ellipsis font-medium">LINEヤフー株式会社</span></div>
+</td>
+<td class="font-label-sm text-[12px] whitespace-nowrap text-outline py-2 pr-2">書類選考</td>
+<td class="py-2 pr-2"><span class="bg-surface-container text-on-surface px-2 py-0.5 rounded-full font-label-sm text-[10px] whitespace-nowrap border border-outline-variant/40">選考中</span></td>
+<td class="font-label-sm text-[11px] whitespace-nowrap text-outline py-2 pr-2 tracking-normal">-</td>
+<td class="py-2 pr-2"><span class="text-outline bg-surface-container px-2 py-0.5 rounded-full font-label-sm text-[10px] whitespace-nowrap border border-outline/20">低</span></td>
+<td class="font-label-sm text-[11px] text-outline whitespace-nowrap py-2 pr-2 tracking-normal">2週間前</td>
+<td class="text-center py-2"><button class="text-outline hover:text-on-surface transition-colors flex items-center justify-center w-full opacity-0 group-hover:opacity-100"><span class="material-symbols-outlined text-[18px]">more_vert</span></button></td>
+</tr>
+</tbody>
+</table>
+<div class="flex items-center justify-between py-4 mt-2">
+<div class="font-label-sm text-[11px] text-outline tracking-normal">全24件中 1–10件を表示</div>
+<div class="flex items-center gap-1">
+<button class="w-6 h-6 flex items-center justify-center text-outline hover:text-on-surface transition-colors"><span class="material-symbols-outlined text-[16px]">chevron_left</span></button>
+<button class="w-6 h-6 flex items-center justify-center rounded-full bg-primary-container text-on-primary font-medium font-body-md text-[13px]" onclick="document.getElementById('modal-overlay').classList.remove('hidden')">1</button>
+<button class="w-6 h-6 flex items-center justify-center rounded-full hover:bg-surface-container text-on-surface-variant font-body-md text-[13px] transition-colors">2</button>
+<button class="w-6 h-6 flex items-center justify-center rounded-full hover:bg-surface-container text-on-surface-variant font-body-md text-[13px] transition-colors">3</button>
+<button class="w-6 h-6 flex items-center justify-center text-outline hover:text-on-surface transition-colors"><span class="material-symbols-outlined text-[16px]">chevron_right</span></button>
+</div>
+</div>
+</div>
+</div>
+</main>
+<div class="fixed inset-0 z-[100] flex items-center justify-center p-4" id="modal-overlay">
+<!-- Backdrop -->
+<div class="absolute inset-0 bg-[#0d1c2f]/20 backdrop-blur-sm"></div>
+<!-- Modal Container -->
+<div class="relative w-full max-w-[560px] rounded-[24px] shadow-sm overflow-hidden flex flex-col max-h-[90vh] bg-surface-container-lowest">
+<!-- Modal Header -->
+<div class="flex items-center justify-between px-10 pt-10 pb-4 bg-surface-container-lowest">
+<h2 class="font-headline-md text-[24px] font-[350] text-on-surface-variant tracking-tight">予定を追加</h2>
+<button class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors text-outline -mt-2 -mr-2" onclick="document.getElementById('modal-overlay').style.display = 'none'">
+<span class="material-symbols-outlined text-[20px]">close</span>
+</button>
+</div>
+<!-- Modal Body (Scrollable) -->
+<div class="flex-1 overflow-y-auto px-10 py-6">
+<form class="space-y-6">
+<!-- Title -->
+<div class="space-y-3">
+<label class="block font-label-sm text-[12px] text-on-surface-variant font-[400]">タイトル</label>
+<input class="w-full px-4 py-3 rounded-full border-none focus:outline-none focus:ring-1 focus:ring-primary-container font-body-md text-[14px] text-on-surface-variant bg-surface-container placeholder-outline transition-all" placeholder="例：2次面接" type="text">
+</div>
+<!-- Date & Time Group -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<div class="space-y-3">
+<label class="block font-label-sm text-[12px] text-on-surface-variant font-[400]">日付</label>
+<input class="w-full px-4 py-3 rounded-full border-none focus:outline-none focus:ring-1 focus:ring-primary-container font-body-md text-[14px] text-on-surface-variant bg-surface-container transition-all" type="date">
+</div>
+<div class="space-y-3">
+<label class="block font-label-sm text-[12px] text-on-surface-variant font-[400]">開始時間</label>
+<input class="w-full px-4 py-3 rounded-full border-none focus:outline-none focus:ring-1 focus:ring-primary-container font-body-md text-[14px] text-on-surface-variant bg-surface-container transition-all" type="time">
+</div>
+<div class="space-y-3">
+<label class="block font-label-sm text-[12px] text-on-surface-variant font-[400]">終了時間</label>
+<input class="w-full px-4 py-3 rounded-full border-none focus:outline-none focus:ring-1 focus:ring-primary-container font-body-md text-[14px] text-on-surface-variant bg-surface-container transition-all" type="time">
+</div>
+</div>
+<!-- All Day Toggle -->
+<div class="flex items-center gap-3">
+<input class="w-5 h-5 rounded border-none text-primary-container focus:ring-1 focus:ring-primary-container bg-surface-container" id="all-day" type="checkbox">
+<label class="font-body-md text-[14px] text-on-surface-variant" for="all-day">終日</label>
+</div>
+<!-- Type & Format -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<div class="space-y-3">
+<label class="block font-label-sm text-[12px] text-on-surface-variant font-[400]">種類</label>
+<div class="relative">
+<select class="w-full appearance-none px-4 py-3 rounded-full border-none focus:outline-none focus:ring-1 focus:ring-primary-container font-body-md text-[14px] text-on-surface-variant bg-surface-container cursor-pointer transition-all">
+<option>面接</option>
+<option>説明会</option>
+<option>面談</option>
+<option>その他</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-[18px] pointer-events-none text-outline">expand_more</span>
+</div>
+</div>
+<div class="space-y-3">
+<label class="block font-label-sm text-[12px] text-on-surface-variant font-[400]">形式</label>
+<div class="relative">
+<select class="w-full appearance-none px-4 py-3 rounded-full border-none focus:outline-none focus:ring-1 focus:ring-primary-container font-body-md text-[14px] text-on-surface-variant bg-surface-container cursor-pointer transition-all">
+<option>オンライン</option>
+<option>対面</option>
+<option>電話</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-[18px] pointer-events-none text-outline">expand_more</span>
+</div>
+</div>
+</div>
+<!-- URL & Location -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<div class="space-y-3">
+<label class="block font-label-sm text-[12px] text-on-surface-variant font-[400]">URL</label>
+<input class="w-full px-4 py-3 rounded-full border-none focus:outline-none focus:ring-1 focus:ring-primary-container font-body-md text-[14px] text-on-surface-variant bg-surface-container placeholder-outline transition-all" placeholder="https://..." type="url">
+</div>
+<div class="space-y-3">
+<label class="block font-label-sm text-[12px] text-on-surface-variant font-[400]">場所</label>
+<input class="w-full px-4 py-3 rounded-full border-none focus:outline-none focus:ring-1 focus:ring-primary-container font-body-md text-[14px] text-on-surface-variant bg-surface-container placeholder-outline transition-all" placeholder="会議室Aなど" type="text">
+</div>
+</div>
+<!-- Reminder -->
+<div class="space-y-3">
+<label class="block font-label-sm text-[12px] text-on-surface-variant font-[400]">リマインダー</label>
+<div class="relative">
+<select class="w-full appearance-none px-4 py-3 rounded-full border-none focus:outline-none focus:ring-1 focus:ring-primary-container font-body-md text-[14px] text-on-surface-variant bg-surface-container cursor-pointer transition-all">
+<option>15分前</option>
+<option>30分前</option>
+<option>1時間前</option>
+<option>1日前</option>
+<option>なし</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-[18px] pointer-events-none text-outline">expand_more</span>
+</div>
+</div>
+<!-- Memo -->
+<div class="space-y-3">
+<label class="block font-label-sm text-[12px] text-on-surface-variant font-[400]">メモ</label>
+<textarea class="w-full px-4 py-3 rounded-xl border-none focus:outline-none focus:ring-1 focus:ring-primary-container font-body-md text-[14px] text-on-surface-variant resize-none bg-surface-container placeholder-outline transition-all" placeholder="準備するものなど" rows="3"></textarea>
+</div>
+</form>
+</div>
+<!-- Modal Footer -->
+<div class="px-10 pb-10 pt-4 flex justify-end gap-6 bg-surface-container-lowest">
+<button class="text-outline font-body-md text-[14px] hover:text-on-surface-variant transition-colors" onclick="document.getElementById('modal-overlay').style.display = 'none'">
+        キャンセル
+      </button>
+<button class="px-8 py-2.5 rounded-full bg-primary-container text-on-primary font-body-md text-[14px] font-medium hover:opacity-90 transition-all shadow-sm">
+        保存する
+      </button>
+</div>
+</div>
+</div>
+</body></html>

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, ChevronUp, X } from "lucide-react";
 import { useApplicationSteps } from "@/lib/application-steps-context";
 import {
   STEP_STATUSES,
@@ -10,34 +9,15 @@ import {
   type StepStatus,
 } from "@/lib/applicationSteps";
 import { useEvents } from "@/lib/events-context";
-import {
-  createEmptyEventFormValues,
-  eventToFormValues,
-  type AppEvent,
-  type EventType,
-} from "@/lib/events";
 import { useT } from "@/lib/locale-context";
-import EventForm from "@/components/companies/EventForm";
-import Button from "@/components/ui/Button";
-import Select from "@/components/ui/Select";
-import Input from "@/components/ui/Input";
-import Badge from "@/components/ui/Badge";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import MaterialIcon from "@/components/ui/MaterialIcon";
 
-// lib/applicationSteps.ts의 STEP_STATUS_LABELS(한국어 고정)는 그대로 두고,
-// 표시 라벨만 companies.steps.statusLabels.*로 번역한다. 내부 enum 값은 불변.
 const STEP_STATUS_LABEL_KEYS: Record<StepStatus, string> = {
   waiting: "companies.steps.statusLabels.waiting",
   action_required: "companies.steps.statusLabels.actionRequired",
   scheduled: "companies.steps.statusLabels.scheduled",
   completed: "companies.steps.statusLabels.completed",
-};
-
-// lib/events.ts의 EVENT_TYPE_LABELS(한국어 고정)도 그대로 두고 표시 라벨만 번역한다.
-const EVENT_TYPE_LABEL_KEYS: Record<EventType, string> = {
-  schedule: "companies.events.types.schedule",
-  deadline: "companies.events.types.deadline",
-  result_announcement: "companies.events.types.resultAnnouncement",
 };
 
 interface StepDetailPanelProps {
@@ -46,275 +26,229 @@ interface StepDetailPanelProps {
   onClose: () => void;
 }
 
-function formatEventDate(iso: string | null) {
-  if (!iso) return null;
-  const date = new Date(iso);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
-}
-
-export default function StepDetailPanel({ companyId, selectedStepId, onClose }: StepDetailPanelProps) {
+// docs/stitch/메인페이지 5개/jobcal_company_detail_refined_information_ia의 "選考詳細" 섹션.
+// 예전엔 전형을 선택했을 때만 나타나는 별도 패널이었지만, Stitch는 항상 보이는 카드 하나로
+// "선택된 전형(없으면 현재 전형)"의 상태/다음 단계/일시/형식을 보여준다. 상태 변경/이름
+// 변경/순서 변경/삭제는 기존 useApplicationSteps 로직을 그대로 재사용한다. 일정 추가/수정은
+// CompanySchedulePanel(今後の予定)로 옮겨서 여기서는 다루지 않는다.
+export default function StepDetailPanel({ companyId, selectedStepId }: StepDetailPanelProps) {
   const t = useT();
-  const {
-    steps,
-    error: stepsError,
-    deleteStep,
-    renameStep,
-    updateStepStatus,
-    moveStep,
-  } = useApplicationSteps();
-  const {
-    events,
-    error: eventsError,
-    addEvent,
-    updateEvent,
-    deleteEvent,
-    refresh: refreshEvents,
-  } = useEvents();
+  const { steps, error: stepsError, deleteStep, renameStep, updateStepStatus, moveStep } =
+    useApplicationSteps();
+  const { events, refresh: refreshEvents } = useEvents();
   const [isRenaming, setIsRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState("");
-  const [eventFormState, setEventFormState] = useState<{ event: AppEvent | null } | null>(null);
-  // 이 패널에는 항상 step 하나만 표시되므로(선택된 전형), companies/[id]/page.tsx의
-  // isDeleteConfirmOpen과 같은 boolean 하나로 충분하다. 삭제 대상 일정은 여러 개 중 하나를
-  // 골라야 하므로 companies/page.tsx의 deleteTarget과 동일하게 대상 객체 자체를 담는다.
-  const [isStepDeleteConfirmOpen, setIsStepDeleteConfirmOpen] = useState(false);
-  const [eventDeleteTarget, setEventDeleteTarget] = useState<AppEvent | null>(null);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
 
   const companySteps = steps
     .filter((step) => step.companyId === companyId)
     .sort((a, b) => a.stepOrder - b.stepOrder);
   const currentStep = getCurrentStep(companySteps);
-  const step = companySteps.find((s) => s.id === selectedStepId);
+  const step = companySteps.find((s) => s.id === selectedStepId) ?? currentStep;
 
-  if (!step) {
-    return (
-      <section className="mb-8 rounded-lg border border-border bg-card p-6">
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-secondary">{t("companies.steps.noStepSelected")}</p>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={onClose}
-            aria-label={t("common.close")}
-          >
-            <X size={16} />
-          </Button>
-        </div>
-      </section>
-    );
-  }
+  if (!step) return null;
 
   const index = companySteps.findIndex((s) => s.id === step.id);
-  const stepEvents = events.filter((event) => event.applicationStepId === step.id);
-  const isCurrent = currentStep?.id === step.id;
+  const stepEvents = events
+    .filter((event) => event.applicationStepId === step.id)
+    .map((event) => ({ event, at: event.startsAt ?? event.dueAt }))
+    .filter((row): row is { event: (typeof events)[number]; at: string } => row.at !== null)
+    .sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
+  const nextEvent = stepEvents[0];
 
   function startRename() {
     setRenameValue(step!.name);
     setIsRenaming(true);
+    setIsMenuOpen(false);
   }
 
   async function confirmRename() {
-    if (!renameValue.trim()) return;
+    if (!renameValue.trim()) {
+      setIsRenaming(false);
+      return;
+    }
     const ok = await renameStep(step!.id, renameValue);
     if (ok) setIsRenaming(false);
   }
 
-  // companies/page.tsx handleConfirmDelete와 동일하게, 성공/실패 여부와 무관하게 항상
-  // 확인창을 닫는다. 실패 시 안내는 기존 stepsError 배너가 그대로 담당한다.
-  // 전형 삭제는 DB에서 연결된 events도 함께 CASCADE 삭제되지만, events Context의 로컬
-  // state는 그대로라 성공 시에만 refreshEvents()로 다시 받아와 유령 일정을 남기지 않는다.
   async function handleConfirmDeleteStep() {
     const ok = await deleteStep(step!.id);
     if (ok) refreshEvents();
-    setIsStepDeleteConfirmOpen(false);
+    setIsDeleteConfirmOpen(false);
   }
 
-  async function handleConfirmDeleteEvent() {
-    if (!eventDeleteTarget) return;
-    await deleteEvent(eventDeleteTarget.id);
-    setEventDeleteTarget(null);
+  function formatDateTime(iso: string, endsAt: string | null) {
+    const date = new Date(iso);
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const base = `${date.getFullYear()}年${pad(date.getMonth() + 1)}月${pad(date.getDate())}日 ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+    if (!endsAt) return base;
+    const end = new Date(endsAt);
+    return `${base}-${pad(end.getHours())}:${pad(end.getMinutes())}`;
   }
 
   return (
-    <section className="mb-8 rounded-lg border border-border bg-card p-6">
-      {(stepsError || eventsError) && (
-        <p className="mb-4 rounded-lg border border-error/40 bg-error/10 px-4 py-3 text-sm text-error">
-          {stepsError || eventsError}
+    <section className="relative">
+      {stepsError && (
+        <p className="mb-4 rounded-[10px] border border-error/40 bg-error/10 px-4 py-3 text-sm text-error">
+          {stepsError}
         </p>
       )}
 
-      <div className="flex flex-wrap items-center gap-2">
-        {isRenaming ? (
-          <div className="flex flex-1 items-center gap-2">
-            <Input
-              type="text"
-              value={renameValue}
-              onChange={(e) => setRenameValue(e.target.value)}
-              containerClassName="min-w-0 flex-1"
-              autoFocus
-            />
-            <Button type="button" variant="primary" size="sm" onClick={confirmRename}>
-              {t("common.save")}
-            </Button>
-            <Button type="button" variant="secondary" size="sm" onClick={() => setIsRenaming(false)}>
-              {t("common.cancel")}
-            </Button>
-          </div>
-        ) : (
-          <>
-            <h2 className="text-[16px] font-semibold text-foreground">
-              {getStepDisplayName(step, t)}
-            </h2>
-            {isCurrent && (
-              <Badge variant="primary" size="sm">
-                {t("companies.steps.currentBadge")}
-              </Badge>
-            )}
-          </>
-        )}
+      <h2 className="mb-4 flex items-center gap-1.5 text-[13px] font-[400] text-stitch-ink">
+        <MaterialIcon name="assignment" size={15} className="text-secondary" />
+        {t("companies.detail.selectionDetail.title")}
+      </h2>
 
-        <Select
-          value={step.stepStatus}
-          onChange={(e) => updateStepStatus(step.id, e.target.value as StepStatus)}
-          containerClassName="ml-auto w-36"
-        >
-          {STEP_STATUSES.map((status) => (
-            <option key={status} value={status}>
-              {t(STEP_STATUS_LABEL_KEYS[status])}
-            </option>
-          ))}
-        </Select>
-
-        <Button
+      <div className="relative">
+        <button
           type="button"
-          variant="ghost"
-          size="sm"
-          onClick={onClose}
-          aria-label={t("common.close")}
+          onClick={() => setIsMenuOpen((v) => !v)}
+          className="absolute right-0 top-0 flex h-8 w-8 items-center justify-center rounded-stitch-xl border border-stitch-border bg-card text-secondary shadow-sm transition-colors hover:bg-[#f8f9ff]"
+          aria-label={t("companies.detail.selectionDetail.moreMenu")}
         >
-          <X size={16} />
-        </Button>
-      </div>
-
-      {!isRenaming && (
-        <div className="mt-3 flex flex-wrap gap-2">
-          <Button type="button" variant="secondary" size="sm" onClick={startRename}>
-            {t("companies.steps.rename")}
-          </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            onClick={() => moveStep(step.id, "up")}
-            disabled={index === 0}
-            aria-label={t("companies.steps.moveUp")}
-          >
-            <ChevronUp size={14} />
-          </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            onClick={() => moveStep(step.id, "down")}
-            disabled={index === companySteps.length - 1}
-            aria-label={t("companies.steps.moveDown")}
-          >
-            <ChevronDown size={14} />
-          </Button>
-          <Button
-            type="button"
-            variant="danger"
-            size="sm"
-            onClick={() => setIsStepDeleteConfirmOpen(true)}
-          >
-            {t("common.delete")}
-          </Button>
-        </div>
-      )}
-
-      <div className="mt-4 flex flex-col gap-1.5 border-t border-border pt-4">
-        <p className="mb-1 text-xs font-medium text-secondary">{t("companies.steps.eventsHeading")}</p>
-        {stepEvents.length === 0 ? (
-          <p className="text-xs text-secondary">{t("companies.steps.noEvents")}</p>
-        ) : (
-          stepEvents.map((event) => (
-            <div key={event.id} className="flex flex-wrap items-center gap-2 text-xs">
-              <Badge variant="neutral" size="sm">
-                {t(EVENT_TYPE_LABEL_KEYS[event.eventType])}
-              </Badge>
-              <span className="truncate text-foreground">{event.title}</span>
-              <span className="text-secondary">
-                {formatEventDate(event.startsAt ?? event.dueAt) ?? t("companies.steps.noDateSet")}
-              </span>
+          <MaterialIcon name="more_vert" size={18} />
+        </button>
+        {isMenuOpen && (
+          <>
+            <div className="fixed inset-0 z-10" onClick={() => setIsMenuOpen(false)} />
+            <div className="absolute right-0 top-9 z-20 w-36 rounded-stitch-md border border-stitch-border bg-card py-1 text-left shadow-lg">
               <button
                 type="button"
-                onClick={() => setEventFormState({ event })}
-                className="-my-3 py-3 text-secondary hover:text-primary hover:underline"
+                onClick={startRename}
+                className="block w-full px-3 py-2 text-left text-[12px] text-stitch-ink hover:bg-[#f8f9ff]"
               >
-                {t("common.edit")}
+                {t("companies.steps.rename")}
               </button>
               <button
                 type="button"
-                onClick={() => setEventDeleteTarget(event)}
-                className="-my-3 py-3 text-secondary hover:text-error hover:underline"
+                disabled={index === 0}
+                onClick={() => {
+                  moveStep(step!.id, "up");
+                  setIsMenuOpen(false);
+                }}
+                className="block w-full px-3 py-2 text-left text-[12px] text-stitch-ink hover:bg-[#f8f9ff] disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {t("companies.steps.moveUp")}
+              </button>
+              <button
+                type="button"
+                disabled={index === companySteps.length - 1}
+                onClick={() => {
+                  moveStep(step!.id, "down");
+                  setIsMenuOpen(false);
+                }}
+                className="block w-full px-3 py-2 text-left text-[12px] text-stitch-ink hover:bg-[#f8f9ff] disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {t("companies.steps.moveDown")}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsDeleteConfirmOpen(true);
+                  setIsMenuOpen(false);
+                }}
+                className="block w-full px-3 py-2 text-left text-[12px] text-error hover:bg-[#f8f9ff]"
               >
                 {t("common.delete")}
               </button>
             </div>
-          ))
+          </>
         )}
-        <button
-          type="button"
-          onClick={() => setEventFormState({ event: null })}
-          className="self-start text-xs font-medium text-primary hover:underline"
-        >
-          {t("companies.steps.addEvent")}
-        </button>
+
+        <div className="space-y-4 pl-6">
+          <div className="flex items-center gap-4">
+            <span className="w-20 shrink-0 text-[11px] font-[400] text-secondary">
+              {t("companies.detail.selectionDetail.status")}
+            </span>
+            <div className="relative">
+              <select
+                value={step.stepStatus}
+                onChange={(e) => updateStepStatus(step!.id, e.target.value as StepStatus)}
+                className="cursor-pointer appearance-none rounded-stitch-md border border-stitch-border bg-[#f8f9ff] py-1 pl-3 pr-8 text-[12px] text-stitch-ink outline-none focus:ring-1 focus:ring-primary-navy/50"
+              >
+                {STEP_STATUSES.map((status) => (
+                  <option key={status} value={status}>
+                    {t(STEP_STATUS_LABEL_KEYS[status])}
+                  </option>
+                ))}
+              </select>
+              <MaterialIcon
+                name="expand_more"
+                size={14}
+                className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-secondary"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-start gap-4">
+            <span className="w-20 shrink-0 pt-0.5 text-[11px] font-[400] text-secondary">
+              {t("companies.detail.selectionDetail.nextStep")}
+            </span>
+            {isRenaming ? (
+              <div className="flex flex-1 items-center gap-2">
+                <input
+                  type="text"
+                  autoFocus
+                  value={renameValue}
+                  onChange={(e) => setRenameValue(e.target.value)}
+                  className="w-full rounded-stitch-md border border-primary-navy bg-white px-2 py-1 text-[12px] text-stitch-ink outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={confirmRename}
+                  className="shrink-0 rounded-stitch-md bg-primary-navy px-2 py-1 text-[11px] text-white"
+                >
+                  {t("common.save")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsRenaming(false)}
+                  className="shrink-0 rounded-stitch-md px-2 py-1 text-[11px] text-secondary hover:bg-black/[0.02]"
+                >
+                  {t("common.cancel")}
+                </button>
+              </div>
+            ) : (
+              <span className="text-[12px] font-[400] text-stitch-ink">
+                {getStepDisplayName(step, t)}
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-start gap-4">
+            <span className="w-20 shrink-0 pt-0.5 text-[11px] font-[400] text-secondary">
+              {t("companies.detail.selectionDetail.datetime")}
+            </span>
+            <span className="text-[12px] text-stitch-ink">
+              {nextEvent
+                ? formatDateTime(nextEvent.at, nextEvent.event.endsAt)
+                : t("companies.detail.selectionDetail.noDateSet")}
+            </span>
+          </div>
+
+          <div className="flex items-start gap-4">
+            <span className="w-20 shrink-0 pt-0.5 text-[11px] font-[400] text-secondary">
+              {t("companies.detail.selectionDetail.format")}
+            </span>
+            <span className="text-[12px] text-stitch-ink">
+              {nextEvent?.event.onlineUrl
+                ? t("companies.detail.selectionDetail.online")
+                : (nextEvent?.event.location ?? t("companies.detail.selectionDetail.noDateSet"))}
+            </span>
+          </div>
+        </div>
       </div>
 
-      {eventFormState && (
-        <EventForm
-          title={
-            eventFormState.event
-              ? t("companies.steps.editEventModalTitle")
-              : t("companies.steps.addEventModalTitle")
-          }
-          initialValues={
-            eventFormState.event
-              ? eventToFormValues(eventFormState.event)
-              : createEmptyEventFormValues()
-          }
-          onCancel={() => setEventFormState(null)}
-          onSubmit={async (values) => {
-            const ok = eventFormState.event
-              ? await updateEvent(eventFormState.event.id, values)
-              : await addEvent(companyId, step.id, values);
-            if (ok) setEventFormState(null);
-          }}
-        />
-      )}
-
       <ConfirmDialog
-        open={isStepDeleteConfirmOpen}
+        open={isDeleteConfirmOpen}
         title={t("companies.steps.deleteConfirm", { name: getStepDisplayName(step, t) })}
         description={t("common.cannotUndo")}
         confirmLabel={t("common.delete")}
         cancelLabel={t("common.cancel")}
         variant="danger"
-        onCancel={() => setIsStepDeleteConfirmOpen(false)}
+        onCancel={() => setIsDeleteConfirmOpen(false)}
         onConfirm={handleConfirmDeleteStep}
-      />
-
-      <ConfirmDialog
-        open={!!eventDeleteTarget}
-        title={t("companies.events.deleteConfirm", { title: eventDeleteTarget?.title ?? "" })}
-        description={t("common.cannotUndo")}
-        confirmLabel={t("common.delete")}
-        cancelLabel={t("common.cancel")}
-        variant="danger"
-        onCancel={() => setEventDeleteTarget(null)}
-        onConfirm={handleConfirmDeleteEvent}
       />
     </section>
   );

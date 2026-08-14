@@ -1,10 +1,8 @@
 "use client";
 
-import { Award, Briefcase, CalendarDays, CheckCircle2 } from "lucide-react";
 import { useCompanies } from "@/lib/companies-context";
 import { useEvents } from "@/lib/events-context";
 import { useApplicationSteps } from "@/lib/application-steps-context";
-import { dateKeyOf, todayKey } from "@/lib/date";
 import { useT } from "@/lib/locale-context";
 import LoadingState from "@/components/ui/LoadingState";
 import StatusDonutChart from "@/components/analytics/StatusDonutChart";
@@ -13,8 +11,11 @@ import CompanyTrendChart from "@/components/analytics/CompanyTrendChart";
 import UpcomingEventsCard from "@/components/analytics/UpcomingEventsCard";
 import ResultSummaryCard from "@/components/analytics/ResultSummaryCard";
 
-// 11_analytics.png Step 1: KPI 4개만 우선 구현한다. 전월비/통과율/날짜 범위/차트/엑스포트는
-// 이력 데이터나 새 라이브러리가 필요해 이번 Step 범위에서 제외한다(분석 문서 참고).
+// docs/stitch/메인페이지 5개/jobcal_analytics_standardized_design_refresh에는
+// "今後の予定" 카드가 없다(2x2 그리드: 상태 도넛/선고 스텝, 응모 추이/선고 결과). 기존
+// 로직/컴포넌트는 그대로 두고 기본 화면에서만 숨긴다.
+const SHOW_UPCOMING_EVENTS_CARD = false;
+
 export default function AnalyticsPage() {
   const t = useT();
   const { companies, loading: companiesLoading, error } = useCompanies();
@@ -22,114 +23,90 @@ export default function AnalyticsPage() {
   const { steps, loading: stepsLoading } = useApplicationSteps();
   const loading = companiesLoading || eventsLoading || stepsLoading;
 
-  const today = todayKey();
-
-  // 대시보드 KPI(app/(app)/page.tsx)와 동일한 계산 기준을 그대로 재사용한다.
+  const totalCount = companies.length;
   const inProgressCount = companies.filter((c) => c.overallStatus === "in_progress").length;
-  const upcomingEventCount = events.filter((event) => {
-    const at = event.startsAt ?? event.dueAt;
-    return at !== null && dateKeyOf(at) >= today;
-  }).length;
   const offerCount = companies.filter((c) => c.overallStatus === "offer").length;
-  const joinedCount = companies.filter((c) => c.overallStatus === "joined").length;
-  const rejectedCount = companies.filter((c) => c.overallStatus === "rejected").length;
-  const completedSelectionCount = offerCount + joinedCount + rejectedCount;
-
-  const kpiTiles = [
-    {
-      label: t("dashboard.kpi.inProgress"),
-      value: inProgressCount,
-      icon: Briefcase,
-      colorClass: "bg-primary/10 text-primary",
-    },
-    {
-      label: t("dashboard.kpi.completedSelection"),
-      value: completedSelectionCount,
-      icon: CheckCircle2,
-      colorClass: "bg-joined/10 text-joined",
-    },
-    {
-      label: t("dashboard.kpi.upcoming"),
-      value: upcomingEventCount,
-      icon: CalendarDays,
-      colorClass: "bg-success/10 text-success",
-    },
-    {
-      label: t("companies.list.status.offer"),
-      value: offerCount,
-      icon: Award,
-      colorClass: "bg-warning/10 text-warning",
-    },
-  ];
+  const offerRate = totalCount > 0 ? Math.round((offerCount / totalCount) * 1000) / 10 : 0;
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-[1200px] px-8 py-8">
-        <LoadingState>{t("common.loading")}</LoadingState>
+      <div className="min-h-screen bg-stitch-bg">
+        <div className="mx-auto max-w-[880px] px-6 py-6">
+          <LoadingState>{t("common.loading")}</LoadingState>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-[1200px] px-8 py-8">
-      <header className="mb-8">
-        <h1 className="text-[28px] font-semibold text-foreground">{t("analytics.title")}</h1>
-        <p className="mt-1 text-sm text-secondary">{t("analytics.description")}</p>
-      </header>
+    <div className="min-h-screen bg-stitch-bg">
+      <div className="mx-auto max-w-[880px] px-6 py-6 font-[family-name:var(--font-hanken-grotesk)] font-[350] tracking-[-0.025em] text-stitch-ink">
+        <div className="mb-8 flex flex-col gap-4">
+          <div>
+            <h1 className="mb-1.5 text-[32px] font-[400] leading-[1.2] tracking-tight text-stitch-ink">
+              {t("analytics.title")}
+            </h1>
+            <p className="text-[15px] text-secondary">{t("analytics.description")}</p>
+          </div>
 
-      {error && (
-        <p className="mb-6 rounded-[10px] border border-error/40 bg-error/10 px-4 py-3 text-sm text-error">
-          {error}
-        </p>
-      )}
+          {error && (
+            <p className="rounded-[10px] border border-error/40 bg-error/10 px-4 py-3 text-sm text-error">
+              {error}
+            </p>
+          )}
 
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        {kpiTiles.map(({ label, value, icon: Icon, colorClass }) => (
-          <div
-            key={label}
-            className="flex h-[164px] flex-col rounded-[10px] border border-border bg-card p-6"
-          >
-            <div className="flex items-start gap-3">
-              <span
-                className={
-                  "flex h-14 w-14 shrink-0 items-center justify-center rounded-full " + colorClass
-                }
-              >
-                <Icon size={24} />
+          <div className="flex w-full flex-wrap items-center gap-8 pt-2">
+            <div className="flex min-w-[80px] flex-col gap-0.5">
+              <span className="text-[11px] font-[400] tracking-normal text-secondary">
+                {t("analytics.kpi.totalCompanies")}
               </span>
-              <div className="flex flex-col gap-2">
-                <span className="text-[16px] font-bold text-secondary">{label}</span>
-                <p className="text-[38px] font-bold text-foreground">{value}</p>
-              </div>
+              <span className="text-[32px] font-[400] leading-none tracking-tight text-stitch-ink">
+                {totalCount}
+              </span>
+            </div>
+            <div className="flex min-w-[80px] flex-col gap-0.5">
+              <span className="text-[11px] font-[400] tracking-normal text-secondary">
+                {t("companies.list.status.inProgress")}
+              </span>
+              <span className="text-[32px] font-[400] leading-none tracking-tight text-stitch-ink">
+                {inProgressCount}
+              </span>
+            </div>
+            <div className="flex min-w-[80px] flex-col gap-0.5">
+              <span className="text-[11px] font-[400] tracking-normal text-secondary">
+                {t("companies.list.status.offer")}
+              </span>
+              <span className="text-[32px] font-[400] leading-none tracking-tight text-success">
+                {offerCount}
+              </span>
+            </div>
+            <div className="mx-2 h-10 w-px shrink-0 self-center bg-stitch-border" />
+            <div className="flex min-w-[80px] flex-col gap-0.5">
+              <span className="text-[11px] font-[400] tracking-normal text-secondary">
+                {t("analytics.kpi.offerRate")}
+              </span>
+              <span className="text-[32px] font-[400] leading-none tracking-tight text-stitch-ink">
+                {offerRate}%
+              </span>
             </div>
           </div>
-        ))}
-      </div>
+        </div>
 
-      {/* 11_analytics.png 기준 데스크톱 다단 그리드: 상태 도넛/전형 퍼널, 응모 추이/향후 일정을
-          각각 한 행에 배치하고, 선고 결과 서머리는 전체 폭으로 마지막에 둔다. 미만에서는
-          grid-cols-1로 모두 세로 1열 스택된다.
-          2단 전환은 뷰포트가 아니라 app/(app)/layout.tsx의 <main @container/main> 실제 폭을
-          기준으로 한다(AI Drawer가 push로 열려 main이 좁아지면 자동 1단 유지, 닫히면 자동
-          2단 복귀 — calendar/page.tsx와 동일한 컨테이너 쿼리 방식).
-          2열 각각이 CompanyTrendChart.tsx의 min-w-[600px](1600px 미만 구간의 값, 이번에
-          손대지 않음)를 스크롤 없이 담으려면 main이 최소 600*2+gap-6(24)+px-8(64)=1288px
-          있어야 하므로, calendar/page.tsx와 동일하게 여유를 둔 1320px를 기준으로 삼는다.
-          이 기준을 넘기면 열 폭은 항상 (1320-64-24)/2=616px 이상이라, 뷰포트가 아직
-          1600px 미만이라 CompanyTrendChart.tsx가 아직 600px 값을 쓰는 경우까지 포함해
-          항상 안전하다(뷰포트가 1600px를 넘어 자체적으로 480px로 낮아지면 여유는 더 커짐). */}
-      <div className="mt-6 grid grid-cols-1 gap-6 @min-[1320px]/main:grid-cols-2 @min-[1320px]/main:items-start">
-        <StatusDonutChart companies={companies} />
-        <StepFunnelChart companies={companies} steps={steps} />
-      </div>
+        <div className="grid grid-cols-1 gap-3 @min-[960px]/main:grid-cols-2">
+          <StatusDonutChart companies={companies} />
+          <StepFunnelChart companies={companies} steps={steps} />
+        </div>
 
-      <div className="mt-6 grid grid-cols-1 gap-6 @min-[1320px]/main:grid-cols-2 @min-[1320px]/main:items-start">
-        <CompanyTrendChart companies={companies} />
-        <UpcomingEventsCard companies={companies} events={events} steps={steps} />
-      </div>
+        <div className="mt-3 grid grid-cols-1 gap-3 @min-[960px]/main:grid-cols-2">
+          <CompanyTrendChart companies={companies} />
+          <ResultSummaryCard companies={companies} steps={steps} />
+        </div>
 
-      <div className="mt-6">
-        <ResultSummaryCard companies={companies} />
+        {SHOW_UPCOMING_EVENTS_CARD && (
+          <div className="mt-3">
+            <UpcomingEventsCard companies={companies} events={events} steps={steps} />
+          </div>
+        )}
       </div>
     </div>
   );

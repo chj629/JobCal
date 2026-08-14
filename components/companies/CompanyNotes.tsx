@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { NotebookPen } from "lucide-react";
 import { useCompanyNotes } from "@/lib/company-notes-context";
 import {
   createEmptyNoteFormValues,
@@ -9,16 +8,21 @@ import {
   type CompanyNote,
   type NoteFormValues,
 } from "@/lib/companyNotes";
-import { dateKeyOf } from "@/lib/date";
 import { useT } from "@/lib/locale-context";
 import NoteForm from "@/components/companies/NoteForm";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import EmptyState from "@/components/ui/EmptyState";
+import MaterialIcon from "@/components/ui/MaterialIcon";
 
 interface CompanyNotesProps {
   companyId: string;
 }
 
+// docs/stitch/메인페이지 5개/jobcal_company_detail_refined_information_ia의 "企業メモ" 카드.
+// Stitch는 메모 하나를 클릭하면 바로 textarea로 바뀌는 인라인 편집을 보여주지만, 추가/수정
+// 모달(NoteForm)은 이번 페이지 본체와 별도 기준이라 기존 그대로 재사용한다. 그래서 각 메모는
+// Stitch와 같은 카드 모양으로 보여주고, 편집/삭제는 호버로 나타나는 아이콘 버튼이 기존
+// NoteForm/ConfirmDialog를 그대로 연다.
 export default function CompanyNotes({ companyId }: CompanyNotesProps) {
   const t = useT();
   const { notes, error, addNote, updateNote, deleteNote } = useCompanyNotes();
@@ -45,14 +49,18 @@ export default function CompanyNotes({ companyId }: CompanyNotesProps) {
   }
 
   return (
-    <section className="rounded-[10px] border border-border bg-card p-6">
+    <section>
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-[16px] font-semibold text-foreground">{t("companies.notes.heading")}</h2>
+        <h2 className="flex items-center gap-1.5 text-[13px] font-[400] text-stitch-ink">
+          <MaterialIcon name="notes" size={15} className="text-secondary" />
+          {t("companies.notes.heading")}
+        </h2>
         <button
           type="button"
           onClick={() => setFormState({ note: null })}
-          className="text-xs font-medium text-primary hover:underline"
+          className="flex items-center gap-0.5 rounded-stitch-md px-2 py-1 text-[11px] font-[400] text-primary-navy transition-colors hover:bg-black/[0.02]"
         >
+          <MaterialIcon name="add" size={14} />
           {t("companies.notes.addButton")}
         </button>
       </div>
@@ -63,41 +71,45 @@ export default function CompanyNotes({ companyId }: CompanyNotesProps) {
         </p>
       )}
 
-      {companyNotes.length === 0 ? (
-        <EmptyState icon={NotebookPen} title={t("companies.notes.empty")} />
-      ) : (
-        <div className="flex flex-col gap-3">
-          {companyNotes.map((note) => (
-            <div key={note.id} className="rounded-[10px] border border-border p-4">
-              <div className="flex items-start justify-between gap-2">
-                <h3 className="text-sm font-semibold text-foreground">
-                  {note.title || t("companies.notes.untitled")}
-                </h3>
-                <div className="flex shrink-0 gap-2 text-xs">
+      <div className="pl-6">
+        {companyNotes.length === 0 ? (
+          <EmptyState icon="notes" title={t("companies.notes.empty")} />
+        ) : (
+          <div className="space-y-3">
+            {companyNotes.map((note) => (
+              <div
+                key={note.id}
+                className="group relative rounded-stitch-xl border border-transparent bg-[#f8f9ff] p-4 transition-colors hover:border-stitch-border"
+              >
+                <div className="absolute right-3 top-3 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
                   <button
                     type="button"
                     onClick={() => setFormState({ note })}
-                    className="-my-3 py-3 text-secondary hover:text-primary hover:underline"
+                    className="rounded-stitch-md border border-stitch-border bg-white p-1.5 text-secondary shadow-sm hover:bg-background"
+                    aria-label={t("common.edit")}
                   >
-                    {t("common.edit")}
+                    <MaterialIcon name="edit" size={14} />
                   </button>
                   <button
                     type="button"
                     onClick={() => setDeleteTarget(note)}
-                    className="-my-3 py-3 text-secondary hover:text-error hover:underline"
+                    className="rounded-stitch-md border border-stitch-border bg-white p-1.5 text-secondary shadow-sm hover:bg-background hover:text-error"
+                    aria-label={t("common.delete")}
                   >
-                    {t("common.delete")}
+                    <MaterialIcon name="delete" size={14} />
                   </button>
                 </div>
+                {note.title && (
+                  <p className="mb-1 text-[11px] font-[400] text-secondary">{note.title}</p>
+                )}
+                <p className="whitespace-pre-wrap pr-16 text-[12px] leading-relaxed text-stitch-ink">
+                  {note.content}
+                </p>
               </div>
-              <p className="mt-2 line-clamp-3 whitespace-pre-wrap text-sm text-foreground">
-                {note.content}
-              </p>
-              <p className="mt-2 text-xs text-secondary">{dateKeyOf(note.updatedAt)}</p>
-            </div>
-          ))}
-        </div>
-      )}
+            ))}
+          </div>
+        )}
+      </div>
 
       {formState && (
         <NoteForm

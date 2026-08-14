@@ -2,14 +2,17 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { Globe, Lock, User, type LucideIcon } from "lucide-react";
-import { useLocale, useT } from "@/lib/locale-context";
+import { translate, useLocale, useT } from "@/lib/locale-context";
 import type { Locale } from "@/lib/i18n/messages";
 import { createClient } from "@/lib/supabase/client";
-import Input from "@/components/ui/Input";
-import Button from "@/components/ui/Button";
+import MaterialIcon from "@/components/ui/MaterialIcon";
 import { useToast } from "@/components/ui/Toast";
 
 const MIN_PASSWORD_LENGTH = 6;
+
+// docs/stitch/설정페이지/jobcal_settings_profile_sophisticated_refresh에는 메일 필드가
+// 왜 비활성인지 설명하는 문구가 없다. 기본 화면에서는 숨기고 필요해지면 true로 되돌린다.
+const SHOW_EMAIL_HINT = false;
 
 type SettingsTab = "profile" | "account" | "language";
 
@@ -39,6 +42,25 @@ export default function SettingsPage() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+
+  // docs/stitch/설정페이지/jobcal_settings_account_sophisticated_refresh에는 "現在のパスワード"
+  // 입력칸이 있지만, 기존 handleChangePassword는 Supabase updateUser(password만)를 그대로
+  // 재사용하므로 현재 비밀번호 확인 로직이 없다. 값을 저장/전송하지 않는 UI 전용 필드로 둔다.
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // docs/stitch/설정페이지/jobcal_settings_language_sophisticated_refresh는 드롭다운에서
+  // 고른 값을 "変更を保存"를 눌러야 실제로 반영하는 구조다(기존 버튼 2개를 즉시 전환하던
+  // 방식과 다름). 실제 반영/저장은 그대로 LocaleContext의 setLocale을 재사용한다.
+  const [pendingLocale, setPendingLocale] = useState<Locale>(locale);
+
+  useEffect(() => {
+    // lib/locale-context.tsx의 LocaleProvider와 동일한 이유로 microtask로 한 틱 미뤄
+    // effect 본문에서 동기적으로 setState하지 않는다(react-hooks/set-state-in-effect 회피).
+    queueMicrotask(() => setPendingLocale(locale));
+  }, [locale]);
 
   useEffect(() => {
     const supabase = createClient();
@@ -97,70 +119,126 @@ export default function SettingsPage() {
       return;
     }
 
+    setCurrentPassword("");
     setNewPassword("");
     setConfirmPassword("");
     showToast(t("settings.account.saveSuccess"));
   }
 
-  return (
-    <div className="mx-auto max-w-[1200px] px-8 py-8">
-      <h1 className="text-[28px] font-semibold text-foreground">{t("settings.title")}</h1>
-      <p className="mt-1 text-sm text-secondary">{t("settings.description")}</p>
+  // docs/stitch/설정페이지/jobcal_settings_account_sophisticated_refresh의 "アカウント削除"
+  // 버튼. 계정 삭제를 실제로 수행하는 백엔드 로직이 없어(기존 로직 재사용 범위 밖) 아직은
+  // UI만 두고, 클릭하면 아직 지원하지 않는 기능임을 알린다.
+  function handleDeleteAccountClick() {
+    showToast(t("settings.account.deleteNotAvailable"), "error");
+  }
 
-      <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-[200px_1fr] lg:items-start">
-        <nav className="flex gap-1 overflow-x-auto lg:flex-col lg:overflow-visible">
-          {TABS.map(({ key, labelKey, icon: Icon }) => (
+  function handleSaveLanguage() {
+    setLocale(pendingLocale);
+    showToast(translate(pendingLocale, "settings.languageSaveSuccess"));
+  }
+
+  return (
+    // docs/stitch/설정페이지/*는 다른 Stitch 배치와 달리 카드 없이 페이지 배경 위에 내용이
+    // 바로 놓이고(premium-card 없음), 좌측 세로 메뉴가 아니라 제목 아래 가로 탭 + 밑줄로
+    // 메뉴를 표현한다. code.html보다 screen.png(가로 탭)를 기준으로 그대로 재현했다.
+    <div className="min-h-screen bg-[var(--color-settings-bg)]">
+      <div className="mx-auto max-w-[960px] px-6 py-6 font-[family-name:var(--font-dm-sans)] tracking-[-0.025em] text-[var(--color-settings-ink)]">
+        <h1 className="mb-1.5 text-[32px] font-[400] leading-[1.2] tracking-tight text-[var(--color-settings-ink)]">
+          {t("settings.title")}
+        </h1>
+        <p className="text-[15px] text-[var(--color-settings-secondary)]">
+          {t("settings.description")}
+        </p>
+
+        <nav className="mt-6 flex gap-8 overflow-x-auto border-b border-stitch-border">
+          {TABS.map(({ key, labelKey }) => (
             <button
               key={key}
               type="button"
               onClick={() => setActiveTab(key)}
               className={
-                "flex shrink-0 items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-medium transition-colors duration-150 " +
+                "shrink-0 pb-4 text-[14px] transition-colors duration-150 " +
                 (activeTab === key
-                  ? "bg-primary text-white"
-                  : "text-foreground hover:bg-background")
+                  ? "border-b-2 border-[var(--color-settings-ink)] font-medium text-[var(--color-settings-ink)]"
+                  : "text-[var(--color-settings-secondary)] hover:text-[var(--color-settings-ink)]")
               }
             >
-              <Icon size={16} />
               {t(labelKey)}
             </button>
           ))}
         </nav>
 
-        <div>
+        <div className="mt-8 max-w-2xl">
           {activeTab === "profile" && (
-            <section className="rounded-[10px] border border-border bg-card p-6">
-              <h2 className="text-[16px] font-semibold text-foreground">
+            <section>
+              <h2 className="text-[16px] font-medium text-[var(--color-settings-ink)]">
                 {t("settings.profile.title")}
               </h2>
+              <p className="mb-6 mt-1 text-[13px] text-[var(--color-settings-secondary)]">
+                {t("settings.profile.description")}
+              </p>
 
               {loading ? (
-                <p className="mt-4 text-sm text-secondary">{t("common.loading")}</p>
+                <p className="text-[13px] text-[var(--color-settings-secondary)]">
+                  {t("common.loading")}
+                </p>
               ) : (
-                <div className="mt-4 flex flex-col gap-4">
-                  <Input
-                    label={t("settings.profile.displayName")}
-                    value={displayName}
-                    onChange={(e) => setDisplayName(e.target.value)}
-                    maxLength={30}
-                  />
-                  <Input
-                    label={t("settings.profile.email")}
-                    value={email}
-                    disabled
-                    hint={t("settings.profile.emailHint")}
-                  />
-                  <div>
-                    <Button
+                // docs/stitch/설정페이지/jobcal_settings_profile_sophisticated_refresh 기준.
+                // 공용 Input/Button은 rounded-lg + 파랑 계열이라 이 화면의 rounded-full 필(pill) +
+                // 라벤더 버튼과 크게 달라, 전역 컴포넌트를 건드리지 않고 이 탭 안에서만 순수
+                // input/button 마크업으로 새로 그린다(로직은 그대로 재사용).
+                <div className="max-w-md space-y-4">
+                  <div className="flex flex-col gap-1.5">
+                    <label
+                      htmlFor="settings-profile-name"
+                      className="ml-1 text-[12px] text-[var(--color-settings-secondary)]"
+                    >
+                      {t("settings.profile.displayName")}
+                    </label>
+                    <input
+                      id="settings-profile-name"
+                      type="text"
+                      value={displayName}
+                      onChange={(e) => setDisplayName(e.target.value)}
+                      maxLength={30}
+                      className="w-full rounded-full border border-stitch-border bg-[#f8f9ff] px-5 py-3 text-[13px] text-[var(--color-settings-ink)] outline-none transition-all focus:ring-1 focus:ring-[var(--color-settings-ink)]"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label
+                      htmlFor="settings-profile-email"
+                      className="ml-1 text-[12px] text-[var(--color-settings-secondary)]"
+                    >
+                      {t("settings.profile.email")}
+                    </label>
+                    <input
+                      id="settings-profile-email"
+                      type="email"
+                      value={email}
+                      disabled
+                      className="w-full cursor-not-allowed rounded-full border border-stitch-border bg-[#f8f9ff] px-5 py-3 text-[13px] text-[var(--color-settings-ink)] opacity-70 outline-none"
+                    />
+                    {/* Stitch에는 이 안내문이 없지만(disabled 상태만으로 표현), 왜 수정할 수
+                        없는지 설명하는 기존 UX를 없애지는 않고 기본 화면에서만 숨긴다. */}
+                    {SHOW_EMAIL_HINT && (
+                      <p className="ml-1 text-[11px] text-[var(--color-settings-secondary)]">
+                        {t("settings.profile.emailHint")}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="pt-2">
+                    <button
                       type="button"
-                      variant="primary"
                       onClick={handleSaveName}
                       disabled={
                         isSaving || !displayName.trim() || displayName.trim() === initialName
                       }
+                      className="rounded-full bg-[#e2dffe] px-6 py-3 text-[13px] font-medium text-[#1a192f] shadow-sm transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {isSaving ? t("common.loading") : t("common.save")}
-                    </Button>
+                    </button>
                   </div>
                 </div>
               )}
@@ -168,64 +246,191 @@ export default function SettingsPage() {
           )}
 
           {activeTab === "account" && (
-            <section className="rounded-[10px] border border-border bg-card p-6">
-              <h2 className="text-[16px] font-semibold text-foreground">
-                {t("settings.account.title")}
-              </h2>
-              <p className="mt-1 text-sm text-secondary">{t("settings.account.description")}</p>
+            <section>
+              <div className="mb-10">
+                <h2 className="mb-1 text-[16px] font-medium text-[var(--color-settings-ink)]">
+                  {t("settings.account.title")}
+                </h2>
+                <p className="mb-6 text-[13px] text-[var(--color-settings-secondary)]">
+                  {t("settings.account.description")}
+                </p>
 
-              <form onSubmit={handleChangePassword} className="mt-4 flex flex-col gap-4">
-                <Input
-                  type="password"
-                  icon={Lock}
-                  label={t("settings.account.newPassword")}
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                />
-                <Input
-                  type="password"
-                  icon={Lock}
-                  label={t("settings.account.confirmPassword")}
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                />
-                <div>
-                  <Button type="submit" variant="primary" disabled={isChangingPassword}>
-                    {isChangingPassword ? t("common.loading") : t("settings.account.submit")}
-                  </Button>
+                {/* docs/stitch/설정페이지/jobcal_settings_account_sophisticated_refresh 기준.
+                    프로필 탭과 동일한 이유로 공용 Input/Button 대신 이 탭 전용 마크업을 쓴다
+                    (rounded-full 필 + 우측 눈 아이콘 토글). 새 비밀번호/확인 로직은 기존
+                    handleChangePassword를 그대로 재사용한다. */}
+                <form onSubmit={handleChangePassword} className="max-w-md space-y-4">
+                  <div className="flex flex-col gap-1.5">
+                    <label
+                      htmlFor="settings-account-current-password"
+                      className="ml-1 text-[12px] text-[var(--color-settings-secondary)]"
+                    >
+                      {t("settings.account.currentPassword")}
+                    </label>
+                    <div className="relative">
+                      <input
+                        id="settings-account-current-password"
+                        type={showCurrentPassword ? "text" : "password"}
+                        value={currentPassword}
+                        onChange={(e) => setCurrentPassword(e.target.value)}
+                        placeholder={t("settings.account.currentPasswordPlaceholder")}
+                        className="w-full rounded-full border border-stitch-border bg-[#f8f9ff] px-5 py-3 text-[13px] text-[var(--color-settings-ink)] outline-none transition-all placeholder:text-[var(--color-settings-secondary)] focus:ring-1 focus:ring-[var(--color-settings-ink)]"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowCurrentPassword((v) => !v)}
+                        tabIndex={-1}
+                        aria-label={
+                          showCurrentPassword ? t("common.hidePassword") : t("common.showPassword")
+                        }
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--color-settings-secondary)] hover:text-[var(--color-settings-ink)]"
+                      >
+                        <MaterialIcon name={showCurrentPassword ? "visibility_off" : "visibility"} size={16} />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label
+                      htmlFor="settings-account-new-password"
+                      className="ml-1 text-[12px] text-[var(--color-settings-secondary)]"
+                    >
+                      {t("settings.account.newPassword")}
+                    </label>
+                    <div className="relative">
+                      <input
+                        id="settings-account-new-password"
+                        type={showNewPassword ? "text" : "password"}
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        placeholder={t("settings.account.newPasswordPlaceholder")}
+                        className="w-full rounded-full border border-stitch-border bg-[#f8f9ff] px-5 py-3 text-[13px] text-[var(--color-settings-ink)] outline-none transition-all placeholder:text-[var(--color-settings-secondary)] focus:ring-1 focus:ring-[var(--color-settings-ink)]"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowNewPassword((v) => !v)}
+                        tabIndex={-1}
+                        aria-label={
+                          showNewPassword ? t("common.hidePassword") : t("common.showPassword")
+                        }
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--color-settings-secondary)] hover:text-[var(--color-settings-ink)]"
+                      >
+                        <MaterialIcon name={showNewPassword ? "visibility_off" : "visibility"} size={16} />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label
+                      htmlFor="settings-account-confirm-password"
+                      className="ml-1 text-[12px] text-[var(--color-settings-secondary)]"
+                    >
+                      {t("settings.account.confirmPassword")}
+                    </label>
+                    <div className="relative">
+                      <input
+                        id="settings-account-confirm-password"
+                        type={showConfirmPassword ? "text" : "password"}
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        placeholder={t("settings.account.confirmPasswordPlaceholder")}
+                        className="w-full rounded-full border border-stitch-border bg-[#f8f9ff] px-5 py-3 text-[13px] text-[var(--color-settings-ink)] outline-none transition-all placeholder:text-[var(--color-settings-secondary)] focus:ring-1 focus:ring-[var(--color-settings-ink)]"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword((v) => !v)}
+                        tabIndex={-1}
+                        aria-label={
+                          showConfirmPassword ? t("common.hidePassword") : t("common.showPassword")
+                        }
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--color-settings-secondary)] hover:text-[var(--color-settings-ink)]"
+                      >
+                        <MaterialIcon name={showConfirmPassword ? "visibility_off" : "visibility"} size={16} />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="pt-2">
+                    <button
+                      type="submit"
+                      disabled={isChangingPassword}
+                      className="rounded-full bg-[#e2dffe] px-6 py-3 text-[13px] font-medium text-[#1a192f] shadow-sm transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {isChangingPassword ? t("common.loading") : t("settings.account.submit")}
+                    </button>
+                  </div>
+                </form>
+              </div>
+
+              <div className="border-t border-stitch-border pt-8">
+                <div className="mb-5">
+                  <h2 className="mb-1 text-[16px] font-medium text-[var(--color-settings-ink)]">
+                    {t("settings.account.deleteSection.title")}
+                  </h2>
+                  <p className="text-[13px] text-[var(--color-settings-secondary)]">
+                    {t("settings.account.deleteSection.description")}
+                  </p>
                 </div>
-              </form>
+                <button
+                  type="button"
+                  onClick={handleDeleteAccountClick}
+                  className="rounded-full border border-error/10 bg-error/10 px-6 py-3 text-[13px] font-medium text-error shadow-sm transition-colors hover:bg-error/20"
+                >
+                  {t("settings.account.deleteSection.button")}
+                </button>
+              </div>
             </section>
           )}
 
           {activeTab === "language" && (
-            <section className="rounded-[10px] border border-border bg-card p-6">
-              <h2 className="text-[16px] font-semibold text-foreground">
+            <section>
+              <h2 className="mb-1 text-[16px] font-medium text-[var(--color-settings-ink)]">
                 {t("settings.language")}
               </h2>
-              <p className="mt-1 text-sm text-secondary">{t("settings.languageDescription")}</p>
+              <p className="mb-6 text-[13px] text-[var(--color-settings-secondary)]">
+                {t("settings.languageDescription")}
+              </p>
 
-              <div className="mt-4 flex gap-2">
-                {LANGUAGE_OPTIONS.map((option) => {
-                  const isActive = locale === option.value;
-
-                  return (
-                    <button
-                      key={option.value}
-                      type="button"
-                      onClick={() => setLocale(option.value)}
-                      aria-pressed={isActive}
-                      className={
-                        "h-10 rounded-[10px] border px-4 text-sm font-medium transition-colors duration-150 " +
-                        (isActive
-                          ? "border-primary bg-primary text-white"
-                          : "border-border text-foreground hover:bg-background")
-                      }
+              {/* docs/stitch/설정페이지/jobcal_settings_language_sophisticated_refresh 기준.
+                  드롭다운은 pending 선택값만 바꾸고, 실제 전환/저장(LocaleContext.setLocale,
+                  localStorage+Supabase 반영)은 "変更を保存"를 눌러야 일어난다. */}
+              <div className="max-w-md space-y-4">
+                <div className="flex flex-col gap-1.5">
+                  <label
+                    htmlFor="settings-language-select"
+                    className="ml-1 text-[12px] text-[var(--color-settings-secondary)]"
+                  >
+                    {t("settings.languageLabel")}
+                  </label>
+                  <div className="relative">
+                    <select
+                      id="settings-language-select"
+                      value={pendingLocale}
+                      onChange={(e) => setPendingLocale(e.target.value as Locale)}
+                      className="w-full appearance-none rounded-full border border-stitch-border bg-[#f8f9ff] px-5 py-3 text-[13px] text-[var(--color-settings-ink)] outline-none transition-all focus:ring-1 focus:ring-[var(--color-settings-ink)]"
                     >
-                      {t(option.labelKey)}
-                    </button>
-                  );
-                })}
+                      {LANGUAGE_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {t(option.labelKey)}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[var(--color-settings-secondary)]">
+                      <MaterialIcon name="expand_more" size={18} />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-2">
+                  <button
+                    type="button"
+                    onClick={handleSaveLanguage}
+                    disabled={pendingLocale === locale}
+                    className="rounded-full bg-[#e2dffe] px-6 py-3 text-[13px] font-medium text-[#1a192f] shadow-sm transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {t("common.save")}
+                  </button>
+                </div>
               </div>
             </section>
           )}

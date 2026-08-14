@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { usePathname } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
 import AiMailDrawer from "@/components/ai/AiMailDrawer";
@@ -22,6 +23,14 @@ export default function AppLayout({
   // 보여야 하므로, 열 때는 같이 true가 되지만 닫을 때는 Drawer의 onClosed 콜백이 올 때만
   // false가 되는 별도 상태를 둔다.
   const [aiDrawerMounted, setAiDrawerMounted] = useState(false);
+  // docs/stitch/ 리뉴얼: screen.png에는 스크롤바가 보이지 않는다. <main>은 이 레이아웃이
+  // 모든 페이지에서 공유하므로, 아직 리뉴얼하지 않은 페이지에 영향을 주지 않도록
+  // 리뉴얼된 경로에서만 스크롤바 숨김 클래스를 붙인다.
+  const pathname = usePathname();
+  const isStitchRoute =
+    pathname.startsWith("/dashboard") ||
+    pathname.startsWith("/calendar") ||
+    pathname.startsWith("/analytics");
 
   function handleOpenAiDrawer() {
     setAiDrawerOpen(true);
@@ -49,7 +58,12 @@ export default function AppLayout({
                         없이 곧바로 2단으로 복귀한다. */}
                     {/* 1600px 이상에서는 <main>이 자체 세로 스크롤을 갖는다(Sidebar | Main(scroll) |
                         AI Drawer 구조). 그 미만은 지금처럼 body가 스크롤 컨테이너로 남는다. */}
-                    <main className="min-w-0 flex-1 pb-16 md:pb-0 @container/main min-[1600px]:min-h-0 min-[1600px]:overflow-y-auto">
+                    <main
+                      className={
+                        "min-w-0 flex-1 pb-16 md:pb-0 @container/main min-[1600px]:min-h-0 min-[1600px]:overflow-y-auto" +
+                        (isStitchRoute ? " stitch-scrollbar-hidden" : "")
+                      }
+                    >
                       {children}
                     </main>
                   </div>

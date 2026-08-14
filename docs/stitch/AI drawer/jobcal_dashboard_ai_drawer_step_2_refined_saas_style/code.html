@@ -1,0 +1,453 @@
+<!DOCTYPE html><html class="light" lang="ja"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>JobCal - Home Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,100..900;1,100..900&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+                "on-secondary": "#ffffff",
+                "on-primary-fixed-variant": "#264191",
+                "primary-fixed-dim": "#b6c4ff",
+                "on-secondary-container": "#003c70",
+                "on-error": "#ffffff",
+                "primary": "#00236f",
+                "tertiary-fixed": "#dfe3e7",
+                "on-secondary-fixed": "#001c39",
+                "on-background": "#0d1c2f",
+                "on-tertiary-container": "#a8adb1",
+                "primary-fixed": "#dce1ff",
+                "outline-variant": "#c5c5d3",
+                "surface-bright": "#f8f9ff",
+                "on-surface-variant": "#444651",
+                "surface-tint": "#4059aa",
+                "error": "#ba1a1a",
+                "primary-container": "#1e3a8a",
+                "surface-container-lowest": "#ffffff",
+                "on-surface": "#0d1c2f",
+                "inverse-surface": "#233144",
+                "on-error-container": "#93000a",
+                "secondary-fixed": "#d4e3ff",
+                "error-container": "#ffdad6",
+                "on-primary": "#ffffff",
+                "surface-container-high": "#dde9ff",
+                "background": "#f8f9ff",
+                "on-primary-fixed": "#00164e",
+                "on-tertiary-fixed-variant": "#43474b",
+                "secondary-fixed-dim": "#a4c9ff",
+                "surface-container": "#e6eeff",
+                "tertiary": "#262b2e",
+                "surface-variant": "#d5e3fd",
+                "outline": "#757682",
+                "on-primary-container": "#90a8ff",
+                "surface-container-highest": "#d5e3fd",
+                "secondary-container": "#64a8fe",
+                "surface": "#f8f9ff",
+                "surface-container-low": "#eff4ff",
+                "secondary": "#0060ac",
+                "tertiary-fixed-dim": "#c3c7cb",
+                "on-tertiary": "#ffffff",
+                "on-secondary-fixed-variant": "#004883",
+                "tertiary-container": "#3c4144",
+                "on-tertiary-fixed": "#171c1f",
+                "surface-dim": "#ccdbf4",
+                "inverse-on-surface": "#ebf1ff",
+                "inverse-primary": "#b6c4ff"
+        },
+        "borderRadius": {
+                "DEFAULT": "1rem",
+                "lg": "2rem",
+                "xl": "3rem",
+                "full": "9999px"
+        },
+        "spacing": {
+                "pill-padding-y": "12px",
+                "gutter": "24px",
+                "pill-padding-x": "24px",
+                "base": "8px",
+                "section-gap": "64px",
+                "container-margin": "32px"
+        },
+        "fontFamily": {
+                "headline-md": [
+                        "Hanken Grotesk"
+                ],
+                "label-sm": [
+                        "JetBrains Mono"
+                ],
+                "body-md": [
+                        "Hanken Grotesk"
+                ],
+                "display-lg": [
+                        "Hanken Grotesk"
+                ],
+                "display-lg-mobile": [
+                        "Hanken Grotesk"
+                ],
+                "body-lg": [
+                        "Hanken Grotesk"
+                ]
+        },
+        "fontSize": {
+                "headline-md": [
+                        "24px",
+                        {
+                                "lineHeight": "32px",
+                                "fontWeight": "500"
+                        }
+                ],
+                "label-sm": [
+                        "12px",
+                        {
+                                "lineHeight": "16px",
+                                "letterSpacing": "0.05em",
+                                "fontWeight": "500"
+                        }
+                ],
+                "body-md": [
+                        "16px",
+                        {
+                                "lineHeight": "24px",
+                                "fontWeight": "350"
+                        }
+                ],
+                "display-lg": [
+                        "48px",
+                        {
+                                "lineHeight": "56px",
+                                "letterSpacing": "-0.02em",
+                                "fontWeight": "350"
+                        }
+                ],
+                "display-lg-mobile": [
+                        "32px",
+                        {
+                                "lineHeight": "40px",
+                                "letterSpacing": "-0.01em",
+                                "fontWeight": "350"
+                        }
+                ],
+                "body-lg": [
+                        "18px",
+                        {
+                                "lineHeight": "28px",
+                                "fontWeight": "350"
+                        }
+                ]
+        }
+},
+    },
+  }
+</script>
+<style>
+        body { font-family: 'Hanken Grotesk', sans-serif; font-weight: 350; letter-spacing: -0.02em; background-color: #ffffff; color: #0d1c2f; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 20; }
+        .material-symbols-outlined.fill { font-variation-settings: 'FILL' 1; }
+        html { scroll-behavior: smooth; }
+        * { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+        .schedule-scroll::-webkit-scrollbar { width: 4px; }
+        .schedule-scroll::-webkit-scrollbar-track { background: transparent; }
+        .schedule-scroll::-webkit-scrollbar-thumb { background-color: #c5c5d3; border-radius: 20px; }
+        .app-section { background-color: transparent; border-top: 1px solid rgba(197, 197, 211, 0.5); }
+        .list-item-hover:hover { background-color: #f8f9ff; border-radius: 8px; }
+        h1, h2, h3, h4, p, span { letter-spacing: -0.02em; font-weight: 350; }
+        .font-medium { font-weight: 400; }
+        .font-bold { font-weight: 500; }
+    </style>
+</head>
+<body class="flex min-h-screen bg-surface-container-lowest text-on-surface">
+<!-- SideNavBar -->
+<nav class="hidden md:flex fixed left-0 top-0 h-full w-64 flex-col bg-surface-container-low z-50 py-8">
+<div class="px-6 mb-12">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-primary-container text-on-primary flex items-center justify-center font-medium text-[14px]">J</div>
+<div>
+<h1 class="font-headline-md text-[16px] font-medium text-on-surface tracking-tight">JobCal</h1>
+<p class="font-label-sm text-[10px] text-outline tracking-normal">就職活動状況</p>
+</div>
+</div>
+</div>
+<div class="flex-1 px-4 space-y-1">
+<a class="flex items-center gap-3 bg-surface-container text-on-surface rounded-full px-4 py-2 font-body-md text-[14px]" href="#">
+<span class="material-symbols-outlined fill text-[18px]" data-icon="home">home</span>
+            ホーム
+        </a>
+<a class="flex items-center gap-3 text-on-surface-variant px-4 py-2 hover:bg-surface-container hover:text-on-surface rounded-full transition-all duration-200 font-body-md text-[14px]" href="#">
+<span class="material-symbols-outlined text-[18px]" data-icon="business_center">business_center</span>
+            企業
+        </a>
+<a class="flex items-center gap-3 text-on-surface-variant px-4 py-2 hover:bg-surface-container hover:text-on-surface rounded-full transition-all duration-200 font-body-md text-[14px]" href="#">
+<span class="material-symbols-outlined text-[18px]" data-icon="calendar_today">calendar_today</span>
+            カレンダー
+        </a>
+<a class="flex items-center gap-3 text-on-surface-variant px-4 py-2 hover:bg-surface-container hover:text-on-surface rounded-full transition-all duration-200 font-body-md text-[14px]" href="#">
+<span class="material-symbols-outlined text-[18px]" data-icon="bar_chart">bar_chart</span>
+            アナリティクス
+        </a>
+</div>
+<div class="px-4 mt-auto mb-8">
+<a class="flex items-center gap-3 text-on-surface-variant px-4 py-2 hover:bg-surface-container hover:text-on-surface rounded-full transition-all duration-200 font-body-md text-[14px]" href="#">
+<span class="material-symbols-outlined text-[18px]" data-icon="settings">settings</span>
+            設定
+        </a>
+</div>
+</nav>
+<!-- Main Content Area -->
+<main class="flex-1 ml-0 md:ml-64 flex flex-col min-h-screen bg-surface-container-lowest relative">
+<!-- TopAppBar -->
+<header class="flex justify-between items-center w-full px-10 h-16 bg-surface-container-lowest/90 backdrop-blur-md docked full-width top-0 sticky z-40 flat no shadows border-b border-outline-variant/20">
+<div class="flex-1">
+<button class="md:hidden text-on-surface p-2">
+<span class="material-symbols-outlined">menu</span>
+</button>
+</div>
+<div class="flex items-center gap-4">
+<button class="flex items-center gap-2 bg-surface-container text-on-surface px-4 py-1.5 rounded-full font-label-sm text-[11px] hover:bg-surface-container-high transition-all" onclick="document.getElementById('ai-drawer').classList.remove('translate-x-full'); document.getElementById('ai-drawer-backdrop').classList.remove('hidden');">
+<span class="material-symbols-outlined text-[14px]">auto_awesome</span>
+                JobCal AI
+            </button>
+<button class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-surface-container text-on-surface-variant transition-all">
+<span class="material-symbols-outlined text-[18px]" data-icon="notifications">notifications</span>
+</button>
+<button class="w-8 h-8 rounded-full overflow-hidden hover:opacity-80 transition-opacity">
+<img alt="User profile photo" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBCSde5LELE9CUq1iAQn_0cXBq4rg9txgxeJLU_CousrdMYxudiIfc2ULcXBeLlEZsOtKq1TKaxCVPDcWswUl7ZigQF5wTLCXF8KbSmQXrMg9scV3PQQD_NijtWcg3rp3qSLMt5m8gE0KET_0VxAMH_Ek94Ge3thGzJ1OF3wsYX1ZThej_oCDVaLFKDP9BnXKahVL-9jtX7c79IyZMzlSH1bf3_-dtfBZ5CNxtY2crIITj3cCryQrBp0Q">
+</button>
+</div>
+</header>
+<!-- Scrollable Content -->
+<div class="max-w-[1000px] w-full px-10 pb-20 mx-auto mt-12">
+<!-- Greeting & KPIs -->
+<section class="flex flex-col gap-8 mb-16">
+<div class="flex justify-between items-end w-full">
+<div>
+<h2 class="font-headline-md text-[32px] tracking-tight leading-[1.2] text-on-surface mb-2">
+                    こんにちは、健太さん
+                </h2>
+<p class="font-body-md text-[16px] text-outline">今日も一歩ずつ、頑張っていきましょう！</p>
+</div>
+<button class="flex items-center gap-1.5 bg-primary-container text-on-primary px-5 py-2.5 rounded-md font-body-md text-[14px] hover:opacity-90 transition-all h-fit">
+<span class="material-symbols-outlined text-[18px]">add</span>企業を登録
+                </button>
+</div>
+<div class="flex gap-12 w-full border-b border-outline-variant/30 pb-8">
+<div class="flex flex-col gap-2 min-w-[120px]">
+<span class="text-[12px] text-outline tracking-normal">エントリー中</span>
+<span class="text-[40px] text-on-surface tracking-tight leading-none">12</span>
+</div>
+<div class="flex flex-col gap-2 min-w-[120px]">
+<span class="text-[12px] text-outline tracking-normal">面接予定</span>
+<span class="text-[40px] text-on-surface tracking-tight leading-none">3</span>
+</div>
+<div class="flex flex-col gap-2 min-w-[120px]">
+<span class="text-[12px] text-outline tracking-normal">内定</span>
+<span class="text-[40px] text-[#2ec08b] tracking-tight leading-none">1</span>
+</div>
+</div>
+</section>
+<!-- Bento Grid Layout for Main Content -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-16 items-start mb-16">
+<!-- Left Column: Today's Schedule -->
+<div class="lg:col-span-2">
+<section class="flex flex-col">
+<div class="flex justify-between items-center mb-8">
+<h3 class="font-body-lg text-[16px] text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px] text-outline">calendar_today</span>本日の予定
+                        </h3>
+<span class="font-label-sm text-[12px] text-outline tracking-normal">10月24日（火）</span>
+</div>
+<div class="space-y-2">
+<!-- Schedule Item 1 -->
+<div class="flex items-start gap-4 py-4 px-2 list-item-hover transition-colors rounded-lg group">
+<div class="w-16 pt-0.5">
+<p class="font-label-sm text-[13px] text-on-surface tracking-tight">10:00</p>
+</div>
+<div class="flex-1 flex flex-col gap-1">
+<div class="flex items-center gap-2">
+<p class="font-body-md text-[15px] text-on-surface leading-tight">1次 技術面接</p>
+<span class="material-symbols-outlined text-primary-container text-[16px] fill">check_circle</span>
+</div>
+<p class="font-label-sm text-[12px] text-outline mt-1">グローバルテックソリューションズ</p>
+</div>
+<div class="flex flex-col items-end pt-0.5">
+<span class="text-outline text-[12px] font-label-sm">オンライン</span>
+</div>
+</div>
+<!-- Schedule Item 2 -->
+<div class="flex items-start gap-4 py-4 px-2 list-item-hover transition-colors rounded-lg group">
+<div class="w-16 pt-0.5">
+<p class="font-label-sm text-[13px] text-on-surface tracking-tight">11:30</p>
+</div>
+<div class="flex-1 flex flex-col gap-1">
+<p class="font-body-md text-[15px] text-on-surface leading-tight">2次 面接</p>
+<p class="font-label-sm text-[12px] text-outline mt-1">株式会社デザインアーツ</p>
+</div>
+<div class="flex flex-col items-end pt-0.5">
+<span class="text-outline text-[12px] font-label-sm">東京オフィス</span>
+</div>
+</div>
+<!-- Schedule Item 3 -->
+<div class="flex items-start gap-4 py-4 px-2 list-item-hover transition-colors rounded-lg group">
+<div class="w-16 pt-0.5">
+<p class="font-label-sm text-[13px] text-on-surface tracking-tight">13:30</p>
+</div>
+<div class="flex-1 flex flex-col gap-1">
+<p class="font-body-md text-[15px] text-on-surface leading-tight">合同企業説明会</p>
+<p class="font-label-sm text-[12px] text-outline mt-1">渋谷ヒカリエ 9F ホールA</p>
+</div>
+<div class="flex flex-col items-end pt-0.5">
+<span class="text-outline text-[12px] font-label-sm">オフライン</span>
+</div>
+</div>
+<!-- Schedule Item 4 -->
+<div class="flex items-start gap-4 py-4 px-2 list-item-hover transition-colors rounded-lg group">
+<div class="w-16 pt-0.5">
+<p class="font-label-sm text-[13px] text-on-surface tracking-tight">15:30</p>
+</div>
+<div class="flex-1 flex flex-col gap-1">
+<p class="font-body-md text-[15px] text-on-surface leading-tight">キャリア相談</p>
+<p class="font-label-sm text-[12px] text-outline mt-1">大学キャリアセンター</p>
+</div>
+<div class="flex flex-col items-end pt-0.5">
+<span class="text-outline text-[12px] font-label-sm">オンライン</span>
+</div>
+</div>
+<!-- Schedule Item 5 -->
+<div class="flex items-start gap-4 py-4 px-2 list-item-hover transition-colors rounded-lg group">
+<div class="w-16 pt-0.5">
+<p class="font-label-sm text-[13px] text-on-surface tracking-tight">16:00</p>
+</div>
+<div class="flex-1 flex flex-col gap-1">
+<p class="font-body-md text-[15px] text-on-surface leading-tight">カジュアル面談</p>
+<p class="font-label-sm text-[12px] text-outline mt-1">株式会社イノベーションラボ</p>
+</div>
+<div class="flex flex-col items-end pt-0.5">
+<span class="text-outline text-[12px] font-label-sm">オンライン</span>
+</div>
+</div>
+</div>
+</section>
+</div>
+<!-- Right Column: Upcoming & Featured -->
+<div class="space-y-12">
+<!-- Upcoming Schedule -->
+<section class="flex flex-col">
+<h3 class="font-body-lg text-[16px] text-on-surface flex items-center gap-2 mb-6">
+<span class="material-symbols-outlined text-outline text-[18px]">schedule</span>
+                        今後の予定
+                    </h3>
+<div class="space-y-6">
+<div class="flex justify-between items-start gap-3">
+<div>
+<p class="font-label-sm text-[12px] text-outline mb-1.5">デザイン株式会社</p>
+<p class="font-body-md text-[14px] text-on-surface leading-tight">エントリーシート (ES)</p>
+</div>
+<span class="text-error font-label-sm text-[11px] bg-error-container px-2.5 py-1 rounded-full">残り2時間</span>
+</div>
+<div class="flex justify-between items-start gap-3 pt-6 border-t border-outline-variant/30">
+<div>
+<p class="font-label-sm text-[12px] text-outline mb-1.5">テックイノベーションズ</p>
+<p class="font-body-md text-[14px] text-on-surface leading-tight">Web適性検査</p>
+</div>
+<span class="text-on-surface-variant font-label-sm text-[11px] bg-surface-container px-2.5 py-1 rounded-full">明日, 12:00</span>
+</div>
+</div>
+</section>
+<!-- Featured Companies -->
+<section class="flex flex-col pt-4">
+<div>
+<h3 class="font-body-lg text-[16px] text-on-surface flex items-center gap-2 mb-6">
+<span class="material-symbols-outlined text-[18px] text-outline">push_pin</span>
+                            注目企業
+                        </h3>
+<div class="space-y-6">
+<div>
+<p class="font-body-md text-[14px] text-on-surface mb-3">株式会社リテールジャイアント</p>
+<div class="flex gap-2 items-center">
+<span class="bg-surface-container text-on-surface px-2.5 py-1 rounded-full text-[11px] font-label-sm">日程調整</span>
+<span class="text-outline text-[12px] font-label-sm">2次面接</span>
+</div>
+</div>
+<div class="pt-6 border-t border-outline-variant/30">
+<p class="font-body-md text-[14px] text-on-surface mb-3">コンサルティングXYZ</p>
+<div class="flex gap-2">
+<span class="bg-primary-container text-on-primary px-2.5 py-1 rounded-full text-[11px] font-label-sm">内定承諾書</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+</div>
+</div>
+<!-- Bottom Section: Selection Pipeline -->
+<section class="pt-10">
+<div class="flex justify-between items-center mb-10">
+<h3 class="font-body-lg text-[16px] text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px] text-outline">monitoring</span>
+                    選考パイプライン
+                </h3>
+<div class="flex gap-6">
+<button class="text-primary-container font-body-md text-[13px] hover:opacity-80 transition-colors border-b-2 border-primary-container pb-1">すべて</button>
+<button class="text-outline font-body-md text-[13px] hover:text-on-surface transition-colors pb-1">優先度が高い企業</button>
+</div>
+</div>
+<div class="space-y-8">
+<!-- Pipeline Row 1 -->
+<div class="flex items-center gap-8 group">
+<span class="w-20 text-right font-label-sm text-[12px] text-outline">書類選考</span>
+<div class="flex-1 h-[2px] bg-surface-container overflow-hidden">
+<div class="h-full bg-primary-container transition-all duration-500" style="width: 80%"></div>
+</div>
+<span class="w-8 text-right font-body-md text-[14px] text-on-surface">12</span>
+</div>
+<!-- Pipeline Row 2 -->
+<div class="flex items-center gap-8 group">
+<span class="w-20 text-right font-label-sm text-[12px] text-outline">1次面接</span>
+<div class="flex-1 h-[2px] bg-surface-container overflow-hidden">
+<div class="h-full bg-primary-container transition-all duration-500" style="width: 50%"></div>
+</div>
+<span class="w-8 text-right font-body-md text-[14px] text-on-surface">8</span>
+</div>
+<!-- Pipeline Row 3 -->
+<div class="flex items-center gap-8 group">
+<span class="w-20 text-right font-label-sm text-[12px] text-outline">最終面接</span>
+<div class="flex-1 h-[2px] bg-surface-container overflow-hidden">
+<div class="h-full bg-primary-container transition-all duration-500" style="width: 25%"></div>
+</div>
+<span class="w-8 text-right font-body-md text-[14px] text-on-surface">3</span>
+</div>
+<!-- Pipeline Row 4 -->
+<div class="flex items-center gap-8 group">
+<span class="w-20 text-right font-label-sm text-[12px] text-outline">内定</span>
+<div class="flex-1 h-[2px] bg-surface-container overflow-hidden">
+<div class="h-full bg-[#2ec08b] transition-all duration-500" style="width: 10%"></div>
+</div>
+<span class="w-8 text-right font-body-md text-[14px] text-[#2ec08b]">1</span>
+</div>
+</div>
+</section>
+</div>
+</main>
+<!-- Dim Backdrop for Drawer -->
+<div class="fixed inset-0 bg-on-surface/5 z-[50]" id="ai-drawer-backdrop" onclick="document.getElementById('ai-drawer').classList.add('translate-x-full'); this.classList.add('hidden');"></div>
+<!-- AI Drawer (Refined for Modern SaaS) -->
+<div class="fixed top-0 right-0 h-full w-[440px] bg-surface-container-lowest shadow-[-16px_0_48px_rgba(0,0,0,0.05)] z-[60] flex flex-col transition-transform duration-300 tracking-[-0.025em]" id="ai-drawer">
+<!-- Header (Minimal) -->
+<div class="flex items-center justify-between px-10 h-24 bg-surface-container-lowest">
+<div class="flex items-center gap-2 text-primary-container">
+<span class="material-symbols-outlined text-[20px]">auto_awesome</span>
+<h2 class="font-headline-md text-[16px] font-medium tracking-tight">JobCal AI</h2>
+</div>
+<button class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-surface-container text-on-surface-variant transition-colors" onclick="document.getElementById('ai-drawer').classList.add('translate-x-full'); document.getElementById('ai-drawer-backdrop').classList.add('hidden');">
+<span class="material-symbols-outlined text-[20px]">close</span>
+</button>
+</div>
+<!-- Content -->
+<div class="flex-1 overflow-y-auto px-10 pb-12"><div class="flex flex-col h-full"><div class="flex items-center gap-3 mb-10"><div class="flex items-center gap-2 opacity-50"><span class="w-5 h-5 rounded-full bg-surface-container-high text-on-surface-variant flex items-center justify-center text-[10px] font-medium">1</span></div><div class="w-8 h-[1px] bg-surface-container-highest"></div><div class="flex items-center gap-2"><span class="w-5 h-5 rounded-full bg-primary-container text-on-primary flex items-center justify-center text-[10px] font-medium">2</span><span class="text-[12px] text-primary-container font-medium font-body-md">企業選択</span></div><div class="w-8 h-[1px] bg-surface-container-highest"></div><div class="flex items-center gap-2 opacity-50"><span class="w-5 h-5 rounded-full bg-surface-container-high text-on-surface-variant flex items-center justify-center text-[10px] font-medium">3</span></div></div><h3 class="font-headline-md text-[28px] text-on-surface tracking-tight mb-8">企業を確認</h3><div class="space-y-8 flex-1"><div class="p-6 bg-surface-container-low rounded-3xl"><p class="text-[12px] text-outline mb-1">抽出された企業名</p><p class="text-[20px] font-medium text-on-surface font-bold">株式会社サンプル</p></div><div class="space-y-4"><p class="text-[12px] font-medium text-on-surface px-2">登録方法を選択</p><label class="flex items-center gap-4 p-5 bg-surface-container-lowest border border-outline-variant/30 rounded-3xl cursor-pointer group transition-all hover:bg-surface-container-low"><input checked="" class="w-5 h-5 text-primary-container focus:ring-0 border-outline-variant bg-surface-container-lowest" name="company-select" type="radio"><div class="flex-1"><div class="flex items-center gap-2"><p class="text-[15px] font-medium text-on-surface">株式会社リテールジャイアント</p><span class="bg-primary-container/10 text-primary-container px-2 py-0.5 rounded-full text-[10px] font-medium">登録済み</span></div><p class="text-[12px] text-outline mt-0.5">既存のデータと一致しました</p></div></label><label class="flex items-center gap-4 p-5 bg-surface-container-lowest border border-outline-variant/30 rounded-3xl cursor-pointer group transition-all hover:bg-surface-container-low"><input class="w-5 h-5 text-primary-container focus:ring-0 border-outline-variant bg-surface-container-lowest" name="company-select" type="radio"><div class="flex-1"><p class="text-[15px] font-medium text-on-surface">新しい企業として追加</p></div></label></div></div><div class="mt-auto pt-8 flex gap-3"><button class="flex-1 py-4 rounded-full border border-outline-variant text-on-surface font-body-md text-[14px] hover:bg-surface-container transition-all">戻る</button><button class="flex-[2] py-4 rounded-full bg-primary-container text-on-primary font-body-md text-[14px] hover:opacity-90 transition-all">次へ</button></div></div></div>
+</div>
+</body></html>

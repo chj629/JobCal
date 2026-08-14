@@ -1,73 +1,77 @@
 "use client";
 
-import { ClipboardCheck } from "lucide-react";
+import MaterialIcon from "@/components/ui/MaterialIcon";
 import type { Company } from "@/lib/companies";
+import { getStepDisplayName, type ApplicationStep } from "@/lib/applicationSteps";
+import { buildStepFunnelRows } from "@/lib/stepFunnel";
 import { useT } from "@/lib/locale-context";
 import EmptyState from "@/components/ui/EmptyState";
 
 interface ResultSummaryCardProps {
   companies: Company[];
+  steps: ApplicationStep[];
 }
 
-// 11_analytics.png "선고 결과 서머리" 카드. StatusDonutChart(상태별 기업 수 도넛)와
-// 중복되지 않도록 원형 차트를 다시 그리지 않고, offer/joined/rejected 3개 결과만
-// 간단한 숫자 요약으로 보여준다. 색상은 StatusDonutChart와 동일한 토큰을 재사용해
-// 두 카드 사이의 색 의미를 일치시킨다.
-export default function ResultSummaryCard({ companies }: ResultSummaryCardProps) {
+// docs/stitch/메인페이지 5개/jobcal_analytics_standardized_design_refresh의 "選考結果"
+// 카드. StepFunnelChart.tsx와 같은 전형명별 집계(lib/stepFunnel.ts)를 재사용해, 첫 단계
+// (エントリー 격)를 제외한 각 단계의 통과율(=passRate)과 통과/불합격 인원을 보여준다.
+// 통과 = 그 단계에 도달/통과한 기업 수, 불합격 = 직전 단계 대비 줄어든 수(= prevCount - count).
+export default function ResultSummaryCard({ companies, steps }: ResultSummaryCardProps) {
   const t = useT();
-
-  const offerCount = companies.filter((c) => c.overallStatus === "offer").length;
-  const joinedCount = companies.filter((c) => c.overallStatus === "joined").length;
-  const rejectedCount = companies.filter((c) => c.overallStatus === "rejected").length;
-  const total = offerCount + joinedCount + rejectedCount;
-
-  const items = [
-    {
-      key: "offer",
-      label: t("companies.list.status.offer"),
-      count: offerCount,
-      dotClass: "bg-success",
-    },
-    {
-      key: "joined",
-      label: t("companies.list.status.joined"),
-      count: joinedCount,
-      dotClass: "bg-joined",
-    },
-    {
-      key: "rejected",
-      label: t("companies.list.status.rejected"),
-      count: rejectedCount,
-      dotClass: "bg-error",
-    },
-  ];
+  const rows = buildStepFunnelRows(companies, steps).slice(1);
 
   return (
-    <section className="rounded-[10px] border border-border bg-card p-6">
-      <h2 className="text-[16px] font-semibold text-foreground">
+    <section className="flex h-[340px] flex-col rounded-stitch-xl border border-stitch-border bg-card p-6 shadow-sm">
+      <h2 className="mb-6 flex items-center gap-2 text-[13px] font-[400] text-stitch-ink">
+        <MaterialIcon name="fact_check" size={15} className="text-secondary" />
         {t("analytics.resultSummary.title")}
       </h2>
 
-      {total === 0 ? (
-        <EmptyState icon={ClipboardCheck} title={t("analytics.resultSummary.empty")} />
+      {rows.length === 0 ? (
+        <div className="flex flex-1 items-center justify-center">
+          <EmptyState icon="fact_check" title={t("analytics.resultSummary.empty")} />
+        </div>
       ) : (
-        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
-          {items.map(({ key, label, count, dotClass }) => {
-            const percent = Math.round((count / total) * 1000) / 10;
+        // justify-center였을 때, 행이 늘어나 카드 높이(340px)를 넘기면 overflow-y-auto와
+        // justify-center가 함께 콘텐츠를 위아래로 절반씩 넘치게 만들어 맨 위 행의 윗부분이
+        // 스크롤로도 닿지 않는 영역에 잘려 있었다(음수 스크롤은 불가능). justify-start(기본값)로
+        // 바꿔 항상 첫 행 맨 위부터 보이게 한다.
+        <div className="flex flex-1 flex-col gap-6 overflow-y-auto stitch-scrollbar-hidden">
+          {rows.map((row) => {
+            const displayName = getStepDisplayName({ name: row.name, stepKey: row.stepKey }, t);
+            const failedCount = Math.max(0, row.prevCount - row.count);
 
             return (
-              <div key={key} className="rounded-lg border border-border p-4">
-                <div className="flex items-center gap-2">
-                  <span className={"h-2.5 w-2.5 shrink-0 rounded-full " + dotClass} />
-                  <span className="text-sm text-secondary">{label}</span>
-                </div>
-                <p className="mt-2 text-[28px] font-bold text-foreground">
-                  {count}
-                  <span className="ml-1 text-sm font-medium text-secondary">
-                    {t("analytics.resultSummary.unit")}
+              <div key={row.name} className="space-y-1.5">
+                {/* 전형명이 길면 truncate 대신 자연스럽게 줄바꿈한다. min-w-0(줄어들 수 있게)
+                    + shrink-0(퍼센트는 고정 폭)으로 이름이 아무리 길어도 이 행이 카드 폭을
+                    밀어내지 않는다. items-start라 이름이 2줄이 돼도 퍼센트는 첫 줄 높이에
+                    고정되고, 아래 progress bar는 이 flex와 무관한 별도 블록이라 항상 같은
+                    좌우 위치에서 시작한다. */}
+                <div className="mb-1 flex items-start justify-between gap-3">
+                  <span className="min-w-0 flex-1 text-[12px] font-[400] leading-snug text-stitch-ink">
+                    {displayName}
                   </span>
-                </p>
-                <p className="mt-1 text-xs text-secondary">{percent}%</p>
+                  <span className="shrink-0 pt-0.5 text-[10px] text-secondary">
+                    {row.passRate}%
+                  </span>
+                </div>
+                <div className="h-1 w-full overflow-hidden rounded-full bg-stitch-bg">
+                  <div
+                    className="h-full rounded-full bg-primary-navy"
+                    style={{ width: `${row.passRate}%` }}
+                  />
+                </div>
+                <div className="mt-1 flex gap-3 text-[10px] text-secondary">
+                  <span>
+                    {t("analytics.resultSummary.passed")}:{" "}
+                    <span className="font-[400] text-stitch-ink">{row.count}</span>
+                  </span>
+                  <span>
+                    {t("analytics.resultSummary.failed")}:{" "}
+                    <span className="font-[400] text-stitch-ink">{failedCount}</span>
+                  </span>
+                </div>
               </div>
             );
           })}

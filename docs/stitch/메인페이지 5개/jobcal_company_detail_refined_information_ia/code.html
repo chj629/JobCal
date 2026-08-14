@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+
+<html class="light" lang="ja" style=""><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>JobCal - Company Detail</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,100..900;1,100..900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+                "on-error": "#ffffff",
+                "on-secondary-fixed": "#001c39",
+                "surface-tint": "#4059aa",
+                "on-secondary": "#ffffff",
+                "on-tertiary-fixed-variant": "#43474b",
+                "surface-container-highest": "#d5e3fd",
+                "primary-container": "#1e3a8a",
+                "surface": "#f8f9ff",
+                "tertiary-fixed-dim": "#c3c7cb",
+                "primary": "#00236f",
+                "inverse-on-surface": "#ebf1ff",
+                "outline": "#757682",
+                "on-background": "#0d1c2f",
+                "secondary-fixed": "#d4e3ff",
+                "background": "#f8f9ff",
+                "error-container": "#ffdad6",
+                "on-secondary-fixed-variant": "#004883",
+                "surface-bright": "#f8f9ff",
+                "on-primary-container": "#90a8ff",
+                "on-tertiary-fixed": "#171c1f",
+                "on-primary-fixed": "#00164e",
+                "tertiary": "#262b2e",
+                "surface-container": "#e6eeff",
+                "on-tertiary": "#ffffff",
+                "primary-fixed-dim": "#b6c4ff",
+                "outline-variant": "#c5c5d3",
+                "on-error-container": "#93000a",
+                "tertiary-fixed": "#dfe3e7",
+                "primary-fixed": "#dce1ff",
+                "surface-container-lowest": "#ffffff",
+                "on-tertiary-container": "#a8adb1",
+                "secondary-fixed-dim": "#a4c9ff",
+                "surface-container-high": "#dde9ff",
+                "on-secondary-container": "#003c70",
+                "inverse-surface": "#233144",
+                "surface-dim": "#ccdbf4",
+                "tertiary-container": "#3c4144",
+                "on-surface": "#0d1c2f",
+                "surface-container-low": "#eff4ff",
+                "error": "#ba1a1a",
+                "secondary-container": "#64a8fe",
+                "inverse-primary": "#b6c4ff",
+                "on-surface-variant": "#444651",
+                "secondary": "#0060ac",
+                "surface-variant": "#d5e3fd",
+                "on-primary-fixed-variant": "#264191",
+                "on-primary": "#ffffff",
+                "primary-navy": "#1e3a8a",
+                "surface-main": "#f8f9ff",
+                "border-subtle": "#e9e8ea",
+                "text-primary": "#0d1c2f",
+                "text-secondary": "#6b7280"
+        },
+        "borderRadius": {
+                "DEFAULT": "1rem",
+                "lg": "2rem",
+                "xl": "3rem",
+                "full": "9999px"
+        },
+        "spacing": {
+                "gutter": "24px",
+                "base": "8px",
+                "container-margin": "32px",
+                "pill-padding-y": "12px",
+                "section-gap": "64px",
+                "pill-padding-x": "24px"
+        },
+        "fontFamily": {
+                "label-sm": [
+                        "JetBrains Mono"
+                ],
+                "display-lg": [
+                        "Hanken Grotesk"
+                ],
+                "display-lg-mobile": [
+                        "Hanken Grotesk"
+                ],
+                "body-md": [
+                        "Hanken Grotesk"
+                ],
+                "headline-md": [
+                        "Hanken Grotesk"
+                ],
+                "body-lg": [
+                        "Hanken Grotesk"
+                ]
+        },
+        "fontSize": {
+                "label-sm": [
+                        "12px",
+                        {
+                                "lineHeight": "16px",
+                                "letterSpacing": "0.05em",
+                                "fontWeight": "500"
+                        }
+                ],
+                "display-lg": [
+                        "48px",
+                        {
+                                "lineHeight": "56px",
+                                "letterSpacing": "-0.02em",
+                                "fontWeight": "350"
+                        }
+                ],
+                "display-lg-mobile": [
+                        "32px",
+                        {
+                                "lineHeight": "40px",
+                                "letterSpacing": "-0.01em",
+                                "fontWeight": "350"
+                        }
+                ],
+                "body-md": [
+                        "16px",
+                        {
+                                "lineHeight": "24px",
+                                "fontWeight": "350"
+                        }
+                ],
+                "headline-md": [
+                        "24px",
+                        {
+                                "lineHeight": "32px",
+                                "fontWeight": "500"
+                        }
+                ],
+                "body-lg": [
+                        "18px",
+                        {
+                                "lineHeight": "28px",
+                                "fontWeight": "350"
+                        }
+                ]
+        }
+},
+    },
+  }
+</script>
+<style>
+        body { font-family: 'Hanken Grotesk', sans-serif; font-weight: 350; letter-spacing: -0.025em; background-color: #f8f9ff; color: #0d1c2f; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 20; }
+        .material-symbols-outlined.fill { font-variation-settings: 'FILL' 1; }
+        html { scroll-behavior: smooth; }
+        * { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+        
+        .premium-card {
+            background-color: #ffffff;
+            border-radius: 20px;
+            border: 1px solid #e9e8ea;
+            box-shadow: none;
+        }
+        
+        .subtle-divider {
+            border-color: #e9e8ea;
+        }
+
+        h1, h2, h3, h4, p, span { letter-spacing: -0.025em; font-weight: 350; }
+        .font-medium { font-weight: 400; }
+        .font-bold { font-weight: 500; }
+    </style>
+</head>
+<body class="flex min-h-screen text-text-primary bg-surface-container-low overflow-hidden">
+<!-- SideNavBar -->
+<nav class="hidden md:flex fixed left-0 top-0 h-full flex-col z-50 py-8 border-r border-border-subtle w-64 bg-primary-navy">
+<div class="px-6 pb-8 mb-2 pt-0.5">
+<div class="flex flex-col gap-1">
+<h1 class="text-[28px] font-bold tracking-tight text-white leading-none">JobCal</h1>
+<p class="text-[11px] tracking-normal text-white/70">就活を、もっとスマートに。</p>
+</div>
+</div>
+<div class="flex-1 px-3 space-y-1">
+<a class="flex items-center gap-3 px-3 py-2 text-white/70 hover:text-white rounded-xl transition-all duration-200 text-[13px] hover:bg-white/5" href="#">
+<span class="material-symbols-outlined text-[18px]" data-icon="home">home</span>
+                ホーム
+            </a>
+<a class="flex items-center gap-3 bg-white/10 text-white rounded-xl px-3 py-2 text-[13px]" href="#">
+<span class="material-symbols-outlined fill text-[18px]" data-icon="business_center">business_center</span>
+                企業
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 text-white/70 hover:text-white rounded-xl transition-all duration-200 text-[13px] hover:bg-white/5" href="#">
+<span class="material-symbols-outlined text-[18px]" data-icon="calendar_today">calendar_today</span>
+                カレンダー
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 text-white/70 hover:text-white rounded-xl transition-all duration-200 text-[13px] hover:bg-white/5" href="#">
+<span class="material-symbols-outlined text-[18px]" data-icon="bar_chart">bar_chart</span>
+                アナリティクス
+            </a>
+</div>
+<div class="px-3 mt-auto mb-2">
+<a class="flex items-center gap-3 px-3 py-2 text-white/70 hover:text-white rounded-xl transition-all duration-200 text-[13px] hover:bg-white/5" href="#">
+<span class="material-symbols-outlined text-[18px]" data-icon="settings">settings</span>
+                設定
+            </a>
+</div>
+</nav>
+<!-- Main Content Area -->
+<main class="flex-1 ml-0 flex flex-col h-screen relative md:ml-64 overflow-hidden">
+<!-- TopAppBar -->
+<header class="flex justify-between items-center w-full px-8 h-16 bg-white shrink-0 z-40 border-b border-border-subtle"><div class="flex justify-between items-center w-full max-w-[960px] mx-auto h-full"><div class="flex-1"><button class="md:hidden text-text-primary p-2 -ml-2"><span class="material-symbols-outlined">menu</span></button></div><div class="flex items-center gap-3"><button class="flex items-center gap-1.5 bg-surface border border-border-subtle text-text-secondary px-3 py-1.5 rounded-full text-[11px] hover:bg-black/[0.02] hover:text-text-primary transition-all font-medium"><span class="material-symbols-outlined text-[14px]">auto_awesome</span>JobCal AI</button><button class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-black/[0.02] text-text-secondary hover:text-text-primary transition-all"><span class="material-symbols-outlined text-[18px]" data-icon="notifications">notifications</span></button><button class="w-8 h-8 rounded-full overflow-hidden hover:opacity-90 transition-opacity ring-1 ring-border-subtle"><img alt="User profile photo" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBCSde5LELE9CUq1iAQn_0cXBq4rg9txgxeJLU_CousrdMYxudiIfc2ULcXBeLlEZsOtKq1TKaxCVPDcWswUl7ZigQF5wTLCXF8KbSmQXrMg9scV3PQQD_NijtWcg3rp3qSLMt5m8gE0KET_0VxAMH_Ek94Ge3thGzJ1OF3wsYX1ZThej_oCDVaLFKDP9BnXKahVL-9jtX7c79IyZMzlSH1bf3_-dtfBZ5CNxtY2crIITj3cCryQrBp0Q"/></button></div></div></header>
+<!-- Scrollable Content -->
+<div class="w-full overflow-y-auto flex-1">
+<div class="py-6 mx-auto max-w-[880px] px-6">
+<!-- Detail Page Header -->
+<div class="flex flex-col md:flex-row md:items-start justify-between mb-8 gap-4">
+<div>
+<h1 class="text-[32px] tracking-tight leading-[1.2] text-text-primary font-medium mb-2">株式会社リテールジャイアント</h1>
+<div class="flex items-center gap-2">
+<span class="bg-surface-main border border-border-subtle text-text-secondary px-2.5 py-1 rounded-full text-[10px] font-medium">選考中</span>
+<span class="text-[#ef4444] bg-[#fef2f2] px-2.5 py-1 rounded-full text-[10px] font-medium">優先度：高</span>
+</div>
+</div>
+<div class="flex items-center gap-2 pt-1">
+<button class="flex items-center gap-1 bg-primary-navy text-white px-4 py-2 rounded-xl text-[12px] hover:opacity-90 transition-all font-medium shadow-sm h-fit">
+<span class="material-symbols-outlined text-[16px]">edit</span>
+                    編集
+                </button>
+<button class="w-8 h-8 flex items-center justify-center rounded-xl text-text-secondary hover:bg-black/[0.02] border border-border-subtle transition-colors shadow-sm bg-white">
+<span class="material-symbols-outlined text-[18px]">close</span>
+</button>
+<button class="w-8 h-8 flex items-center justify-center rounded-xl text-text-secondary hover:bg-black/[0.02] border border-border-subtle transition-colors shadow-sm bg-white">
+<span class="material-symbols-outlined text-[18px]">more_vert</span>
+</button>
+</div>
+</div>
+<!-- Progress Stepper (Compact) -->
+<div class="mb-8 premium-card p-4 rounded-xl shadow-sm">
+<div class="relative w-full flex items-center justify-between">
+<div class="absolute top-1/2 left-0 w-full flex items-center px-4 -translate-y-1/2 -z-10">
+<div class="h-[2px] flex-1 bg-border-subtle"></div>
+</div>
+<div class="flex flex-col items-center gap-1.5 bg-white px-2">
+<div class="w-6 h-6 rounded-full bg-[#10b981] text-white flex items-center justify-center shadow-sm">
+<span class="material-symbols-outlined text-[14px] font-bold">check</span>
+</div>
+<span class="text-[10px] text-text-secondary font-medium">書類選考</span>
+</div>
+<div class="flex flex-col items-center gap-1.5 bg-white px-2">
+<div class="w-6 h-6 rounded-full bg-[#10b981] text-white flex items-center justify-center shadow-sm">
+<span class="material-symbols-outlined text-[14px] font-bold">check</span>
+</div>
+<span class="text-[10px] text-text-secondary font-medium">1次面接</span>
+</div>
+<div class="flex flex-col items-center gap-1.5 bg-white px-2">
+<div class="w-6 h-6 rounded-full bg-primary-navy text-white flex items-center justify-center ring-2 ring-[#1e3a8a]/20 shadow-sm">
+<span class="font-medium text-[12px]">3</span>
+</div>
+<span class="text-[10px] text-text-primary font-medium">2次面接</span>
+</div>
+<div class="flex flex-col items-center gap-1.5 bg-white px-2">
+<div class="w-6 h-6 rounded-full bg-white text-text-secondary flex items-center justify-center border border-border-subtle">
+<span class="text-[12px]">4</span>
+</div>
+<span class="text-[10px] text-text-secondary font-medium">最終面接</span>
+</div>
+<div class="flex flex-col items-center gap-1.5 bg-white px-2">
+<div class="w-6 h-6 rounded-full bg-white text-text-secondary flex items-center justify-center border border-border-subtle">
+<span class="text-[12px]">5</span>
+</div>
+<span class="text-[10px] text-text-secondary font-medium">内定</span>
+</div>
+<div class="flex flex-col items-center gap-1.5 bg-white px-2">
+<button class="w-6 h-6 rounded-full border border-dashed border-border-subtle text-text-secondary hover:text-primary-navy hover:border-primary-navy transition-colors flex items-center justify-center bg-white">
+<span class="material-symbols-outlined text-[14px]">add</span>
+</button>
+<span class="text-[10px] text-text-secondary font-medium">追加</span>
+</div>
+</div>
+</div>
+<!-- Main Content Layout -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start pb-10">
+<!-- Left Column (Main - Span 8) -->
+<div class="lg:col-span-8 flex flex-col gap-6">
+<!-- Selection Group -->
+<div class="premium-card p-6 flex flex-col gap-6 shadow-sm rounded-xl">
+<!-- 選考詳細 -->
+<section class="relative">
+<h2 class="text-[13px] text-text-primary flex items-center gap-1.5 mb-4 font-medium">
+<span class="material-symbols-outlined text-[15px] text-text-secondary">assignment</span>
+                            選考詳細
+                        </h2><button class="absolute top-6 right-6 w-8 h-8 flex items-center justify-center rounded-xl text-text-secondary hover:bg-black/[0.02] border border-border-subtle transition-colors shadow-sm bg-white"><span class="material-symbols-outlined text-[18px]">more_vert</span></button>
+<div class="pl-6 space-y-4">
+<div class="flex gap-4 items-center">
+<span class="text-text-secondary text-[11px] w-20 shrink-0 font-medium">ステータス</span>
+<div class="relative">
+<select class="appearance-none bg-surface-main border border-border-subtle rounded-md pl-3 pr-8 py-1 text-[12px] text-text-primary focus:ring-1 focus:ring-primary-navy/50 outline-none cursor-pointer">
+<option>待機</option>
+<option>やること</option>
+<option selected="">日程確定</option>
+<option>完了</option>
+</select>
+<span class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-text-secondary text-[14px] pointer-events-none">expand_more</span>
+</div>
+</div>
+<div class="flex gap-4 items-start">
+<span class="text-text-secondary text-[11px] w-20 shrink-0 pt-0.5 font-medium">次回ステップ</span>
+<span class="text-text-primary text-[12px] font-medium">2次面接（技術面接）</span>
+</div>
+<div class="flex gap-4 items-start">
+<span class="text-text-secondary text-[11px] w-20 shrink-0 pt-0.5 font-medium">日時</span>
+<span class="text-text-primary text-[12px]">2023年11月24日 14:00–15:00</span>
+</div>
+<div class="flex gap-4 items-start">
+<span class="text-text-secondary text-[11px] w-20 shrink-0 pt-0.5 font-medium">形式</span>
+<span class="text-text-primary text-[12px]">オンライン形式</span>
+</div>
+</div>
+</section>
+<div class="h-[1px] bg-border-subtle"></div>
+<!-- 選考メモ -->
+<section>
+<div class="flex items-center justify-between mb-4">
+<h2 class="text-[13px] text-text-primary flex items-center gap-1.5 font-medium">
+<span class="material-symbols-outlined text-[15px] text-text-secondary">notes</span>
+                                選考メモ
+                            </h2>
+<button class="text-primary-navy hover:bg-black/[0.02] px-2 py-1 rounded-md transition-colors text-[11px] flex items-center gap-0.5 font-medium">
+<span class="material-symbols-outlined text-[14px]">add</span> 追加
+                            </button>
+</div>
+<div class="pl-6">
+<div class="relative group bg-surface-main p-4 rounded-xl border border-transparent transition-colors" onclick="const p = this.querySelector('p'); const text = p.innerText; this.innerHTML = `&lt;textarea class='w-full bg-transparent border-none p-0 text-[12px] leading-relaxed focus:ring-0 outline-none min-h-[100px] resize-none' autofocus&gt;${text}&lt;/textarea&gt;&lt;div class='flex justify-end gap-2 mt-2'&gt;&lt;button class='px-3 py-1 text-[11px] text-text-secondary hover:bg-black/[0.02] rounded-md transition-colors'&gt;キャンセル&lt;/button&gt;&lt;button class='px-3 py-1 text-[11px] bg-primary-navy text-white rounded-md transition-opacity hover:opacity-90'&gt;保存&lt;/button&gt;&lt;/div&gt;`; this.classList.remove('border-transparent', 'hover:border-border-subtle'); this.classList.add('border-primary-navy', 'ring-1', 'ring-primary-navy/30');"><textarea class="w-full bg-white border border-primary-navy rounded-md p-3 text-[12px] focus:ring-1 focus:ring-primary-navy/30 outline-none min-h-[100px] mb-2">1次面接ではチーム開発の経験について深く聞かれた。
+技術選定の理由を論理的に説明できた点は評価された模様。
+社風は非常にフラットで、若手でも意見が通りやすい環境とのこと。</textarea><div class="flex justify-end gap-2"><button class="px-3 py-1 text-[11px] text-text-secondary hover:bg-black/[0.02] rounded-md">キャンセル</button><button class="px-3 py-1 text-[11px] bg-primary-navy text-white rounded-md">保存</button></div></div>
+</div>
+</section>
+</div>
+<!-- Company Common Area Group -->
+<div class="premium-card p-6 flex flex-col gap-6 shadow-sm rounded-xl relative before:absolute before:-top-6 before:left-1/2 before:-translate-x-1/2 before:w-[calc(100%-3rem)] before:h-[1px] before:bg-border-subtle before:content-[''] lg:before:hidden">
+<!-- 企業メモ -->
+<section class="relative">
+<div class="flex items-center justify-between mb-4">
+<h2 class="text-[13px] text-text-primary flex items-center gap-1.5 font-medium">
+<span class="material-symbols-outlined text-[15px] text-text-secondary">notes</span>
+                                企業メモ
+                            </h2>
+<button class="text-primary-navy hover:bg-black/[0.02] px-2 py-1 rounded-md transition-colors text-[11px] flex items-center gap-0.5 font-medium">
+<span class="material-symbols-outlined text-[14px]">add</span> 追加
+                            </button>
+</div>
+<div class="pl-6">
+<div class="relative group bg-surface-main p-4 rounded-xl border border-transparent transition-colors" onclick="const p = this.querySelector('p'); const text = p.innerText; this.innerHTML = `&lt;textarea class='w-full bg-transparent border-none p-0 text-[12px] leading-relaxed focus:ring-0 outline-none min-h-[80px] resize-none' autofocus&gt;${text}&lt;/textarea&gt;&lt;div class='flex justify-end gap-2 mt-2'&gt;&lt;button class='px-3 py-1 text-[11px] text-text-secondary hover:bg-black/[0.02] rounded-md transition-colors'&gt;キャンセル&lt;/button&gt;&lt;button class='px-3 py-1 text-[11px] bg-primary-navy text-white rounded-md transition-opacity hover:opacity-90'&gt;保存&lt;/button&gt;&lt;/div&gt;`; this.classList.remove('border-transparent', 'hover:border-border-subtle'); this.classList.add('border-primary-navy', 'ring-1', 'ring-primary-navy/30');"><textarea class="w-full bg-white border border-primary-navy rounded-md p-3 text-[12px] focus:ring-1 focus:ring-primary-navy/30 outline-none min-h-[80px] mb-2">企業調査の内容や志望動機など、企業全体に関する情報を記録できます。</textarea><div class="flex justify-end gap-2"><button class="px-3 py-1 text-[11px] text-text-secondary hover:bg-black/[0.02] rounded-md">キャンセル</button><button class="px-3 py-1 text-[11px] bg-primary-navy text-white rounded-md">保存</button></div></div>
+</div>
+</section>
+<div class="h-[1px] bg-border-subtle"></div>
+<!-- 企業情報 -->
+<section>
+<div class="flex items-center justify-between mb-4">
+<h2 class="text-[13px] text-text-primary flex items-center gap-1.5 font-medium">
+<span class="material-symbols-outlined text-[15px] text-text-secondary">domain</span>
+                                企業情報
+                            </h2>
+</div>
+<div class="pl-6 grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-6">
+<div class="flex gap-4 items-start">
+<span class="text-text-secondary text-[11px] w-16 shrink-0 pt-0.5 font-medium">勤務地</span>
+<div class="flex-1 min-w-0">
+<span class="text-text-primary text-[12px] cursor-pointer hover:underline block" onclick="const val=this.innerText; this.parentElement.innerHTML='&lt;div class=\'flex flex-col gap-2\'&gt;&lt;input type=\'text\' class=\'w-full bg-white border border-primary-navy rounded-md px-2 py-1 text-[12px] outline-none\' value=\''+val+'\' autofocus&gt;&lt;div class=\'flex justify-end gap-1.5\'&gt;&lt;button class=\'px-2 py-0.5 text-[10px] text-text-secondary hover:bg-black/[0.02] rounded transition-colors\'&gt;キャンセル&lt;/button&gt;&lt;button class=\'px-2 py-0.5 text-[10px] bg-primary-navy text-white rounded transition-opacity hover:opacity-90\'&gt;保存&lt;/button&gt;&lt;/div&gt;&lt;/div&gt;'">東京都</span>
+</div>
+</div>
+<div class="flex gap-4 items-start">
+<span class="text-text-secondary text-[11px] w-16 shrink-0 pt-0.5 font-medium">業界</span>
+<div class="flex-1 min-w-0">
+<span class="text-text-primary text-[12px] cursor-pointer hover:underline block" onclick="const val=this.innerText; this.parentElement.innerHTML='&lt;div class=\'flex flex-col gap-2\'&gt;&lt;input type=\'text\' class=\'w-full bg-white border border-primary-navy rounded-md px-2 py-1 text-[12px] outline-none\' value=\''+val+'\' autofocus&gt;&lt;div class=\'flex justify-end gap-1.5\'&gt;&lt;button class=\'px-2 py-0.5 text-[10px] text-text-secondary hover:bg-black/[0.02] rounded transition-colors\'&gt;キャンセル&lt;/button&gt;&lt;button class=\'px-2 py-0.5 text-[10px] bg-primary-navy text-white rounded transition-opacity hover:opacity-90\'&gt;保存&lt;/button&gt;&lt;/div&gt;&lt;/div&gt;'">IT・ソフトウェア</span>
+</div>
+</div>
+<div class="flex gap-4 items-start">
+<span class="text-text-secondary text-[11px] w-16 shrink-0 pt-0.5 font-medium">応募経路</span>
+<div class="flex-1 min-w-0">
+<span class="text-text-primary text-[12px] cursor-pointer hover:underline block" onclick="const val=this.innerText; this.parentElement.innerHTML='&lt;div class=\'flex flex-col gap-2\'&gt;&lt;input type=\'text\' class=\'w-full bg-white border border-primary-navy rounded-md px-2 py-1 text-[12px] outline-none\' value=\''+val+'\' autofocus&gt;&lt;div class=\'flex justify-end gap-1.5\'&gt;&lt;button class=\'px-2 py-0.5 text-[10px] text-text-secondary hover:bg-black/[0.02] rounded transition-colors\'&gt;キャンセル&lt;/button&gt;&lt;button class=\'px-2 py-0.5 text-[10px] bg-primary-navy text-white rounded transition-opacity hover:opacity-90\'&gt;保存&lt;/button&gt;&lt;/div&gt;&lt;/div&gt;'">マイナビ</span>
+</div>
+</div>
+<div class="flex gap-4 items-start">
+<span class="text-text-secondary text-[11px] w-16 shrink-0 pt-0.5 font-medium">応募職種</span>
+<div class="flex-1 min-w-0">
+<span class="text-text-primary text-[12px] cursor-pointer hover:underline block" onclick="const val=this.innerText; this.parentElement.innerHTML='&lt;div class=\'flex flex-col gap-2\'&gt;&lt;input type=\'text\' class=\'w-full bg-white border border-primary-navy rounded-md px-2 py-1 text-[12px] outline-none\' value=\''+val+'\' autofocus&gt;&lt;div class=\'flex justify-end gap-1.5\'&gt;&lt;button class=\'px-2 py-0.5 text-[10px] text-text-secondary hover:bg-black/[0.02] rounded transition-colors\'&gt;キャンセル&lt;/button&gt;&lt;button class=\'px-2 py-0.5 text-[10px] bg-primary-navy text-white rounded transition-opacity hover:opacity-90\'&gt;保存&lt;/button&gt;&lt;/div&gt;&lt;/div&gt;'">Webエンジニア</span>
+</div>
+</div>
+<div class="flex gap-4 items-start">
+<span class="text-text-secondary text-[11px] w-16 shrink-0 pt-0.5 font-medium">企業URL</span>
+<div class="flex-1 min-w-0">
+<a class="text-primary-navy text-[12px] hover:underline block cursor-pointer" href="https://example.jp" onclick="event.preventDefault(); const val=this.innerText; this.parentElement.innerHTML='&lt;div class=\'flex flex-col gap-2\'&gt;&lt;input type=\'text\' class=\'w-full bg-white border border-primary-navy rounded-md px-2 py-1 text-[12px] outline-none\' value=\''+val+'\' autofocus&gt;&lt;div class=\'flex justify-end gap-1.5\'&gt;&lt;button class=\'px-2 py-0.5 text-[10px] text-text-secondary hover:bg-black/[0.02] rounded transition-colors\'&gt;キャンセル&lt;/button&gt;&lt;button class=\'px-2 py-0.5 text-[10px] bg-primary-navy text-white rounded transition-opacity hover:opacity-90\'&gt;保存&lt;/button&gt;&lt;/div&gt;&lt;/div&gt;'" target="_blank">https://example.jp</a>
+</div>
+</div>
+</div>
+</section>
+<div class="h-[1px] bg-border-subtle"></div>
+<!-- マイページ情報 -->
+<section>
+<div class="flex items-center justify-between mb-4">
+<h2 class="text-[13px] text-text-primary flex items-center gap-1.5 font-medium">
+<span class="material-symbols-outlined text-[15px] text-text-secondary">language</span>
+                                マイページ情報
+                            </h2>
+</div>
+<div class="pl-6 space-y-4">
+<div class="flex gap-4 items-start">
+<span class="text-text-secondary text-[11px] w-24 shrink-0 pt-0.5 font-medium">マイページURL</span>
+<div class="flex-1 min-w-0">
+<a class="text-primary-navy text-[12px] hover:underline break-all block cursor-pointer" href="https://recruit.example.jp/mypage" onclick="event.preventDefault(); const val=this.innerText; this.parentElement.innerHTML='&lt;div class=\'flex flex-col gap-2\'&gt;&lt;input type=\'text\' class=\'w-full bg-white border border-primary-navy rounded-md px-2 py-1 text-[12px] outline-none\' value=\''+val+'\' autofocus&gt;&lt;div class=\'flex justify-end gap-1.5\'&gt;&lt;button class=\'px-2 py-0.5 text-[10px] text-text-secondary hover:bg-black/[0.02] rounded transition-colors\'&gt;キャンセル&lt;/button&gt;&lt;button class=\'px-2 py-0.5 text-[10px] bg-primary-navy text-white rounded transition-opacity hover:opacity-90\'&gt;保存&lt;/button&gt;&lt;/div&gt;&lt;/div&gt;'" target="_blank">https://recruit.example.jp/mypage</a>
+</div>
+</div>
+<div class="flex gap-4 items-start">
+<span class="text-text-secondary text-[11px] w-24 shrink-0 pt-0.5 font-medium">ログインID</span>
+<div class="flex-1 min-w-0">
+<span class="text-text-primary text-[12px] cursor-pointer hover:underline block" onclick="const val=this.innerText; this.parentElement.innerHTML='&lt;div class=\'flex flex-col gap-2\'&gt;&lt;input type=\'text\' class=\'w-full bg-white border border-primary-navy rounded-md px-2 py-1 text-[12px] outline-none\' value=\''+val+'\' autofocus&gt;&lt;div class=\'flex justify-end gap-1.5\'&gt;&lt;button class=\'px-2 py-0.5 text-[10px] text-text-secondary hover:bg-black/[0.02] rounded transition-colors\'&gt;キャンセル&lt;/button&gt;&lt;button class=\'px-2 py-0.5 text-[10px] bg-primary-navy text-white rounded transition-opacity hover:opacity-90\'&gt;保存&lt;/button&gt;&lt;/div&gt;&lt;/div&gt;'">example@email.com</span>
+</div>
+</div>
+<div class="flex gap-4 items-center">
+<span class="text-text-secondary text-[11px] w-24 shrink-0 font-medium">パスワード</span>
+<div class="flex-1 min-w-0">
+<div class="flex items-center gap-2">
+<span class="text-text-primary text-[12px] cursor-pointer hover:underline" onclick="this.parentElement.parentElement.innerHTML='&lt;div class=\'flex flex-col gap-2\'&gt;&lt;input type=\'password\' class=\'w-full bg-white border border-primary-navy rounded-md px-2 py-1 text-[12px] outline-none\' value=\'password123\' autofocus&gt;&lt;div class=\'flex justify-end gap-1.5\'&gt;&lt;button class=\'px-2 py-0.5 text-[10px] text-text-secondary hover:bg-black/[0.02] rounded transition-colors\'&gt;キャンセル&lt;/button&gt;&lt;button class=\'px-2 py-0.5 text-[10px] bg-primary-navy text-white rounded transition-opacity hover:opacity-90\'&gt;保存&lt;/button&gt;&lt;/div&gt;&lt;/div&gt;'">••••••••••••</span>
+<button class="text-text-secondary hover:text-text-primary transition-colors flex items-center justify-center w-6 h-6 rounded-md hover:bg-black/[0.02]">
+<span class="material-symbols-outlined text-[14px]">visibility</span>
+</button>
+</div>
+</div>
+</div>
+<div class="flex gap-4 items-start">
+<span class="text-text-secondary text-[11px] w-24 shrink-0 pt-0.5 font-medium">メモ</span>
+<div class="flex-1 min-w-0">
+<span class="text-text-primary text-[12px] cursor-pointer hover:underline block" onclick="const val=this.innerText; this.parentElement.innerHTML='&lt;div class=\'flex flex-col gap-2\'&gt;&lt;textarea class=\'w-full bg-white border border-primary-navy rounded-md px-2 py-1 text-[12px] outline-none min-h-[60px] resize-none\' autofocus&gt;'+val+'&lt;/textarea&gt;&lt;div class=\'flex justify-end gap-1.5\'&gt;&lt;button class=\'px-2 py-0.5 text-[10px] text-text-secondary hover:bg-black/[0.02] rounded transition-colors\'&gt;キャンセル&lt;/button&gt;&lt;button class=\'px-2 py-0.5 text-[10px] bg-primary-navy text-white rounded transition-opacity hover:opacity-90\'&gt;保存&lt;/button&gt;&lt;/div&gt;&lt;/div&gt;'">ES提出後に適性検査を受験</span>
+</div>
+</div>
+</div>
+</section>
+<div class="h-[1px] bg-border-subtle"></div>
+<!-- 担当者 -->
+<section>
+<div class="flex items-center justify-between mb-4">
+<div class="flex items-center gap-1.5">
+<h3 class="text-[13px] text-text-primary font-medium flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[15px] text-text-secondary">person</span>担当者</h3>
+<span class="bg-primary-navy text-white w-4 h-4 flex items-center justify-center text-[9px] rounded-full font-medium">1</span>
+</div>
+<button class="text-primary-navy hover:bg-black/[0.02] px-2 py-1 rounded-md transition-colors text-[11px] flex items-center gap-0.5 font-medium">
+<span class="material-symbols-outlined text-[14px]">add</span> 追加
+                            </button>
+</div>
+<div class="pl-6 space-y-3">
+<div class="flex items-center justify-between group bg-surface-main p-3 rounded-xl border border-transparent hover:border-border-subtle transition-colors -mx-2">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-[#1e3a8a]/10 text-primary-navy flex items-center justify-center text-[12px] font-medium">佐</div>
+<div>
+<p class="text-[12px] font-medium text-text-primary leading-tight">佐藤 健一 様</p>
+<p class="text-[10px] text-text-secondary mt-0.5">人事部 採用担当</p>
+</div>
+</div>
+<div class="flex gap-1 pr-1 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-1.5 rounded-md hover:bg-white text-text-secondary border border-border-subtle shadow-sm"><span class="material-symbols-outlined text-[14px]">edit</span></button>
+</div>
+</div>
+</div>
+</section>
+</div>
+</div>
+<!-- Right Column (Secondary - Span 4) -->
+<div class="lg:col-span-4 flex flex-col gap-4">
+<!-- 今後の予定 -->
+<div class="premium-card shadow-sm rounded-xl p-6">
+<section class="flex flex-col relative">
+<div class="flex items-center justify-between mb-4">
+<h3 class="text-[13px] text-text-primary flex items-center gap-1.5 font-medium">
+<span class="material-symbols-outlined text-[15px] text-text-secondary">schedule</span>
+                                今後の予定
+                            </h3>
+<button class="text-primary-navy hover:bg-black/[0.02] px-2 py-1 rounded-md transition-colors text-[11px] flex items-center gap-0.5 font-medium">
+<span class="material-symbols-outlined text-[14px]">add</span> 追加
+                            </button>
+</div>
+<div class="space-y-3">
+<!-- Schedule Item 1 -->
+<div class="flex items-start gap-3 px-2 hover:bg-black/[0.015] transition-colors rounded-xl -mx-2 py-1.5 group">
+<div class="w-10 pt-0.5 flex flex-col items-end">
+<p class="text-[11px] text-text-primary tracking-tight font-medium leading-none">11/24</p>
+<p class="text-[10px] text-text-secondary tracking-tight mt-1 leading-none">14:00</p>
+</div>
+<div class="flex-1 flex flex-col gap-0.5 min-w-0 border-l-[3px] border-primary-navy pl-3 py-0.5">
+<div class="flex items-center justify-between">
+<p class="text-text-primary leading-tight font-medium text-[12px] truncate">2次面接（オンライン）</p>
+<button class="opacity-0 group-hover:opacity-100 p-1 rounded-md hover:bg-white text-text-secondary transition-opacity border border-transparent hover:border-border-subtle shadow-sm">
+<span class="material-symbols-outlined text-[14px]">more_vert</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Schedule Item 2 -->
+<div class="flex items-start gap-3 px-2 hover:bg-black/[0.015] transition-colors rounded-xl -mx-2 py-1.5 mt-2 group">
+<div class="w-10 pt-0.5 flex flex-col items-end">
+<p class="text-[11px] text-text-secondary tracking-tight font-medium leading-none">11/28</p>
+<p class="text-[10px] text-text-secondary tracking-tight mt-1 leading-none">10:00</p>
+</div>
+<div class="flex-1 flex flex-col gap-0.5 min-w-0 border-l-[3px] border-border-subtle pl-3 py-0.5">
+<div class="flex items-center justify-between">
+<p class="text-text-secondary leading-tight font-medium text-[12px] truncate">フィードバック面談（予定）</p>
+<button class="opacity-0 group-hover:opacity-100 p-1 rounded-md hover:bg-white text-text-secondary transition-opacity border border-transparent hover:border-border-subtle shadow-sm">
+<span class="material-symbols-outlined text-[14px]">more_vert</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</section>
+</div>
+<!-- 次のアクション -->
+<div class="premium-card shadow-sm rounded-xl p-6">
+<section class="flex flex-col relative">
+<div class="flex items-center justify-between mb-4">
+<h3 class="text-[13px] text-text-primary flex items-center gap-1.5 font-medium">
+<span class="material-symbols-outlined text-[15px] text-text-secondary">check_circle</span>
+                                次のアクション
+                            </h3>
+<button class="text-primary-navy hover:bg-black/[0.02] px-2 py-1 rounded-md transition-colors text-[11px] flex items-center gap-0.5 font-medium">
+<span class="material-symbols-outlined text-[14px]">add</span> 追加
+                            </button>
+</div>
+<div class="space-y-3">
+<!-- Task Item 1 -->
+<div class="flex items-start gap-3 px-2 hover:bg-black/[0.015] transition-colors rounded-xl -mx-2 py-1.5 group" onclick="this.innerHTML='&lt;textarea class=&quot;w-full bg-white border border-primary-navy rounded-md p-3 text-[12px] focus:ring-1 focus:ring-primary-navy/30 outline-none min-h-[80px] mb-2&quot;&gt;' + this.querySelector('p').innerText + '&lt;/textarea&gt;&lt;div class=&quot;flex justify-end gap-2&quot;&gt;&lt;button class=&quot;px-3 py-1 text-[11px] text-text-secondary hover:bg-black/[0.02] rounded-md&quot;&gt;キャンセル&lt;/button&gt;&lt;button class=&quot;px-3 py-1 text-[11px] bg-primary-navy text-white rounded-md&quot;&gt;保存&lt;/button&gt;&lt;/div&gt;'; this.classList.remove('hover:border-border-subtle');">
+<div class="pt-0.5">
+<input class="w-4 h-4 rounded text-primary-navy border-border-subtle focus:ring-primary-navy/30 focus:ring-offset-0 cursor-pointer" type="checkbox"/>
+</div>
+<div class="flex-1 flex flex-col gap-0.5 min-w-0">
+<p class="text-text-primary leading-tight font-medium text-[12px]">面接対策をする</p>
+<p class="text-[10px] text-text-secondary tracking-tight mt-1">11/23まで</p>
+</div>
+</div>
+<!-- Task Item 2 -->
+<div class="flex items-start gap-3 px-2 hover:bg-black/[0.015] transition-colors rounded-xl -mx-2 py-1.5 mt-2 group" onclick="this.innerHTML='&lt;textarea class=&quot;w-full bg-white border border-primary-navy rounded-md p-3 text-[12px] focus:ring-1 focus:ring-primary-navy/30 outline-none min-h-[80px] mb-2&quot;&gt;' + this.querySelector('p').innerText + '&lt;/textarea&gt;&lt;div class=&quot;flex justify-end gap-2&quot;&gt;&lt;button class=&quot;px-3 py-1 text-[11px] text-text-secondary hover:bg-black/[0.02] rounded-md&quot;&gt;キャンセル&lt;/button&gt;&lt;button class=&quot;px-3 py-1 text-[11px] bg-primary-navy text-white rounded-md&quot;&gt;保存&lt;/button&gt;&lt;/div&gt;'; this.classList.remove('hover:border-border-subtle');">
+<div class="pt-0.5">
+<input class="w-4 h-4 rounded text-primary-navy border-border-subtle focus:ring-primary-navy/30 focus:ring-offset-0 cursor-pointer" type="checkbox"/>
+</div>
+<div class="flex-1 flex flex-col gap-0.5 min-w-0">
+<p class="text-text-primary leading-tight font-medium text-[12px]">履歴書を提出</p>
+<p class="text-[10px] text-text-secondary tracking-tight mt-1">11/25まで</p>
+</div>
+</div>
+</div>
+</section>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>

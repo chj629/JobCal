@@ -1,11 +1,9 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useState, type FormEvent, type InputHTMLAttributes, type ReactNode, type TextareaHTMLAttributes } from "react";
 import type { ContactFormValues } from "@/lib/companyContacts";
 import { useT } from "@/lib/locale-context";
 import Modal from "@/components/ui/Modal";
-import Button from "@/components/ui/Button";
-import Input from "@/components/ui/Input";
 
 interface ContactFormProps {
   title: string;
@@ -14,7 +12,42 @@ interface ContactFormProps {
   onSubmit: (values: ContactFormValues) => void;
 }
 
-const labelClass = "mb-1 block text-sm text-secondary";
+// docs/stitch/모달다이어로그/.../screen.png의 pill 입력창. components/CompanyForm.tsx가
+// 처음 로컬로 구현한 것과 동일한 스타일을 그대로 따른다(CompanyForm 자체는 건드리지 않음).
+const FIELD_INPUT_CLASS =
+  "w-full rounded-full border border-stitch-border bg-[#f8f9ff] px-5 py-2.5 text-[14px] text-foreground outline-none transition-all focus:border-primary-navy focus:ring-1 focus:ring-primary-navy";
+
+function FormField({
+  label,
+  htmlFor,
+  children,
+}: {
+  label: ReactNode;
+  htmlFor: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="flex flex-col gap-2">
+      <label htmlFor={htmlFor} className="px-1 text-[12px] font-[500] text-foreground">
+        {label}
+      </label>
+      {children}
+    </div>
+  );
+}
+
+function TextField(props: InputHTMLAttributes<HTMLInputElement> & { id: string }) {
+  return <input {...props} className={FIELD_INPUT_CLASS} />;
+}
+
+function TextareaField(props: TextareaHTMLAttributes<HTMLTextAreaElement> & { id: string }) {
+  return (
+    <textarea
+      {...props}
+      className="w-full resize-none rounded-stitch-2xl border border-stitch-border bg-[#f8f9ff] px-5 py-2.5 text-[14px] text-foreground outline-none transition-all focus:border-primary-navy focus:ring-1 focus:ring-primary-navy"
+    />
+  );
+}
 
 export default function ContactForm({ title, initialValues, onCancel, onSubmit }: ContactFormProps) {
   const t = useT();
@@ -31,73 +64,107 @@ export default function ContactForm({ title, initialValues, onCancel, onSubmit }
   }
 
   return (
-    <Modal title={title} onClose={onCancel}>
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <Input
-          label={t("companies.contacts.name")}
-          type="text"
-          value={values.name}
-          onChange={(e) => setValues({ ...values, name: e.target.value })}
-          error={error}
-        />
+    <Modal
+      title={title}
+      onClose={onCancel}
+      footer={
+        <>
+          <button
+            type="button"
+            onClick={onCancel}
+            className="rounded-full px-6 py-2.5 text-[14px] font-[500] text-primary-navy transition-colors hover:bg-black/[0.02]"
+          >
+            {t("common.cancel")}
+          </button>
+          <button
+            type="submit"
+            form="contact-form"
+            className="rounded-full bg-primary-navy px-8 py-2.5 text-[14px] font-[500] text-white transition-all hover:opacity-90"
+          >
+            {t("common.save")}
+          </button>
+        </>
+      }
+    >
+      <form id="contact-form" onSubmit={handleSubmit} className="space-y-6">
+        <FormField label={t("companies.contacts.name")} htmlFor="contact-form-name">
+          <TextField
+            id="contact-form-name"
+            type="text"
+            value={values.name}
+            onChange={(e) => setValues({ ...values, name: e.target.value })}
+          />
+          {error && <p className="mt-1 px-1 text-[12px] text-error">{error}</p>}
+        </FormField>
 
-        <Input
+        <FormField
           label={
             <>
               {t("companies.contacts.role")}{" "}
               <span className="text-secondary">{t("common.optional")}</span>
             </>
           }
-          type="text"
-          value={values.role}
-          onChange={(e) => setValues({ ...values, role: e.target.value })}
-        />
+          htmlFor="contact-form-role"
+        >
+          <TextField
+            id="contact-form-role"
+            type="text"
+            value={values.role}
+            onChange={(e) => setValues({ ...values, role: e.target.value })}
+          />
+        </FormField>
 
         <div className="grid grid-cols-2 gap-4">
-          <Input
+          <FormField
             label={
               <>
                 {t("companies.contacts.email")}{" "}
                 <span className="text-secondary">{t("common.optional")}</span>
               </>
             }
-            type="text"
-            value={values.email}
-            onChange={(e) => setValues({ ...values, email: e.target.value })}
-          />
-          <Input
+            htmlFor="contact-form-email"
+          >
+            <TextField
+              id="contact-form-email"
+              type="text"
+              value={values.email}
+              onChange={(e) => setValues({ ...values, email: e.target.value })}
+            />
+          </FormField>
+          <FormField
             label={
               <>
                 {t("companies.contacts.phone")}{" "}
                 <span className="text-secondary">{t("common.optional")}</span>
               </>
             }
-            type="text"
-            value={values.phone}
-            onChange={(e) => setValues({ ...values, phone: e.target.value })}
-          />
+            htmlFor="contact-form-phone"
+          >
+            <TextField
+              id="contact-form-phone"
+              type="text"
+              value={values.phone}
+              onChange={(e) => setValues({ ...values, phone: e.target.value })}
+            />
+          </FormField>
         </div>
 
-        <div>
-          <label className={labelClass}>
-            {t("companies.contacts.memo")} <span className="text-secondary">{t("common.optional")}</span>
-          </label>
-          <textarea
+        <FormField
+          label={
+            <>
+              {t("companies.contacts.memo")}{" "}
+              <span className="text-secondary">{t("common.optional")}</span>
+            </>
+          }
+          htmlFor="contact-form-memo"
+        >
+          <TextareaField
+            id="contact-form-memo"
             value={values.memo}
             onChange={(e) => setValues({ ...values, memo: e.target.value })}
             rows={3}
-            className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none"
           />
-        </div>
-
-        <div className="mt-2 flex justify-end gap-2">
-          <Button type="button" variant="secondary" onClick={onCancel}>
-            {t("common.cancel")}
-          </Button>
-          <Button type="submit" variant="primary">
-            {t("common.save")}
-          </Button>
-        </div>
+        </FormField>
       </form>
     </Modal>
   );

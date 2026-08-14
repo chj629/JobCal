@@ -1,33 +1,38 @@
 "use client";
 
-import { useId, type ReactNode } from "react";
-import { X } from "lucide-react";
+import { useEffect, useId, type ReactNode } from "react";
 import { useT } from "@/lib/locale-context";
+import MaterialIcon from "@/components/ui/MaterialIcon";
 
 export interface ModalProps {
   open?: boolean;
   onClose: () => void;
   title?: string;
+  // 시안(企業を追加)의 제목 아래 보조 설명 한 줄. 선택적이라 안 넘기면 기존처럼 제목만 보인다.
+  description?: string;
   children: ReactNode;
+  // px-8 pt-6 pb-8 gap-3 justify-end로 본문(children)과 분리된 고정 영역에 렌더링된다.
+  // 안 넘기면(기존 EventForm 등처럼 폼 내부에 자체 버튼 행을 두는 경우) 이 영역 자체가
+  // 렌더링되지 않아 기존 동작 그대로 유지된다.
   footer?: ReactNode;
   size?: "sm" | "md" | "lg";
   className?: string;
 }
 
-// CompanyForm.tsx가 쓰던 max-w-lg를 "md" 기본값으로 그대로 옮긴다. sm/lg는 아직 실제 사용처가
-// 없어 참고할 시안이 없으므로, md를 기준으로 한 단계씩 좁고 넓은 값만 잡아둔다.
+// docs/stitch/모달다이어로그/jobcal_standard_modal_design_company_registration_example/
+// screen.png 기준. 기존 max-w-lg(512px)를 시안 실측값(560px)으로 교체하고, sm/lg는 실제
+// 사용처가 없어(회사 등록/수정 폼만 md를 쓴다) 비율만 맞춰 남겨둔다.
 const SIZE_CLASS: Record<NonNullable<ModalProps["size"]>, string> = {
-  sm: "max-w-sm",
-  md: "max-w-lg",
-  lg: "max-w-2xl",
+  sm: "max-w-[440px]",
+  md: "max-w-[560px]",
+  lg: "max-w-[720px]",
 };
 
-// 포털 없이 CompanyForm.tsx가 쓰던 fixed inset-0 오버레이 구조를 그대로 사용한다.
-// ESC/배경 클릭 닫기, body scroll lock은 이번 단계 범위가 아니라 추가하지 않는다.
 export default function Modal({
   open = true,
   onClose,
   title,
+  description,
   children,
   footer,
   size = "md",
@@ -36,47 +41,61 @@ export default function Modal({
   const t = useT();
   const titleId = useId();
 
+  // ESC로 닫기. backdrop 클릭 닫기는 아래 배경 div의 onClick(카드 자체는 stopPropagation)으로 처리한다.
+  useEffect(() => {
+    if (!open) return;
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [open, onClose]);
+
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      onClick={onClose}
+    >
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby={title ? titleId : undefined}
+        onClick={(event) => event.stopPropagation()}
         className={
-          "flex max-h-[90vh] w-full flex-col rounded-[10px] border border-border bg-card p-6 shadow-lg " +
+          "flex max-h-[90vh] w-full flex-col overflow-hidden rounded-2xl border border-stitch-border bg-white shadow-lg " +
           SIZE_CLASS[size] +
           (className ? " " + className : "")
         }
       >
-        <div className="mb-4 flex shrink-0 items-center justify-between">
-          {title ? (
-            <h2 id={titleId} className="text-[16px] font-semibold text-foreground">
-              {title}
-            </h2>
-          ) : (
-            <span />
-          )}
+        <div className="flex shrink-0 items-start justify-between px-8 pt-8 pb-6">
+          <div>
+            {title && (
+              <h2
+                id={titleId}
+                className="text-[24px] font-[500] tracking-tight text-primary-navy"
+              >
+                {title}
+              </h2>
+            )}
+            {description && <p className="mt-1 text-[14px] text-secondary">{description}</p>}
+          </div>
           <button
             type="button"
             onClick={onClose}
             aria-label={t("common.close")}
-            className="rounded-[8px] p-1 text-secondary hover:bg-background hover:text-foreground"
+            className="shrink-0 text-secondary transition-colors hover:text-foreground"
           >
-            <X size={18} />
+            <MaterialIcon name="close" size={22} />
           </button>
         </div>
 
-        {/* EventForm/ContactForm 등 긴 폼은 children 맨 끝에 저장 버튼 행을 직접 포함시키는
-            방식이라(Modal의 footer prop을 실제로 쓰는 곳은 없음), 헤더는 항상 보이도록
-            고정하고 children(+footer prop)만 이 영역 안에서 스크롤되게 한다. 짧은 모달은
-            내용이 max-h(90vh)보다 작아 스크롤이 생기지 않아 기존과 동일하게 보인다. */}
-        <div className="min-h-0 overflow-y-auto">
-          {children}
+        <div className="min-h-0 overflow-y-auto px-8 pb-4">{children}</div>
 
-          {footer && <div className="mt-2 flex justify-end gap-2">{footer}</div>}
-        </div>
+        {footer && (
+          <div className="flex shrink-0 justify-end gap-3 px-8 pt-6 pb-8">{footer}</div>
+        )}
       </div>
     </div>
   );

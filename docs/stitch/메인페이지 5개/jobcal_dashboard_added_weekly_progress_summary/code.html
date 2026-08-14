@@ -1,0 +1,448 @@
+<!DOCTYPE html><html class="light" lang="ja" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>JobCal - Home Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,100..900;1,100..900&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+                "error-container": "#ffdad6",
+                "tertiary-fixed": "#dfe3e7",
+                "surface-container": "#e6eeff",
+                "on-surface": "#0d1c2f",
+                "on-primary-fixed": "#00164e",
+                "surface": "#f8f9ff",
+                "on-primary-fixed-variant": "#264191",
+                "inverse-primary": "#b6c4ff",
+                "primary-fixed-dim": "#b6c4ff",
+                "surface-container-high": "#dde9ff",
+                "surface-container-low": "#eff4ff",
+                "on-primary-container": "#90a8ff",
+                "inverse-on-surface": "#ebf1ff",
+                "on-tertiary-fixed-variant": "#43474b",
+                "primary": "#00236f",
+                "on-secondary-fixed-variant": "#004883",
+                "tertiary-fixed-dim": "#c3c7cb",
+                "primary-container": "#1e3a8a",
+                "surface-container-highest": "#d5e3fd",
+                "inverse-surface": "#233144",
+                "tertiary": "#262b2e",
+                "on-secondary": "#ffffff",
+                "on-surface-variant": "#444651",
+                "on-secondary-container": "#003c70",
+                "surface-bright": "#f8f9ff",
+                "secondary-fixed-dim": "#a4c9ff",
+                "on-background": "#0d1c2f",
+                "surface-tint": "#4059aa",
+                "outline-variant": "#c5c5d3",
+                "on-tertiary-fixed": "#171c1f",
+                "on-tertiary": "#ffffff",
+                "on-secondary-fixed": "#001c39",
+                "outline": "#757682",
+                "on-error": "#ffffff",
+                "secondary": "#0060ac",
+                "secondary-fixed": "#d4e3ff",
+                "on-tertiary-container": "#a8adb1",
+                "on-error-container": "#93000a",
+                "background": "#f8f9ff",
+                "tertiary-container": "#3c4144",
+                "error": "#ba1a1a",
+                "surface-container-lowest": "#ffffff",
+                "primary-fixed": "#dce1ff",
+                "on-primary": "#ffffff",
+                "surface-dim": "#ccdbf4",
+                "secondary-container": "#64a8fe",
+                "surface-variant": "#d5e3fd",
+                "primary-navy": "#1e3a8a",
+                "surface-main": "#f8f9ff",
+                "border-subtle": "#e9e8ea",
+                "text-primary": "#0d1c2f",
+                "text-secondary": "#6b7280"
+        },
+        "borderRadius": {
+                "DEFAULT": "1rem",
+                "lg": "2rem",
+                "xl": "3rem",
+                "full": "9999px"
+        },
+        "spacing": {
+                "container-margin": "32px",
+                "pill-padding-y": "12px",
+                "base": "8px",
+                "pill-padding-x": "24px",
+                "gutter": "24px",
+                "section-gap": "64px"
+        },
+        "fontFamily": {
+                "body-md": [
+                        "Hanken Grotesk"
+                ],
+                "headline-md": [
+                        "Hanken Grotesk"
+                ],
+                "body-lg": [
+                        "Hanken Grotesk"
+                ],
+                "display-lg-mobile": [
+                        "Hanken Grotesk"
+                ],
+                "label-sm": [
+                        "JetBrains Mono"
+                ],
+                "display-lg": [
+                        "Hanken Grotesk"
+                ]
+        },
+        "fontSize": {
+                "body-md": [
+                        "16px",
+                        {
+                                "lineHeight": "24px",
+                                "fontWeight": "350"
+                        }
+                ],
+                "headline-md": [
+                        "24px",
+                        {
+                                "lineHeight": "32px",
+                                "fontWeight": "500"
+                        }
+                ],
+                "body-lg": [
+                        "18px",
+                        {
+                                "lineHeight": "28px",
+                                "fontWeight": "350"
+                        }
+                ],
+                "display-lg-mobile": [
+                        "32px",
+                        {
+                                "lineHeight": "40px",
+                                "letterSpacing": "-0.01em",
+                                "fontWeight": "350"
+                        }
+                ],
+                "label-sm": [
+                        "12px",
+                        {
+                                "lineHeight": "16px",
+                                "letterSpacing": "0.05em",
+                                "fontWeight": "500"
+                        }
+                ],
+                "display-lg": [
+                        "48px",
+                        {
+                                "lineHeight": "56px",
+                                "letterSpacing": "-0.02em",
+                                "fontWeight": "350"
+                        }
+                ]
+        }
+},
+    },
+  }
+</script>
+<style>
+        body { font-family: 'Hanken Grotesk', sans-serif; font-weight: 350; letter-spacing: -0.025em; background-color: #f8f9ff; color: #0d1c2f; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 20; }
+        .material-symbols-outlined.fill { font-variation-settings: 'FILL' 1; }
+        html { scroll-behavior: smooth; }
+        * { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+        
+        .premium-card {
+            background-color: #ffffff;
+            border-radius: 20px;
+            border: 1px solid #e9e8ea;
+            box-shadow: none;
+        }
+        
+        .subtle-divider {
+            border-color: #e9e8ea;
+        }
+
+        h1, h2, h3, h4, p, span { letter-spacing: -0.025em; font-weight: 350; }
+        .font-medium { font-weight: 400; }
+        .font-bold { font-weight: 500; }
+    </style>
+</head>
+<body class="flex min-h-screen text-text-primary bg-surface-container-low overflow-hidden"><!-- SideNavBar -->
+<nav class="hidden md:flex fixed left-0 top-0 h-full flex-col z-50 py-8 border-r border-border-subtle w-64 bg-primary-navy">
+<div class="px-6 pb-8 mb-2 pt-0.5">
+<div class="flex flex-col gap-1">
+<h1 class="text-[28px] font-bold tracking-tight text-white leading-none">JobCal</h1>
+<p class="text-[11px] tracking-normal text-white/70">就活を、もっとスマートに。</p>
+</div>
+</div>
+<div class="flex-1 px-3 space-y-1">
+<a class="flex items-center gap-3 bg-white/10 text-white rounded-xl px-3 py-2 text-[13px]" href="#">
+<span class="material-symbols-outlined fill text-[18px]" data-icon="home">home</span>
+                ホーム
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 text-white/70 hover:text-white rounded-xl transition-all duration-200 text-[13px] hover:bg-white/5" href="#">
+<span class="material-symbols-outlined text-[18px]" data-icon="business_center">business_center</span>
+                企業
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 text-white/70 hover:text-white rounded-xl transition-all duration-200 text-[13px] hover:bg-white/5" href="#">
+<span class="material-symbols-outlined text-[18px]" data-icon="calendar_today">calendar_today</span>
+                カレンダー
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 text-white/70 hover:text-white rounded-xl transition-all duration-200 text-[13px] hover:bg-white/5" href="#">
+<span class="material-symbols-outlined text-[18px]" data-icon="bar_chart">bar_chart</span>
+                アナリティクス
+            </a>
+</div>
+<div class="px-3 mt-auto mb-2">
+<a class="flex items-center gap-3 px-3 py-2 text-white/70 hover:text-white rounded-xl transition-all duration-200 text-[13px] hover:bg-white/5" href="#">
+<span class="material-symbols-outlined text-[18px]" data-icon="settings">settings</span>
+                設定
+            </a>
+</div>
+</nav>
+<!-- Main Content Area -->
+<main class="flex-1 ml-0 flex flex-col h-screen relative md:ml-64 overflow-hidden">
+<!-- TopAppBar -->
+<header class="flex justify-between items-center w-full px-8 h-16 bg-white shrink-0 z-40 border-b border-border-subtle"><div class="flex justify-between items-center w-full max-w-[960px] mx-auto h-full"><div class="flex-1"><button class="md:hidden text-text-primary p-2 -ml-2"><span class="material-symbols-outlined">menu</span></button></div><div class="flex items-center gap-3"><button class="flex items-center gap-1.5 bg-surface border border-border-subtle text-text-secondary px-3 py-1.5 rounded-full text-[11px] hover:bg-black/[0.02] hover:text-text-primary transition-all font-medium"><span class="material-symbols-outlined text-[14px]">auto_awesome</span>JobCal AI</button><button class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-black/[0.02] text-text-secondary hover:text-text-primary transition-all"><span class="material-symbols-outlined text-[18px]" data-icon="notifications">notifications</span></button><button class="w-8 h-8 rounded-full overflow-hidden hover:opacity-90 transition-opacity ring-1 ring-border-subtle"><img alt="User profile photo" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBCSde5LELE9CUq1iAQn_0cXBq4rg9txgxeJLU_CousrdMYxudiIfc2ULcXBeLlEZsOtKq1TKaxCVPDcWswUl7ZigQF5wTLCXF8KbSmQXrMg9scV3PQQD_NijtWcg3rp3qSLMt5m8gE0KET_0VxAMH_Ek94Ge3thGzJ1OF3wsYX1ZThej_oCDVaLFKDP9BnXKahVL-9jtX7c79IyZMzlSH1bf3_-dtfBZ5CNxtY2crIITj3cCryQrBp0Q"></button></div></div></header>
+<!-- Scrollable Content -->
+<div class="w-full overflow-y-auto flex-1">
+<div class="py-6 mx-auto max-w-[880px] px-6">
+<!-- Greeting & KPIs -->
+<section class="flex flex-col gap-4 mb-8">
+<div class="flex justify-between items-end w-full">
+<div>
+<h2 class="tracking-tight leading-[1.2] text-text-primary mb-1.5 font-medium text-[32px]">こんにちは、健太さん</h2>
+<p class="text-[15px] text-text-secondary">今週も一歩ずつ、頑張っていきましょう！</p>
+</div>
+<button class="flex items-center gap-1 bg-primary-navy text-white px-4 py-2 rounded-xl text-[12px] hover:opacity-90 transition-all h-fit font-medium shadow-sm">
+<span class="material-symbols-outlined text-[16px]">add</span>企業を登録
+                    </button>
+</div>
+<div class="flex w-full pt-2 gap-8"><div class="flex flex-col gap-0.5 min-w-[80px]"><span class="text-[11px] text-text-secondary tracking-normal font-medium">エントリー中</span><div class="flex flex-col items-start"><div class="flex items-end gap-2"><span class="text-text-primary tracking-tight leading-none font-medium text-[32px]">12</span><span class="text-[#10b981] text-[10px] font-medium bg-[#10b981]/10 px-1.5 py-0.5 rounded-full mb-1">+2</span></div></div></div><div class="flex flex-col gap-0.5 min-w-[80px]"><span class="text-[11px] text-text-secondary tracking-normal font-medium">面接予定</span><div class="flex flex-col items-start"><span class="text-text-primary tracking-tight leading-none font-medium text-[32px]">3</span></div></div><div class="flex flex-col gap-0.5 min-w-[80px]"><span class="text-[11px] text-text-secondary tracking-normal font-medium">内定</span><div class="flex flex-col items-start"><div class="flex items-end gap-2"><span class="text-[#10b981] tracking-tight leading-none font-medium text-[32px]">1</span><span class="text-[#10b981] text-[10px] font-medium bg-[#10b981]/10 px-1.5 py-0.5 rounded-full mb-1">+1</span></div></div></div><div class="w-[1px] h-10 bg-outline-variant self-center mx-2"></div><div class="flex flex-col gap-0.5 min-w-[80px]"><div class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px] text-text-secondary">schedule</span><span class="text-[11px] text-text-secondary tracking-normal font-medium">締切間近</span></div><div class="flex flex-col items-start"><div class="flex items-end gap-2"><span class="text-[#f97316] tracking-tight leading-none font-medium text-[32px]">2</span><span class="text-text-secondary text-[10px] font-medium mb-1">3日以内</span></div></div></div></div>
+</section><div class="premium-card mb-3 px-6 py-3 flex items-center justify-between gap-4 rounded-xl shadow-sm">
+<div class="flex items-center gap-3 shrink-0">
+<span class="text-[13px] font-medium text-text-primary">今週の進捗</span>
+<span class="text-[13px] font-bold text-primary-navy">🔥 75%</span>
+</div>
+<div class="flex-1 h-1.5 bg-surface-main rounded-full overflow-hidden">
+<div class="h-full bg-primary-navy rounded-full" style="width: 75%"></div>
+</div>
+<div class="shrink-0">
+<span class="text-[11px] text-text-secondary font-medium">6 / 8 完了</span>
+</div>
+</div>
+<!-- Main Dashboard Grid Layout -->
+<div class="grid grid-cols-1 lg:grid-cols-[1fr_1fr_1.5fr] items-stretch mb-3 gap-3">
+<!-- Top Left: Today's To-Do List -->
+<div class="premium-card h-full shadow-sm rounded-xl p-6 flex flex-col" style="height: 275px; display: flex; flex-direction: column;">
+<section class="flex flex-col h-full">
+<div class="mb-3">
+<h3 class="text-text-primary flex items-center gap-1.5 font-medium text-[13px]">
+<span class="material-symbols-outlined text-[15px] text-text-secondary">check_box</span>今日やること
+                            </h3>
+<span class="text-[11px] text-text-secondary tracking-normal">4件のタスク</span>
+</div>
+<div class="flex-1 overflow-y-auto space-y-3 min-w-0 pr-1" style="max-height: 190px; overflow-y: auto;"><!-- ToDo Item 1 -->
+<label class="flex items-start gap-3 hover:bg-black/[0.015] rounded-xl transition-colors cursor-pointer border border-transparent hover:border-border-subtle py-1.5 -mx-1.5 px-1.5">
+<div class="mt-0.5 relative flex items-center justify-center">
+<input class="peer h-4 w-4 shrink-0 rounded-[4px] border-border-subtle text-primary-navy focus:ring-primary-navy focus:ring-offset-0 bg-surface-main cursor-pointer" type="checkbox">
+</div>
+<div class="flex-1 min-w-0 flex flex-col gap-0.5">
+<p class="text-text-primary leading-tight font-medium text-[12px] truncate">ES提出 (株式会社デザインアーツ)</p>
+<span class="text-[#ef4444] text-[10px] bg-[#fef2f2] px-1.5 py-0.5 rounded w-fit font-medium">本日締切</span>
+</div>
+</label>
+<!-- ToDo Item 2 -->
+<label class="flex items-start gap-3 hover:bg-black/[0.015] rounded-xl transition-colors cursor-pointer border border-transparent hover:border-border-subtle py-1.5 -mx-1.5 px-1.5">
+<div class="mt-0.5 relative flex items-center justify-center">
+<input class="peer h-4 w-4 shrink-0 rounded-[4px] border-border-subtle text-primary-navy focus:ring-primary-navy focus:ring-offset-0 bg-surface-main cursor-pointer" type="checkbox">
+</div>
+<div class="flex-1 min-w-0 flex flex-col gap-0.5">
+<p class="text-text-primary leading-tight font-medium text-[12px] truncate">Webテスト受験</p>
+<span class="text-text-secondary text-[11px] truncate">テックイノベーションズ</span>
+</div>
+</label>
+<!-- ToDo Item 3 -->
+<label class="flex items-start gap-3 hover:bg-black/[0.015] rounded-xl transition-colors cursor-pointer border border-transparent hover:border-border-subtle py-1.5 -mx-1.5 px-1.5 opacity-60">
+<div class="mt-0.5 relative flex items-center justify-center">
+<input checked="" class="peer h-4 w-4 shrink-0 rounded-[4px] border-border-subtle text-primary-navy focus:ring-primary-navy focus:ring-offset-0 bg-surface-main cursor-pointer" type="checkbox">
+</div>
+<div class="flex-1 min-w-0 flex flex-col gap-0.5">
+<p class="text-text-secondary line-through leading-tight text-[12px] truncate">面接日程の調整</p>
+<span class="text-text-secondary text-[11px] truncate">株式会社リテールジャイアント</span>
+</div>
+</label></div>
+</section>
+</div>
+<!-- Top Middle: Today's Schedule -->
+<div class="premium-card h-full shadow-sm rounded-xl p-6 flex flex-col" style="height: 275px; display: flex; flex-direction: column;">
+<section class="flex flex-col h-full">
+<div class="flex justify-between items-center mb-3">
+<h3 class="text-text-primary flex items-center gap-1.5 font-medium text-[13px]">
+<span class="material-symbols-outlined text-[15px] text-text-secondary">calendar_today</span>本日の予定
+                            </h3>
+<span class="text-[11px] text-text-secondary tracking-normal">10月24日（火）</span>
+</div>
+<div class="flex-1 overflow-y-auto space-y-4 pr-1" style="max-height: 190px; overflow-y: auto;"><!-- Schedule Item 1 -->
+<div class="flex items-start gap-3 px-2 hover:bg-black/[0.015] transition-colors rounded-xl -mx-2 py-1.5">
+<div class="w-10 pt-0.5 flex flex-col items-end">
+<p class="text-[12px] text-text-primary tracking-tight font-medium leading-none">10:00</p>
+<p class="text-[10px] text-text-secondary tracking-tight mt-1 leading-none">11:00</p>
+</div>
+<div class="flex-1 flex flex-col gap-0.5 min-w-0 border-l-[3px] border-primary-navy pl-3 py-0.5">
+<div class="flex items-center gap-1">
+<p class="text-text-primary leading-tight font-medium text-[12px] truncate">1次 技術面接</p>
+<span class="material-symbols-outlined text-primary-navy text-[13px] fill">check_circle</span>
+</div>
+<p class="text-[11px] text-text-secondary mt-0.5 truncate">グローバルテックソリューションズ</p>
+</div>
+</div>
+<!-- Schedule Item 2 -->
+<div class="flex items-start gap-3 px-2 hover:bg-black/[0.015] transition-colors rounded-xl -mx-2 py-1.5 mt-2">
+<div class="w-10 pt-0.5 flex flex-col items-end">
+<p class="text-[12px] text-text-primary tracking-tight font-medium leading-none">13:30</p>
+<p class="text-[10px] text-text-secondary tracking-tight mt-1 leading-none">15:00</p>
+</div>
+<div class="flex-1 flex flex-col gap-0.5 min-w-0 border-l-[3px] border-border-subtle pl-3 py-0.5">
+<p class="text-text-primary leading-tight font-medium text-[12px] truncate">合同企業説明会</p>
+<p class="text-[11px] text-text-secondary mt-0.5 truncate">渋谷ヒカリエ 9F</p>
+</div>
+</div></div>
+<div class="flex justify-end mt-2 shrink-0">
+<button class="text-primary-navy text-[11px] hover:opacity-80 transition-colors flex items-center gap-0.5 font-medium">
+                                すべて見る
+                                <span class="material-symbols-outlined text-[14px]">chevron_right</span>
+</button>
+</div>
+</section>
+</div>
+<!-- Top Right: Upcoming Schedule (Moved here) -->
+<div class="premium-card h-full shadow-sm rounded-xl p-6 flex flex-col" style="height: 275px; display: flex; flex-direction: column;">
+<section class="flex flex-col h-full">
+<h3 class="text-text-primary flex items-center gap-1.5 mb-3 font-medium text-[13px]">
+<span class="material-symbols-outlined text-text-secondary text-[15px]">schedule</span>
+                                今後の予定
+                            </h3>
+<div class="flex-1 overflow-y-auto space-y-4 pr-1" style="max-height: 190px; overflow-y: auto;"><!-- Upcoming Item 1 -->
+<div class="flex items-center justify-between gap-3 hover:bg-black/[0.015] rounded-xl transition-colors p-2 -mx-2">
+<div class="flex-1 min-w-0 flex flex-col gap-0.5">
+<p class="text-[10px] text-text-secondary truncate">デザイン株式会社</p>
+<p class="text-[12px] text-text-primary leading-tight font-medium truncate">エントリーシート (ES)</p>
+</div>
+<span class="text-[#ef4444] text-[10px] bg-[#fef2f2] px-2 py-1 rounded-md whitespace-nowrap font-medium shrink-0">残り2時間</span>
+</div>
+<!-- Upcoming Item 2 -->
+<div class="flex items-center justify-between gap-3 hover:bg-black/[0.015] rounded-xl transition-colors p-2 -mx-2">
+<div class="flex-1 min-w-0 flex flex-col gap-0.5">
+<p class="text-[10px] text-text-secondary truncate">テックイノベーションズ</p>
+<p class="text-[12px] text-text-primary leading-tight font-medium truncate">Web適性検査</p>
+</div>
+<span class="text-text-secondary text-[10px] bg-surface-main px-2 py-1 rounded-md border border-border-subtle whitespace-nowrap shrink-0">明日, 12:00</span>
+</div></div>
+<div class="flex justify-end mt-2 shrink-0">
+<button class="text-primary-navy text-[11px] hover:opacity-80 transition-colors flex items-center gap-0.5 font-medium">
+                                    すべて見る<span class="material-symbols-outlined text-[14px]">chevron_right</span>
+</button>
+</div>
+</section>
+</div>
+</div>
+<!-- Bottom Dashboard Grid Layout -->
+<div class="grid grid-cols-1 lg:grid-cols-[1.5fr_1fr] items-stretch pb-10 gap-3">
+<!-- Left Column: Selection Pipeline (Span 8) -->
+<div class="flex flex-col h-full">
+<!-- Selection Pipeline -->
+<div class="premium-card h-full shadow-sm rounded-xl p-6 flex flex-col" style="height: 250px; display: flex; flex-direction: column;">
+<div class="flex justify-between items-center mb-4">
+<h3 class="text-text-primary flex items-center gap-1.5 font-medium text-[13px]">
+<span class="material-symbols-outlined text-[15px] text-text-secondary">monitoring</span>
+                                選考パイプライン
+                            </h3>
+<div class="flex items-center gap-4">
+<button class="text-text-primary text-[11px] hover:opacity-80 transition-colors border-b-[1.5px] border-text-primary pb-0.5 font-medium">すべて</button>
+<button class="text-text-secondary text-[11px] hover:text-text-primary transition-colors pb-0.5">優先度が高い企業</button>
+</div>
+</div>
+<div class="flex-1 flex flex-col justify-center space-y-4">
+<!-- Pipeline Row 1 -->
+<div class="flex items-center gap-3 w-full">
+<span class="w-16 shrink-0 text-right text-[11px] text-text-secondary">書類選考</span>
+<div class="flex-1 h-2 bg-surface-main rounded-full overflow-hidden">
+<div class="h-full bg-primary-navy/40 rounded-full" style="width: 80%"></div>
+</div>
+<span class="w-6 shrink-0 text-right text-[12px] text-text-primary font-medium">12</span>
+</div>
+<!-- Pipeline Row 2 -->
+<div class="flex items-center gap-3 w-full">
+<span class="w-16 shrink-0 text-right text-[11px] text-text-secondary">1次面接</span>
+<div class="flex-1 h-2 bg-surface-main rounded-full overflow-hidden">
+<div class="h-full bg-primary-navy/60 rounded-full" style="width: 50%"></div>
+</div>
+<span class="w-6 shrink-0 text-right text-[12px] text-text-primary font-medium">8</span>
+</div>
+<!-- Pipeline Row 3 -->
+<div class="flex items-center gap-3 w-full">
+<span class="w-16 shrink-0 text-right text-[11px] text-text-secondary">最終面接</span>
+<div class="flex-1 h-2 bg-surface-main rounded-full overflow-hidden">
+<div class="h-full bg-primary-navy/80 rounded-full" style="width: 25%"></div>
+</div>
+<span class="w-6 shrink-0 text-right text-[12px] text-text-primary font-medium">3</span>
+</div>
+<!-- Pipeline Row 4 -->
+<div class="flex items-center gap-3 w-full">
+<span class="w-16 shrink-0 text-right text-[11px] text-text-secondary">内定</span>
+<div class="flex-1 h-2 bg-surface-main rounded-full overflow-hidden">
+<div class="h-full bg-[#10b981] rounded-full" style="width: 10%"></div>
+</div>
+<span class="w-6 shrink-0 text-right text-[12px] text-[#10b981] font-medium">1</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Column: Upcoming & Featured (Span 4) -->
+<div class="flex flex-col gap-3 h-full">
+<!-- Featured Companies -->
+<div class="premium-card h-full shadow-sm rounded-xl p-6 flex flex-col" style="height: 250px; display: flex; flex-direction: column;">
+<section class="flex flex-col h-full">
+<div class="mb-3">
+<h3 class="text-text-primary flex items-center gap-1.5 font-medium text-[13px]">
+<span class="material-symbols-outlined text-[15px] text-text-secondary">push_pin</span>
+                                    注目企業
+                                </h3>
+</div>
+<div class="flex-1 overflow-y-auto space-y-4 pr-1" style="max-height: 160px; overflow-y: auto;"><!-- Company 1 -->
+<div class="flex flex-col gap-1.5 p-2 -mx-2 hover:bg-black/[0.015] rounded-xl transition-colors">
+<p class="text-[12px] text-text-primary font-medium truncate">株式会社リテールジャイアント</p>
+<div class="flex flex-wrap gap-1.5">
+<span class="bg-surface-main border border-border-subtle text-text-secondary px-2 py-0.5 rounded-md text-[10px]">日程調整</span>
+<span class="bg-surface-main border border-border-subtle text-text-secondary px-2 py-0.5 rounded-md text-[10px]">2次面接</span>
+</div>
+</div>
+<!-- Company 2 -->
+<div class="flex flex-col gap-1.5 p-2 -mx-2 hover:bg-black/[0.015] rounded-xl transition-colors mt-1">
+<p class="text-[12px] text-text-primary font-medium truncate">コンサルティングXYZ</p>
+<div class="flex flex-wrap gap-1.5">
+<span class="bg-primary-navy text-white px-2 py-0.5 rounded-md text-[10px] font-medium">内定承諾書</span>
+</div>
+</div></div>
+<div class="flex justify-end mt-2 shrink-0">
+<button class="text-primary-navy text-[11px] hover:opacity-80 transition-colors flex items-center gap-0.5 font-medium">
+                                    すべて見る<span class="material-symbols-outlined text-[14px]">chevron_right</span>
+</button>
+</div>
+</section>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+
+
+</body></html>

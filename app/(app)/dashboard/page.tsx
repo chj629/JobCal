@@ -1,28 +1,70 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Briefcase, CalendarDays, CheckCircle2 } from "lucide-react";
 import { useCompanies } from "@/lib/companies-context";
 import { useApplicationSteps } from "@/lib/application-steps-context";
 import { useEvents } from "@/lib/events-context";
-import { createEmptyCompanyFormValues } from "@/lib/companies";
-import { dateKeyOf, todayKey } from "@/lib/date";
+import { createEmptyCompanyFormValues, type Company } from "@/lib/companies";
+import { dateKeyOf, diffInDays, todayKey } from "@/lib/date";
 import { useT } from "@/lib/locale-context";
 import { createClient } from "@/lib/supabase/client";
 import CompanyForm from "@/components/CompanyForm";
-import Button from "@/components/ui/Button";
 import LoadingState from "@/components/ui/LoadingState";
+import MaterialIcon from "@/components/ui/MaterialIcon";
 import { useToast } from "@/components/ui/Toast";
+import TodayChecklistCard from "@/components/dashboard/TodayChecklist";
 import TodaySchedule from "@/components/dashboard/TodaySchedule";
 import UpcomingSchedule from "@/components/dashboard/UpcomingSchedule";
+import WeeklyProgress from "@/components/dashboard/WeeklyProgress";
 import FocusCompanies from "@/components/dashboard/FocusCompanies";
 import PipelineOverview from "@/components/dashboard/PipelineOverview";
+import type { AppEvent } from "@/lib/events";
+import type { ApplicationStep } from "@/lib/applicationSteps";
 
-function isWithinNext7Days(dateKey: string, fromKey: string) {
-  const from = new Date(`${fromKey}T00:00:00`);
-  const target = new Date(`${dateKey}T00:00:00`);
-  const diffDays = Math.round((target.getTime() - from.getTime()) / (1000 * 60 * 60 * 24));
-  return diffDays >= 0 && diffDays <= 6;
+const INTERVIEW_STEP_KEYS = new Set(["interview_1", "interview_2", "interview_final"]);
+const DEADLINE_SOON_DAYS = 3;
+const DELTA_WINDOW_DAYS = 6;
+
+// Date.now()/new Date()는 렌더 함수 밖의 순수 함수 안에서만 호출해
+// react-hooks/purity(렌더 중 impure 함수 직접 호출 금지) 규칙을 지킨다.
+function countInterviewScheduled(events: AppEvent[], steps: ApplicationStep[]): number {
+  const now = Date.now();
+  return events.filter((event) => {
+    if (event.eventType !== "schedule" || event.startsAt === null) return false;
+    if (new Date(event.startsAt).getTime() < now) return false;
+    const step = steps.find((s) => s.id === event.applicationStepId);
+    return step?.stepKey !== undefined && step?.stepKey !== null && INTERVIEW_STEP_KEYS.has(step.stepKey);
+  }).length;
+}
+
+function countDeadlineSoon(events: AppEvent[], today: string): number {
+  const now = Date.now();
+  return events.filter((event) => {
+    if (event.eventType !== "deadline" || event.dueAt === null) return false;
+    if (new Date(event.dueAt).getTime() < now) return false;
+    const diff = diffInDays(today, dateKeyOf(event.dueAt));
+    return diff <= DEADLINE_SOON_DAYS;
+  }).length;
+}
+
+// docs/stitch의 KPI 증감 뱃지("+2" 등)에 대응하는 실데이터. 지난 7일 이내 생성된
+// in_progress 기업 수(엔트리 증가분)로 계산한다. 정확한 "주간 증감" 정의(예: 상태
+// 변경 이력)는 별도 트래킹이 없어 만들 수 없으므로, 가장 근접한 실제 신호만 쓴다.
+function countCreatedWithinDays(companies: Company[], today: string, days: number): number {
+  return companies.filter((c) => {
+    const diff = diffInDays(c.createdAt, today);
+    return diff >= 0 && diff <= days;
+  }).length;
+}
+
+// 내정(offer) 상태 변경 이력은 별도로 남지 않아, 가장 근접한 실제 신호인 updatedAt을
+// 대신 쓴다(다른 필드 수정으로도 갱신될 수 있어 완벽히 정확하지는 않음).
+function countOfferUpdatedWithinDays(companies: Company[], today: string, days: number): number {
+  return companies.filter((c) => {
+    if (c.overallStatus !== "offer") return false;
+    const diff = diffInDays(c.updatedAt, today);
+    return diff >= 0 && diff <= days;
+  }).length;
 }
 
 export default function DashboardPage() {
@@ -47,129 +89,145 @@ export default function DashboardPage() {
   }, []);
 
   const today = todayKey();
-  const inProgressCount = companies.filter((c) => c.overallStatus === "in_progress").length;
-  const upcomingEventCount = events.filter((event) => {
-    const at = event.startsAt ?? event.dueAt;
-    return at !== null && dateKeyOf(at) >= today;
-  }).length;
-  const thisWeekEventCount = events.filter((event) => {
-    const at = event.startsAt ?? event.dueAt;
-    return at !== null && isWithinNext7Days(dateKeyOf(at), today);
-  }).length;
-  const offerLikeCount = companies.filter(
-    (c) => c.overallStatus === "offer" || c.overallStatus === "joined"
-  ).length;
-  const rejectedCount = companies.filter((c) => c.overallStatus === "rejected").length;
 
-  const kpiTiles = [
-    {
-      label: t("dashboard.kpi.inProgress"),
-      value: inProgressCount,
-      subtext: t("dashboard.kpi.inProgressSubtext", { total: companies.length }),
-      icon: Briefcase,
-      colorClass: "bg-primary/10 text-primary",
-    },
-    {
-      label: t("dashboard.kpi.upcoming"),
-      value: upcomingEventCount,
-      subtext: t("dashboard.kpi.upcomingSubtext", { count: thisWeekEventCount }),
-      icon: CalendarDays,
-      colorClass: "bg-success/10 text-success",
-    },
-    {
-      label: t("dashboard.kpi.completedSelection"),
-      value: offerLikeCount + rejectedCount,
-      subtext: t("dashboard.kpi.completedSelectionSubtext", {
-        offer: offerLikeCount,
-        rejected: rejectedCount,
-      }),
-      icon: CheckCircle2,
-      colorClass: "bg-joined/10 text-joined",
-    },
-  ];
+  const entryInProgressCount = companies.filter((c) => c.overallStatus === "in_progress").length;
+  const interviewScheduledCount = countInterviewScheduled(events, steps);
+  const offerCount = companies.filter((c) => c.overallStatus === "offer").length;
+  const deadlineSoonCount = countDeadlineSoon(events, today);
+  const entryDelta = countCreatedWithinDays(companies, today, DELTA_WINDOW_DAYS);
+  const offerDelta = countOfferUpdatedWithinDays(companies, today, DELTA_WINDOW_DAYS);
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-[1200px] px-8 py-8">
-        <LoadingState>{t("dashboard.loading")}</LoadingState>
+      <div className="min-h-screen bg-stitch-bg">
+        <div className="mx-auto max-w-[880px] px-6 py-6">
+          <LoadingState>{t("dashboard.loading")}</LoadingState>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-[1200px] px-8 py-8">
-      <div className="mb-8 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
-        <div>
-          <h1 className="text-[28px] font-semibold text-foreground">
-            {displayName
-              ? t("dashboard.greeting", { name: displayName })
-              : t("dashboard.greetingGeneric")}
-          </h1>
-          <p className="mt-1 text-[13px] text-secondary">{t("dashboard.description")}</p>
-        </div>
-        <Button type="button" variant="secondary" className="shrink-0" onClick={() => setIsAddOpen(true)}>
-          {t("dashboard.addCompany")}
-        </Button>
-      </div>
-
-      {error && (
-        <p className="mb-8 rounded-[10px] border border-error/40 bg-error/10 px-4 py-3 text-sm text-error">
-          {error}
-        </p>
-      )}
-
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
-        <div className="flex min-w-0 flex-col gap-6">
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
-            {kpiTiles.map(({ label, value, subtext, icon: Icon, colorClass }) => (
-              <div
-                key={label}
-                className="flex h-[164px] flex-col rounded-[10px] border border-border bg-card p-6"
-              >
-                <div className="flex items-start gap-3">
-                  <span
-                    className={
-                      "flex h-14 w-14 shrink-0 items-center justify-center rounded-full " +
-                      colorClass
-                    }
-                  >
-                    <Icon size={24} />
-                  </span>
-                  <div className="flex flex-col gap-2">
-                    <span className="text-[16px] font-bold text-secondary">{label}</span>
-                    <p className="text-[38px] font-bold text-foreground">{value}</p>
-                  </div>
-                </div>
-                <p className="mt-2 text-xs text-secondary">{subtext}</p>
-              </div>
-            ))}
+    <div className="min-h-screen bg-stitch-bg">
+      <div className="mx-auto max-w-[880px] px-6 py-6 font-[family-name:var(--font-hanken-grotesk)] font-[350] tracking-[-0.025em] text-stitch-ink">
+        <section className="mb-8 flex flex-col gap-4">
+          <div className="flex w-full items-end justify-between">
+            <div>
+              <h2 className="mb-1.5 text-[32px] font-[400] leading-[1.2] tracking-tight text-stitch-ink">
+                {displayName
+                  ? t("dashboard.greeting", { name: displayName })
+                  : t("dashboard.greetingGeneric")}
+              </h2>
+              <p className="text-[15px] text-secondary">{t("dashboard.description")}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsAddOpen(true)}
+              className="flex h-fit items-center gap-1 rounded-stitch-xl bg-primary-navy px-4 py-2 text-[12px] font-[400] text-white shadow-sm transition-all hover:opacity-90"
+            >
+              <MaterialIcon name="add" size={16} />
+              {t("dashboard.addCompany")}
+            </button>
           </div>
 
-          <TodaySchedule companies={companies} events={events} steps={steps} />
+          <div className="flex w-full gap-8 pt-2">
+            <div className="flex min-w-[80px] flex-col gap-0.5">
+              <span className="text-[11px] font-[400] text-secondary">
+                {t("dashboard.kpi.entryInProgress")}
+              </span>
+              <div className="flex items-end gap-2">
+                <span className="text-[32px] font-[400] leading-none tracking-tight text-stitch-ink">
+                  {entryInProgressCount}
+                </span>
+                {entryDelta > 0 && (
+                  <span className="mb-1 rounded-full bg-success/10 px-1.5 py-0.5 text-[10px] font-[400] text-success">
+                    +{entryDelta}
+                  </span>
+                )}
+              </div>
+            </div>
+            <div className="flex min-w-[80px] flex-col gap-0.5">
+              <span className="text-[11px] font-[400] text-secondary">
+                {t("dashboard.kpi.interviewScheduled")}
+              </span>
+              <span className="text-[32px] font-[400] leading-none tracking-tight text-stitch-ink">
+                {interviewScheduledCount}
+              </span>
+            </div>
+            <div className="flex min-w-[80px] flex-col gap-0.5">
+              <span className="text-[11px] font-[400] text-secondary">{t("dashboard.kpi.offer")}</span>
+              <div className="flex items-end gap-2">
+                <span className="text-[32px] font-[400] leading-none tracking-tight text-success">
+                  {offerCount}
+                </span>
+                {offerDelta > 0 && (
+                  <span className="mb-1 rounded-full bg-success/10 px-1.5 py-0.5 text-[10px] font-[400] text-success">
+                    +{offerDelta}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="mx-2 h-10 w-px shrink-0 self-center bg-border" />
+
+            <div className="flex min-w-[80px] flex-col gap-0.5">
+              <div className="flex items-center gap-1">
+                <MaterialIcon name="schedule" size={14} className="text-secondary" />
+                <span className="text-[11px] font-[400] text-secondary">
+                  {t("dashboard.kpi.deadlineSoon")}
+                </span>
+              </div>
+              <div className="flex items-end gap-2">
+                <span className="text-[32px] font-[400] leading-none tracking-tight text-[#f97316]">
+                  {deadlineSoonCount}
+                </span>
+                <span className="mb-1 text-[10px] font-[400] text-secondary">
+                  {t("dashboard.kpi.deadlineSoonSubtext", { days: DEADLINE_SOON_DAYS })}
+                </span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <WeeklyProgress events={events} />
+
+        {error && (
+          <p className="mb-3 rounded-[10px] border border-error/40 bg-error/10 px-4 py-3 text-sm text-error">
+            {error}
+          </p>
+        )}
+
+        {/* docs/stitch/.../code.html은 grid-cols-[1fr_1fr_1.5fr]이지만, 가운데 카드(本日の予定)
+            헤더 행에 truncate/min-w-0가 없어 실제 렌더링(screen.png)에서는 1:1:1.5가 아니라
+            약 255:290:260으로 밀린다. screen.png를 기준값으로 픽셀 실측해 그 비율을 그대로 고정한다. */}
+        <div className="mb-3 grid grid-cols-1 items-stretch gap-3 lg:grid-cols-[255fr_290fr_260fr]">
+          <TodayChecklistCard companies={companies} events={events} />
+          <TodaySchedule companies={companies} events={events} />
           <UpcomingSchedule companies={companies} events={events} steps={steps} />
         </div>
 
-        <div className="flex flex-col gap-6">
+        <div className="grid grid-cols-1 items-stretch gap-3 pb-10 lg:grid-cols-[1.5fr_1fr]">
           <PipelineOverview companies={companies} steps={steps} />
           <FocusCompanies companies={companies} events={events} steps={steps} />
         </div>
-      </div>
 
-      {isAddOpen && (
-        <CompanyForm
-          title={t("dashboard.addCompanyModalTitle")}
-          initialValues={createEmptyCompanyFormValues()}
-          onCancel={() => setIsAddOpen(false)}
-          onSubmit={async (values) => {
-            const ok = await addCompany(values);
-            if (ok) {
-              setIsAddOpen(false);
-              refreshSteps();
-              showToast(t("companies.list.addSuccessToast", { name: values.name }));
-            }
-          }}
-        />
-      )}
+        {isAddOpen && (
+          <CompanyForm
+            title={t("dashboard.addCompanyModalTitle")}
+            description={t("companies.list.addCompanyModalDescription")}
+            initialValues={createEmptyCompanyFormValues()}
+            onCancel={() => setIsAddOpen(false)}
+            onSubmit={async (values) => {
+              const ok = await addCompany(values);
+              if (ok) {
+                setIsAddOpen(false);
+                refreshSteps();
+                showToast(t("companies.list.addSuccessToast", { name: values.name }));
+              }
+            }}
+          />
+        )}
+      </div>
     </div>
   );
 }

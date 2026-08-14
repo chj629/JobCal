@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { CalendarClock } from "lucide-react";
 import type { Company } from "@/lib/companies";
 import { getStepDisplayName, type ApplicationStep } from "@/lib/applicationSteps";
 import { dateKeyOf, diffInDays, todayKey } from "@/lib/date";
@@ -61,7 +60,7 @@ export default function UpcomingEventsCard({ companies, events, steps }: Upcomin
       </h2>
 
       {rows.length === 0 ? (
-        <EmptyState icon={CalendarClock} title={t("analytics.upcomingEvents.empty")} />
+        <EmptyState icon="schedule" title={t("analytics.upcomingEvents.empty")} />
       ) : (
         <ul className="mt-4">
           {rows.map(({ event, at }, index) => {

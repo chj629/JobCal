@@ -4,10 +4,15 @@ import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useT } from "@/lib/locale-context";
-import AuthLayout from "@/components/auth/AuthLayout";
-import Input from "@/components/ui/Input";
-import Button from "@/components/ui/Button";
+import AuthHeader from "@/components/auth/AuthHeader";
+import AuthHeroPanel from "@/components/auth/AuthHeroPanel";
+import AuthPillField from "@/components/auth/AuthPillField";
 
+// docs/stitch/인증플로우/jobcal_forgot_password_unified_auth_design_sync/screen.png 기준.
+// 헤더/좌측 패널/폼 폭/입력창/버튼 스타일은 /login, /signup과 동일해 같은
+// components/auth/{AuthHeader,AuthHeroPanel,AuthPillField}를 그대로 재사용한다
+// (/signup, /login, /update-password는 이번 범위에서 수정하지 않음). Google 로그인/구분선이
+// 없는 단일 이메일 폼이라는 점만 이 화면 고유 구성이다.
 export default function ForgotPasswordPage() {
   const t = useT();
   const [email, setEmail] = useState("");
@@ -60,58 +65,73 @@ export default function ForgotPasswordPage() {
     setIsLoading(false);
   }
 
-  if (sent) {
-    return (
-      <AuthLayout>
-        <div className="w-full max-w-sm rounded-[10px] border border-border bg-card p-8 text-center">
-          <h1 className="text-[28px] font-semibold text-foreground">
-            {t("auth.forgotPassword.sentTitle")}
-          </h1>
-          <p className="mt-2 text-sm text-secondary">
-            {t("auth.forgotPassword.sentMessage", { email })}
-          </p>
-          <Link
-            href="/login"
-            className="mt-8 inline-block text-sm font-medium text-primary hover:underline"
-          >
-            {t("auth.forgotPassword.backToLoginFromSent")}
-          </Link>
-        </div>
-      </AuthLayout>
-    );
-  }
-
   return (
-    <AuthLayout>
-      <div className="w-full max-w-sm rounded-[10px] border border-border bg-card p-8">
-        <h1 className="text-center text-[28px] font-semibold text-foreground">
-          {t("auth.forgotPassword.title")}
-        </h1>
-        <p className="mt-2 text-center text-sm text-secondary">
-          {t("auth.forgotPassword.description")}
-        </p>
+    <div className="min-h-screen bg-white font-[350] font-[family-name:var(--font-hanken-grotesk)] tracking-[-0.025em] text-neutral-900">
+      <AuthHeader />
 
-        <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-4">
-          <Input
-            type="email"
-            label={t("auth.forgotPassword.email")}
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
+      <main className="flex min-h-screen items-center justify-center p-6 pt-24 md:p-12 md:pt-24">
+        {sent ? (
+          <div className="w-full max-w-[440px] space-y-4 text-center">
+            <h1 className="text-[32px] leading-[1.1] font-[400] tracking-tight text-neutral-900">
+              {t("auth.forgotPassword.sentTitle")}
+            </h1>
+            <p className="text-[15px] leading-[1.5] text-neutral-600">
+              {t("auth.forgotPassword.sentMessage", { email })}
+            </p>
+            <Link
+              href="/login"
+              className="inline-block pt-4 text-[14px] font-[400] text-primary-navy hover:underline"
+            >
+              {t("auth.forgotPassword.backToLoginFromSent")}
+            </Link>
+          </div>
+        ) : (
+          <div className="grid w-full max-w-6xl grid-cols-1 items-center gap-16 md:grid-cols-2 md:gap-24">
+            <AuthHeroPanel />
 
-          {errorMessage && <p className="text-xs text-error">{errorMessage}</p>}
+            {/* 우측: 비밀번호 재설정 요청 폼 */}
+            <div className="mx-auto w-full max-w-[440px] md:mr-0 md:ml-auto">
+              <div className="flex flex-col space-y-8">
+                <div className="space-y-2 text-center">
+                  <h2 className="text-[32px] font-[400] tracking-tight text-neutral-900">
+                    {t("auth.forgotPassword.title")}
+                  </h2>
+                  <p className="text-[15px] text-neutral-600">
+                    {t("auth.forgotPassword.description")}
+                  </p>
+                </div>
 
-          <Button type="submit" variant="primary" disabled={isLoading} className="mt-2 w-full">
-            {isLoading ? t("auth.forgotPassword.submitLoading") : t("auth.forgotPassword.submit")}
-          </Button>
-        </form>
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  <AuthPillField
+                    id="email"
+                    type="email"
+                    label={t("auth.forgotPassword.email")}
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    disabled={isLoading}
+                  />
 
-        <p className="mt-6 text-center text-sm text-secondary">
-          <Link href="/login" className="font-medium text-primary hover:underline">
-            {t("auth.forgotPassword.backToLogin")}
-          </Link>
-        </p>
-      </div>
-    </AuthLayout>
+                  {errorMessage && <p className="text-[13px] text-error">{errorMessage}</p>}
+
+                  <button
+                    type="submit"
+                    disabled={isLoading}
+                    className="mt-4 h-[52px] w-full rounded-full bg-primary-navy px-6 text-[15px] font-[400] text-white shadow-sm transition-colors hover:bg-[#152c6e] disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {isLoading ? t("auth.forgotPassword.submitLoading") : t("auth.forgotPassword.submit")}
+                  </button>
+                </form>
+
+                <div className="pt-4 text-center">
+                  <Link href="/login" className="text-[14px] font-[400] text-primary-navy hover:underline">
+                    {t("auth.forgotPassword.backToLogin")}
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </main>
+    </div>
   );
 }

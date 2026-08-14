@@ -1,6 +1,6 @@
 "use client";
 
-import { TrendingUp } from "lucide-react";
+import MaterialIcon from "@/components/ui/MaterialIcon";
 import type { Company } from "@/lib/companies";
 import { useT } from "@/lib/locale-context";
 import EmptyState from "@/components/ui/EmptyState";
@@ -18,25 +18,28 @@ const PADDING_TOP = 24;
 const PADDING_BOTTOM = 32;
 const CHART_WIDTH = WIDTH - PADDING_LEFT - PADDING_RIGHT;
 const CHART_HEIGHT = HEIGHT - PADDING_TOP - PADDING_BOTTOM;
-const TICK_COUNT = 4;
+const TICK_COUNT = 5;
 
 function monthKey(year: number, month: number) {
   return `${year}-${String(month + 1).padStart(2, "0")}`;
 }
 
-// 11_analytics.png "응모수의 추이" 카드. companies.createdAt(=DB의 created_at) 기준으로
-// 최근 12개월의 월별 신규 기업 수와 누적 기업 수를 계산한다. 새 차트 라이브러리 없이
-// SVG로 직접 그린다(StatusDonutChart.tsx와 같은 방식).
+// docs/stitch/메인페이지 5개/jobcal_analytics_standardized_design_refresh의
+// "応募企業の推移" 카드. companies.createdAt 기준 월별 누적 집계는 그대로 두고,
+// 점선 그리드/굵은 라인/큰 점(값 라벨 없음) 스타일로 재구현한다.
 export default function CompanyTrendChart({ companies }: CompanyTrendChartProps) {
   const t = useT();
 
   if (companies.length === 0) {
     return (
-      <section className="rounded-[10px] border border-border bg-card p-6">
-        <h2 className="text-[16px] font-semibold text-foreground">
+      <section className="flex h-[340px] flex-col rounded-stitch-xl border border-stitch-border bg-card p-6 shadow-sm">
+        <h2 className="mb-4 flex items-center gap-2 text-[13px] font-[400] text-stitch-ink">
+          <MaterialIcon name="show_chart" size={15} className="text-secondary" />
           {t("analytics.trendChart.title")}
         </h2>
-        <EmptyState icon={TrendingUp} title={t("analytics.trendChart.empty")} />
+        <div className="flex flex-1 items-center justify-center">
+          <EmptyState icon="show_chart" title={t("analytics.trendChart.empty")} />
+        </div>
       </section>
     );
   }
@@ -76,30 +79,17 @@ export default function CompanyTrendChart({ companies }: CompanyTrendChartProps)
   const ticks = Array.from({ length: TICK_COUNT + 1 }, (_, i) => step * i);
 
   return (
-    <section className="rounded-[10px] border border-border bg-card p-6">
-      <h2 className="text-[16px] font-semibold text-foreground">
+    <section className="flex h-[340px] flex-col rounded-stitch-xl border border-stitch-border bg-card p-6 shadow-sm">
+      <h2 className="mb-4 flex items-center gap-2 text-[13px] font-[400] text-stitch-ink">
+        <MaterialIcon name="show_chart" size={15} className="text-secondary" />
         {t("analytics.trendChart.title")}
       </h2>
 
-      {/* md(768px) 이상에서는 기존 그대로: 카드 폭이 항상 600px보다 넉넉해 min-w-[600px]가
-          스크롤 없이 안전하고, 2단이 열리는 1600px 이상에서는 506px보다 여유 있는 480px로
-          낮춘다(자세한 폭 계산은 app/(app)/analytics/page.tsx 주석 참고).
-          md 미만(모바일 375~430px)은 카드 콘텐츠 폭이 약 263~318px로 600px 바닥값을 절대
-          만족할 수 없어 항상 가로 스크롤이 강제됐다. svg는 min-width 외에 별도 width를
-          지정하지 않아 block 요소 기본값(width:auto)으로 이미 부모(카드) 폭을 그대로
-          채우던 중이었으므로, 모바일에서만 그 바닥값을 없애 자연스럽게 카드 폭 100%에
-          맞춰지도록 한다(viewBox="0 0 720 240"과 좌표 계산은 그대로 유지). */}
-      <div className="mt-4 overflow-x-auto">
-        <svg
-          viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-          className="min-w-full md:min-w-[600px] min-[1600px]:min-w-[480px]"
-        >
-          {/* 모바일에서 SVG가 카드 폭(≈263~318px)까지 줄어들면 축척이 약 0.37~0.44배가 되어,
-              기존 fontSize=11/strokeWidth=2/r=3이 물리적으로 4~5px 수준까지 작아진다. CSS는
-              presentation attribute보다 우선하므로 max-md: 클래스로만 덮어써 좌표/viewBox는
-              그대로 두고 시각 크기만 키운다. 값 텍스트(y - 10 위치, 좌표 계산 변경 금지)가
-              같은 점의 원과 겹치지 않아야 하므로 "0.25 × fontSize ≤ 10 - r" 여유를 두고
-              text-[18px] · r:5px · stroke-width:4px로 정했다(문자/점 간 가로 간격도 충분함). */}
+      {/* svg에 width/height를 모두 명시적으로 채워야(min-w-full처럼 최솟값만 주는 게 아니라)
+          viewBox 종횡비(3:1)에 맞춰 카드 폭을 넘어서는 것을 막을 수 있다. preserveAspectRatio
+          기본값(xMidYMid meet)이라 점/선이 찌그러지지 않고 필요하면 위아래 여백만 생긴다. */}
+      <div className="min-h-0 flex-1">
+        <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} className="h-full w-full">
           {ticks.map((tick) => {
             const y = PADDING_TOP + CHART_HEIGHT - (tick / chartMax) * CHART_HEIGHT;
             return (
@@ -109,15 +99,15 @@ export default function CompanyTrendChart({ companies }: CompanyTrendChartProps)
                   y1={y}
                   x2={WIDTH - PADDING_RIGHT}
                   y2={y}
-                  stroke="var(--color-border)"
-                  strokeWidth={1}
+                  stroke="var(--color-stitch-border)"
+                  strokeWidth={1.5}
+                  strokeDasharray="6 4"
                 />
                 <text
                   x={PADDING_LEFT - 8}
                   y={y + 4}
                   textAnchor="end"
                   fontSize={11}
-                  className="max-md:text-[18px]"
                   fill="var(--color-secondary)"
                 >
                   {tick}
@@ -126,39 +116,16 @@ export default function CompanyTrendChart({ companies }: CompanyTrendChartProps)
             );
           })}
 
-          <path
-            d={pathD}
-            fill="none"
-            stroke="var(--color-primary)"
-            strokeWidth={2}
-            className="max-md:[stroke-width:4px]"
-          />
+          <path d={pathD} fill="none" stroke="var(--color-primary-navy)" strokeWidth={4} />
 
           {points.map(({ x, y, row }) => (
             <g key={`${row.year}-${row.month}`}>
-              <circle
-                cx={x}
-                cy={y}
-                r={3}
-                fill="var(--color-primary)"
-                className="max-md:[r:5px]"
-              />
-              <text
-                x={x}
-                y={y - 10}
-                textAnchor="middle"
-                fontSize={11}
-                className="max-md:text-[18px]"
-                fill="var(--color-foreground)"
-              >
-                {row.cumulative}
-              </text>
+              <circle cx={x} cy={y} r={6} fill="var(--color-primary-navy)" />
               <text
                 x={x}
                 y={HEIGHT - PADDING_BOTTOM + 18}
                 textAnchor="middle"
                 fontSize={11}
-                className="max-md:text-[18px]"
                 fill="var(--color-secondary)"
               >
                 {row.month + 1}

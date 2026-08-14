@@ -1,14 +1,10 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { Check, ListChecks } from "lucide-react";
 import { useApplicationSteps } from "@/lib/application-steps-context";
 import { getCurrentStep, getStepDisplayName } from "@/lib/applicationSteps";
-import { useEvents } from "@/lib/events-context";
-import { useLocale, useT } from "@/lib/locale-context";
-import EmptyState from "@/components/ui/EmptyState";
-import Button from "@/components/ui/Button";
-import Input from "@/components/ui/Input";
+import { useT } from "@/lib/locale-context";
+import MaterialIcon from "@/components/ui/MaterialIcon";
 
 interface StepTimelineProps {
   companyId: string;
@@ -16,11 +12,14 @@ interface StepTimelineProps {
   onSelect: (id: string | null) => void;
 }
 
+// docs/stitch/메인페이지 5개/jobcal_company_detail_refined_information_ia의 "Progress Stepper
+// (Compact)" 카드. 전형 목록/현재 전형 계산(addStep 포함)은 기존 로직 그대로 재사용하고,
+// 가로 타임라인 UI만 Stitch의 원형 스텝퍼로 바꿨다. 원을 클릭하면 선택되어 아래
+// "選考詳細" 카드(SelectionDetail.tsx)에 그 전형의 상세가 표시된다.
 export default function StepTimeline({ companyId, selectedStepId, onSelect }: StepTimelineProps) {
   const t = useT();
-  const { locale } = useLocale();
-  const { steps, error, addStep } = useApplicationSteps();
-  const { events } = useEvents();
+  const { steps, addStep } = useApplicationSteps();
+  const [isAdding, setIsAdding] = useState(false);
   const [newStepName, setNewStepName] = useState("");
 
   const companySteps = steps
@@ -28,113 +27,107 @@ export default function StepTimeline({ companyId, selectedStepId, onSelect }: St
     .sort((a, b) => a.stepOrder - b.stepOrder);
   const currentStep = getCurrentStep(companySteps);
 
-  // 9_companyDetail.png 기준: 각 단계 아래에 날짜를 표시한다. 전형(step) 자체에는 날짜 컬럼이
-  // 없으므로, 해당 단계에 연결된 일정(event) 중 가장 이른 날짜를 사용한다. 연결된 일정이
-  // 없으면 표시하지 않는다(새 DB 컬럼 추가 없이 기존 events 데이터만 재사용).
-  function stepDateLabel(stepId: string) {
-    const dates = events
-      .filter((event) => event.applicationStepId === stepId)
-      .map((event) => event.startsAt ?? event.dueAt)
-      .filter((value): value is string => value !== null)
-      .sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
-
-    if (dates.length === 0) return null;
-    return new Date(dates[0]).toLocaleDateString(locale === "ja" ? "ja-JP" : "ko-KR", {
-      month: "2-digit",
-      day: "2-digit",
-    });
-  }
-
   async function handleAddStep(event: FormEvent) {
     event.preventDefault();
-    if (!newStepName.trim()) return;
-    const ok = await addStep(companyId, newStepName);
-    if (ok) setNewStepName("");
+    if (!newStepName.trim()) {
+      setIsAdding(false);
+      return;
+    }
+    const created = await addStep(companyId, newStepName);
+    setNewStepName("");
+    setIsAdding(false);
+    if (created) onSelect(created.id);
   }
 
+  // 단계 이름 길이와 무관하게 원형 번호 중심 간격이 항상 균등하도록, flex 대신
+  // 슬롯 폭이 모두 같은 grid로 배치한다(각 단계 + "追加" 슬롯 = companySteps.length + 1열).
+  const slotCount = companySteps.length + 1;
+
   return (
-    <section className="mb-8 rounded-lg border border-border bg-card p-6">
-      <h2 className="mb-4 text-[16px] font-semibold text-foreground">
-        {t("companies.steps.timeline")}
-      </h2>
+    <div className="mb-8 rounded-stitch-xl border border-stitch-border bg-card p-4 shadow-sm">
+      {/* 375/430px처럼 슬롯 수(전형 수+1)가 많아 minmax(0,1fr)만으로는 원이 서로
+          맞닿고 라벨이 대부분 잘리는 문제가 있어, 슬롯 최소폭(64px)을 두고 이 래퍼에
+          가로 스크롤을 허용한다. 데스크톱처럼 카드 폭이 충분하면 1fr이 여전히 남는
+          공간을 균등 분배해 기존과 동일하게 꽉 채워진 균등 간격으로 보인다(스크롤 불필요). */}
+      <div className="overflow-x-auto stitch-scrollbar-hidden">
+        <div
+          className="relative grid w-full items-start"
+          style={{ gridTemplateColumns: `repeat(${slotCount}, minmax(64px, 1fr))` }}
+        >
+          <div className="absolute left-0 top-3 -z-10 flex w-full items-center px-4">
+            <div className="h-[2px] flex-1 bg-stitch-border" />
+          </div>
 
-      {error && (
-        <p className="mb-4 rounded-lg border border-error/40 bg-error/10 px-4 py-3 text-sm text-error">
-          {error}
-        </p>
-      )}
+            {companySteps.map((step) => {
+            const isCompleted = step.stepStatus === "completed";
+            const isCurrent = currentStep?.id === step.id;
+            const isSelected = selectedStepId ? step.id === selectedStepId : isCurrent;
 
-      {companySteps.length === 0 ? (
-        <EmptyState icon={ListChecks} title={t("companies.steps.empty")} />
-      ) : (
-        <div className="overflow-x-auto pb-2">
-          <div className="flex min-w-max items-start">
-            {companySteps.map((step, index) => {
-              const isSelected = step.id === selectedStepId;
-              const isCurrent = currentStep?.id === step.id;
-              const isCompleted = step.stepStatus === "completed";
-              const isReached = isCompleted || isCurrent;
-              const dateLabel = stepDateLabel(step.id);
-
-              return (
-                <div key={step.id} className="flex items-start">
-                  <button
-                    type="button"
-                    onClick={() => onSelect(isSelected ? null : step.id)}
-                    aria-pressed={isSelected}
-                    className="flex flex-col items-center gap-2 px-2 py-1"
-                  >
-                    <span
-                      className={
-                        "flex h-8 w-8 items-center justify-center rounded-full border-2 text-xs font-semibold transition-colors duration-150 " +
-                        (isCompleted
-                          ? "border-success bg-success text-white"
-                          : isCurrent
-                            ? "border-primary bg-primary text-white"
-                            : "border-border bg-card text-secondary") +
-                        (isSelected ? " ring-2 ring-primary/40 ring-offset-2" : "")
-                      }
-                    >
-                      {isCompleted && <Check size={14} />}
-                    </span>
-                    <span
-                      className={
-                        "max-w-[88px] truncate text-xs " +
-                        (isSelected
-                          ? "font-semibold text-primary"
-                          : isReached
-                            ? "font-medium text-foreground"
-                            : "text-secondary")
-                      }
-                    >
-                      {getStepDisplayName(step, t)}
-                    </span>
-                    {dateLabel && (
-                      <span className="text-[10px] text-secondary">{dateLabel}</span>
-                    )}
-                  </button>
-                  {index < companySteps.length - 1 && (
-                    <span className="mt-4 h-px w-12 shrink-0 bg-border" />
+            return (
+              <button
+                key={step.id}
+                type="button"
+                onClick={() => onSelect(step.id)}
+                aria-pressed={isSelected}
+                className="flex min-w-0 flex-col items-center gap-1.5 bg-card px-1"
+              >
+                <span
+                  className={
+                    "flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[12px] font-[400] shadow-sm " +
+                    (isCompleted
+                      ? "bg-success text-white"
+                      : isCurrent
+                        ? "bg-primary-navy text-white ring-2 ring-primary-navy/20"
+                        : "border border-stitch-border bg-card text-secondary") +
+                    (isSelected && !isCompleted && !isCurrent ? " ring-2 ring-primary-navy/40" : "")
+                  }
+                >
+                  {isCompleted ? (
+                    <MaterialIcon name="check" size={14} filled />
+                  ) : (
+                    step.stepOrder
                   )}
-                </div>
-              );
-            })}
+                </span>
+                <span
+                  className={
+                    "w-full truncate text-center text-[10px] font-[400] " +
+                    (isSelected || isCurrent ? "text-stitch-ink" : "text-secondary")
+                  }
+                >
+                  {getStepDisplayName(step, t)}
+                </span>
+              </button>
+            );
+          })}
+
+          <div className="flex min-w-0 flex-col items-center gap-1.5 bg-card px-1">
+            {isAdding ? (
+              <form onSubmit={handleAddStep} className="w-full">
+                <input
+                  type="text"
+                  autoFocus
+                  value={newStepName}
+                  onChange={(e) => setNewStepName(e.target.value)}
+                  onBlur={handleAddStep}
+                  placeholder={t("companies.steps.newStepPlaceholder")}
+                  className="w-full min-w-0 rounded-stitch-md border border-primary-navy bg-white px-2 py-1 text-[11px] text-stitch-ink outline-none"
+                />
+              </form>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setIsAdding(true)}
+                className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-dashed border-stitch-border bg-card text-secondary transition-colors hover:border-primary-navy hover:text-primary-navy"
+              >
+                <MaterialIcon name="add" size={14} />
+              </button>
+            )}
+            <span className="w-full truncate text-center text-[10px] font-[400] text-secondary">
+              {t("companies.steps.addStep")}
+            </span>
           </div>
         </div>
-      )}
-
-      <form onSubmit={handleAddStep} className="mt-4 flex gap-2">
-        <Input
-          type="text"
-          value={newStepName}
-          onChange={(e) => setNewStepName(e.target.value)}
-          placeholder={t("companies.steps.newStepPlaceholder")}
-          containerClassName="min-w-0 flex-1"
-        />
-        <Button type="submit" variant="secondary">
-          {t("companies.steps.addStep")}
-        </Button>
-      </form>
-    </section>
+      </div>
+    </div>
   );
 }

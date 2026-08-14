@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+
+<html class="scroll-smooth" lang="ja"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>JobCal - 就活を、もっとスマートに。</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,100..900;1,100..900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "surface-bright": "#ffffff",
+                        "secondary-fixed-dim": "#a4c9ff",
+                        "secondary": "#475569",
+                        "on-secondary-container": "#1e293b",
+                        "tertiary-container": "#f1f5f9",
+                        "tertiary-fixed-dim": "#cbd5e1",
+                        "outline": "#94a3b8",
+                        "surface-container-highest": "#e2e8f0",
+                        "on-surface-variant": "#475569",
+                        "outline-variant": "#e2e8f0",
+                        "on-tertiary-fixed": "#0f172a",
+                        "surface-variant": "#f8fafc",
+                        "surface-tint": "#1e3a8a",
+                        "inverse-surface": "#0f172a",
+                        "on-error": "#ffffff",
+                        "on-primary": "#ffffff",
+                        "on-background": "#1c1c1c",
+                        "background": "#ffffff",
+                        "inverse-primary": "#bfdbfe",
+                        "secondary-container": "#e2e8f0",
+                        "primary": "#1e3a8a",
+                        "inverse-on-surface": "#f8fafc",
+                        "on-tertiary": "#ffffff",
+                        "on-surface": "#1c1c1c",
+                        "on-primary-fixed-variant": "#1e3a8a",
+                        "surface": "#ffffff",
+                        "surface-dim": "#f8fafc",
+                        "primary-container": "#dbeafe",
+                        "on-primary-container": "#1e3a8a",
+                        "on-secondary-fixed-variant": "#334155",
+                        "primary-fixed-dim": "#bfdbfe",
+                        "surface-container": "#f8fafc",
+                        "on-secondary-fixed": "#0f172a",
+                        "surface-container-low": "#f8fafc",
+                        "on-tertiary-fixed-variant": "#334155",
+                        "surface-container-lowest": "#ffffff",
+                        "on-secondary": "#ffffff",
+                        "secondary-fixed": "#e2e8f0",
+                        "error": "#dc2626",
+                        "on-primary-fixed": "#1e3a8a",
+                        "surface-container-high": "#f1f5f9",
+                        "on-error-container": "#7f1d1d",
+                        "primary-fixed": "#dbeafe",
+                        "error-container": "#fee2e2",
+                        "tertiary": "#334155",
+                        "tertiary-fixed": "#f1f5f9",
+                        "on-tertiary-container": "#0f172a",
+                        "neutral-900": "#111827",
+                        "neutral-800": "#1f2937",
+                        "neutral-600": "#4b5563",
+                        "neutral-500": "#6b7280",
+                    },
+                    borderRadius: {
+                        "DEFAULT": "8px",
+                        "lg": "16px",
+                        "xl": "24px",
+                        "2xl": "32px",
+                        "full": "9999px"
+                    },
+                    spacing: {
+                        "pill-padding-y": "12px",
+                        "base": "8px",
+                        "container-margin": "32px",
+                        "section-gap": "120px",
+                        "gutter": "24px",
+                        "pill-padding-x": "28px"
+                    },
+                    fontFamily: {
+                        "body-lg": ["Hanken Grotesk"],
+                        "label-sm": ["JetBrains Mono"],
+                        "display-lg-mobile": ["Hanken Grotesk"],
+                        "body-md": ["Hanken Grotesk"],
+                        "headline-md": ["Hanken Grotesk"],
+                        "display-lg": ["Hanken Grotesk"]
+                    },
+                    fontSize: {
+                        "body-lg": ["18px", { lineHeight: "1.4", fontWeight: "400" }],
+                        "label-sm": ["13px", { lineHeight: "1.2", letterSpacing: "-0.025em", fontWeight: "400" }],
+                        "display-lg-mobile": ["40px", { lineHeight: "1.2", letterSpacing: "-0.025em", fontWeight: "350" }],
+                        "body-md": ["16px", { lineHeight: "1.4", fontWeight: "400" }],
+                        "headline-md": ["32px", { lineHeight: "1.2", letterSpacing: "-0.025em", fontWeight: "350" }],
+                        "display-lg": ["64px", { lineHeight: "1.1", letterSpacing: "-0.025em", fontWeight: "350" }]
+                    },
+                    boxShadow: {
+                        'soft': '0 4px 40px rgba(0,0,0,0.03)',
+                        'button': '0 2px 10px rgba(30,58,138,0.15)',
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { font-family: 'Hanken Grotesk', sans-serif; font-weight: 350; letter-spacing: -0.025em; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+        }
+        h1, h2, h3, h4, p, span, a, button { letter-spacing: -0.025em; font-weight: 350; }
+        .font-medium { font-weight: 400; }
+        .font-bold { font-weight: 500; }
+        .heading-tracking { letter-spacing: -0.025em; }
+    </style>
+</head>
+<body class="bg-background text-neutral-900 antialiased">
+<!-- Top Navigation -->
+<nav aria-label="Main Navigation" class="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-md border-b border-neutral-200/50 flex justify-between items-center px-6 py-4 max-w-[1400px] mx-auto left-0 right-0">
+<div class="flex items-center gap-4">
+<span class="text-2xl font-bold text-primary heading-tracking tracking-tight leading-none">JobCal</span>
+</div>
+<div class="flex items-center gap-8">
+<div class="hidden md:flex gap-8">
+<a class="text-neutral-600 hover:text-neutral-900 transition-colors font-medium text-[13px]" href="#features">Functions</a>
+<a class="text-neutral-600 hover:text-neutral-900 transition-colors font-medium text-[13px]" href="#ai">JobCal AI</a>
+</div>
+<div class="flex items-center gap-5 border-l border-neutral-200 pl-8">
+<button class="text-neutral-500 font-label-sm hover:text-neutral-900 transition-colors text-[13px]">JP/KR</button>
+<a class="font-medium text-[13px] text-neutral-900 hover:text-primary transition-colors" href="#">Login</a>
+<a class="font-medium text-[13px] bg-[#1e3a8a] text-white px-5 py-2 rounded-xl hover:bg-[#152c6e] transition-colors whitespace-nowrap shadow-sm" href="#">Start for Free</a>
+</div>
+</div>
+</nav>
+<!-- Hero Section -->
+<header class="pt-40 pb-24 px-6 md:px-12 max-w-[1200px] mx-auto text-center flex flex-col items-center">
+<h1 class="font-display-lg text-display-lg text-neutral-900 mb-6 max-w-4xl leading-[1.1] tracking-tight font-medium">就活を、もっとスマートに。</h1>
+<p class="font-body-lg text-body-lg text-neutral-600 max-w-2xl mx-auto mb-12">予定、企業、選考、メール。複雑な就活情報をJobCalひとつで完璧に管理。</p>
+<div class="flex flex-col sm:flex-row gap-4 justify-center mb-24">
+<button class="bg-[#1e3a8a] text-white px-6 py-3 rounded-xl font-medium text-[14px] hover:bg-[#152c6e] transition-all flex items-center justify-center gap-2 shadow-button">
+                無料で始める
+                <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+</button>
+<button class="bg-white text-neutral-800 border border-neutral-200 px-6 py-3 rounded-xl font-medium text-[14px] hover:bg-neutral-50 hover:border-neutral-300 transition-all">
+                ログイン
+            </button>
+</div>
+<!-- Product Preview (Dashboard) -->
+<div class="w-full max-w-6xl bg-white rounded-2xl border border-neutral-200 shadow-soft overflow-hidden">
+<div class="w-full h-10 bg-neutral-50 border-b border-neutral-200 flex items-center px-4 gap-2">
+<div class="w-2.5 h-2.5 rounded-full bg-neutral-300"></div>
+<div class="w-2.5 h-2.5 rounded-full bg-neutral-300"></div>
+<div class="w-2.5 h-2.5 rounded-full bg-neutral-300"></div>
+</div>
+<img class="w-full h-auto object-cover" data-alt="A clean, minimalist UI dashboard for a job hunting application. Light mode aesthetic with deep blue accents. Shows a clean sidebar, calendar view, and structured kanban board with soft rounded corners (100px pill geometry). High-fidelity professional productivity tool interface, uncluttered and airy." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBB0SZUih3Wdp64HCjcjToSy-daENT_wrf-lfQTY_2Uu6otmzLCKoprEU7sm5OGxILUISVcAT3ctVk6HyZZytAventMisRZpW_9qQMu1nbRUg0NOJxohc4FOuDzb8SFw3HzTrvJu7mNA0z9MFkyU0L3Z_Vx88pRT_Ely_eIPPE7FMokOcDmbz6T9C6GWoTgbMorWsDwJ14Wgpi96s3Y9Y-GxF2vnymkxxT7hY_TtjcqR07_ke0a_-Yl6g"/>
+</div>
+</header>
+<!-- Features Section -->
+<section class="py-24 px-6 md:px-12 max-w-[1200px] mx-auto border-t border-neutral-100" id="features">
+<div class="text-center mb-20">
+<h2 class="font-headline-md text-headline-md text-neutral-900 mb-4 font-medium tracking-tight">JobCalでできること</h2>
+<p class="font-body-lg text-neutral-600">就活に必要なすべてを 한곳에서</p>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 lg:gap-8">
+<!-- Feature 1 -->
+<div class="flex flex-col items-center text-center p-4">
+<div class="w-14 h-14 rounded-2xl bg-primary/5 text-primary flex items-center justify-center mb-6">
+<span class="material-symbols-outlined text-[28px]">business_center</span>
+</div>
+<h3 class="text-[16px] font-medium text-neutral-900 mb-3 heading-tracking">企業・選考管理</h3>
+<p class="text-[14px] leading-[1.4] text-neutral-600">Manage companies and selection steps</p>
+</div>
+<!-- Feature 2 -->
+<div class="flex flex-col items-center text-center p-4">
+<div class="w-14 h-14 rounded-2xl bg-primary/5 text-primary flex items-center justify-center mb-6">
+<span class="material-symbols-outlined text-[28px]">calendar_today</span>
+</div>
+<h3 class="text-[16px] font-medium text-neutral-900 mb-3 heading-tracking">カレンダー</h3>
+<p class="text-[14px] leading-[1.4] text-neutral-600">Visual schedule management</p>
+</div>
+<!-- Feature 3 -->
+<div class="flex flex-col items-center text-center p-4">
+<div class="w-14 h-14 rounded-2xl bg-primary/5 text-primary flex items-center justify-center mb-6">
+<span class="material-symbols-outlined text-[28px]">auto_awesome</span>
+</div>
+<h3 class="text-[16px] font-medium text-neutral-900 mb-3 heading-tracking">JobCal AI</h3>
+<p class="text-[14px] leading-[1.4] text-neutral-600">AI-powered email analysis</p>
+</div>
+<!-- Feature 4 -->
+<div class="flex flex-col items-center text-center p-4">
+<div class="w-14 h-14 rounded-2xl bg-primary/5 text-primary flex items-center justify-center mb-6">
+<span class="material-symbols-outlined text-[28px]">bar_chart</span>
+</div>
+<h3 class="text-[16px] font-medium text-neutral-900 mb-3 heading-tracking">就活状況の可視化</h3>
+<p class="text-[14px] leading-[1.4] text-neutral-600">Analytics and insights</p>
+</div>
+</div>
+</section>
+<!-- JobCal AI Introduction -->
+<section class="py-24 bg-neutral-50 px-6 md:px-12 border-y border-neutral-200" id="ai">
+<div class="max-w-[1200px] mx-auto flex flex-col lg:flex-row items-center gap-16 lg:gap-24">
+<div class="flex-1 text-left">
+<h2 class="font-headline-md text-headline-md text-neutral-900 mb-6 font-medium tracking-tight">AIがあなたの就活を加速させる</h2>
+<p class="text-[16px] text-neutral-600 leading-[1.4] mb-10">就活メールをコピー＆ペーストするだけで、企業情報、選考ステップ、日程をAIが自動で整理。煩雑な手入力を最小限に抑えます。</p>
+<button class="flex items-center gap-2 text-primary font-medium hover:opacity-80 transition-opacity text-[14px]">
+<span class="material-symbols-outlined text-[18px]">auto_awesome</span>
+<span>JobCal AI を試す</span>
+<span class="material-symbols-outlined text-[16px] ml-1">arrow_forward</span>
+</button>
+</div>
+<div class="flex-1 w-full max-w-lg bg-white rounded-2xl border border-neutral-200 shadow-sm p-8">
+<div class="flex items-center gap-2 mb-6 pb-4 border-b border-neutral-100">
+<span class="material-symbols-outlined text-primary text-[18px]">auto_awesome</span>
+<h3 class="font-medium text-neutral-900 text-[14px]">メールから企業追加</h3>
+</div>
+<div class="bg-neutral-50 rounded-xl p-5 mb-6 border border-neutral-100">
+<p class="text-[12px] text-neutral-600 mb-4 flex items-center gap-2 font-medium">
+<span class="material-symbols-outlined text-[14px]">info</span>AIが以下の情報を抽出します
+</p>
+<div class="flex flex-wrap gap-2">
+<span class="px-3 py-1 bg-white text-[12px] text-neutral-700 font-medium rounded-md border border-neutral-200">企業名</span>
+<span class="px-3 py-1 bg-white text-[12px] text-neutral-700 font-medium rounded-md border border-neutral-200">選考ステップ</span>
+<span class="px-3 py-1 bg-white text-[12px] text-neutral-700 font-medium rounded-md border border-neutral-200">日時</span>
+</div>
+</div>
+<div class="w-full h-32 bg-white rounded-xl border border-neutral-200 p-4 flex items-start text-[13px] text-neutral-400">
+ここにメールの内容をペーストしてください...
+</div>
+</div>
+</div>
+</section>
+<!-- Product Showcase -->
+<section class="py-24 px-6 md:px-12 max-w-[1200px] mx-auto text-center">
+<h2 class="font-headline-md text-headline-md text-neutral-900 mb-6 font-medium tracking-tight">洗練されたワークスペース</h2>
+<p class="font-body-lg text-neutral-600 mb-20 max-w-2xl mx-auto">直感的で無駄のないデザインが、あなたのキャリア形成をサポートします。</p>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+<!-- Mockup 1: Dashboard -->
+<div class="bg-neutral-50 rounded-2xl border border-neutral-200 overflow-hidden flex flex-col pt-10 px-10">
+<h4 class="font-medium text-[16px] text-neutral-900 mb-8 heading-tracking text-left">Dashboard</h4>
+<img alt="Dashboard Preview" class="w-full rounded-t-xl border border-neutral-200 shadow-sm" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDrwzsQrb-rSf2dF28wjIv4lcFu6HVYIcc4f9czNozZX-gyvL_oGWe20h6oV-sHqxqQz2-7w7GyUsBGZj8pxV9Xj1M6SxUbeW6qaiOABLERF3n3x4-7ZX6Pj0JRL5ghMP4WimD5RiN321Y4Y7b_hca1WqAetX7PUhmYrpXW3Sgq-kZH49TcroHPhAGWlw95VAcBXv4wWMiZPp6JBw7oV08qKGy4SeQA2ccluHRoG35bdQ0Jnl_omhxCVw"/>
+</div>
+<!-- Mockup 2: AI Drawer -->
+<div class="bg-neutral-50 rounded-2xl border border-neutral-200 overflow-hidden flex flex-col pt-10 px-10">
+<h4 class="font-medium text-[16px] text-neutral-900 mb-8 heading-tracking text-left">AI Assistant</h4>
+<img alt="AI Assistant Preview" class="w-full rounded-t-xl border border-neutral-200 shadow-sm" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCxH1Pp-J05WGIhPzKQYvNSIx_TOFmw1tv2Dok7aK_UcWeP0E01xuCYOTaJExHsV5J7H0RXURA42z0KpP2a8tJS01kZtHju7yKjjO2P9VkCW2VJ-qHIsh6nCbG600og3L1nqwOMEWBsVov56UeQbV-h4W2gS0ucP_W1qvwj_a3XzpKOWZ5Eu40V9NCK3h-AiobFltQp621ABfyfml4dLy_Efibx4BK3pJBVZZcE44Y-ra3XksOXL9x6Gw"/>
+</div>
+</div>
+</section>
+<!-- Final CTA -->
+<section class="py-24 px-6 md:px-12 max-w-4xl mx-auto text-center mb-12 border-t border-neutral-100">
+<h2 class="font-display-lg text-[48px] text-neutral-900 mb-10 leading-[1.1] tracking-tight font-medium">就活を、もっとスマートに。</h2>
+<button class="bg-[#1e3a8a] text-white px-8 py-3 rounded-xl font-medium text-[15px] hover:bg-[#152c6e] transition-all flex items-center justify-center gap-2 shadow-button mx-auto">
+        無料で始める
+        <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+</button>
+</section>
+<!-- Footer -->
+<footer class="bg-white border-t border-neutral-200 mt-auto">
+<div class="flex flex-col md:flex-row justify-between items-center gap-6 px-6 md:px-12 py-10 max-w-[1200px] mx-auto">
+<div class="text-[18px] font-medium text-neutral-900 tracking-tight">JobCal</div>
+<div class="flex gap-8 text-[13px]">
+<a class="text-neutral-500 hover:text-neutral-900 font-medium transition-colors duration-200" href="#">Privacy Policy</a>
+<a class="text-neutral-500 hover:text-neutral-900 font-medium transition-colors duration-200" href="#">Terms of Service</a>
+<a class="text-neutral-500 hover:text-neutral-900 font-medium transition-colors duration-200" href="#">Contact</a>
+</div>
+<div class="text-neutral-400 text-[13px]">© 2024 JobCal. All rights reserved.</div>
+</div>
+</footer>
+</body></html>

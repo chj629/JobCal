@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+
+<html lang="ja" style=""><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>パスワード再設定 - JobCal</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,100..900;1,100..900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        colors: {
+            "primary": "#1e3a8a",
+            "surface": "#ffffff",
+            "on-surface": "#111827",
+            "on-surface-variant": "#4b5563",
+            "outline": "#d1d5db",
+            "outline-variant": "#e5e7eb",
+            "surface-container-lowest": "#ffffff",
+            "primary-container": "#1e3a8a",
+            "on-primary": "#ffffff",
+            "primary-fixed": "#dbeafe",
+            "surface-dim": "#f3f4f6"
+        },
+        borderRadius: {
+            "DEFAULT": "8px",
+            "lg": "16px",
+            "xl": "24px",
+            "full": "9999px"
+        },
+        fontFamily: {
+            "display-lg": ["Hanken Grotesk"],
+            "body-lg": ["Hanken Grotesk"],
+            "headline-md": ["Hanken Grotesk"],
+            "display-lg-mobile": ["Hanken Grotesk"],
+            "body-md": ["Hanken Grotesk"],
+            "label-sm": ["JetBrains Mono"]
+        }
+      }
+    }
+  }
+</script>
+<style>
+    body {
+        background-color: theme('colors.surface');
+        color: theme('colors.on-surface');
+        font-family: 'Hanken Grotesk', sans-serif;
+        font-weight: 350;
+        letter-spacing: -0.025em;
+    }
+    .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 20; }
+    h1, h2, h3, h4, p, span, a, label, input, button { letter-spacing: -0.025em; font-weight: 350; }
+    .font-medium { font-weight: 400; }
+    .font-bold { font-weight: 500; }
+</style>
+</head>
+<body class="bg-surface text-on-surface min-h-screen flex flex-col font-body-md antialiased selection:bg-primary-fixed selection:text-primary">
+<!-- Header -->
+<header class="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-md border-b border-outline-variant/50 sticky">
+<div class="flex justify-between items-center px-6 py-4 max-w-[1400px] mx-auto">
+<div class="text-2xl font-bold text-primary tracking-tight leading-none">
+JobCal
+</div>
+<nav class="hidden md:flex items-center gap-8 text-[13px] text-on-surface-variant">
+<div class="flex items-center gap-2 font-medium">
+<button class="hover:text-primary transition-colors">日本語</button>
+<span class="text-outline-variant">/</span>
+<button class="hover:text-primary transition-colors">한국어</button>
+</div>
+</nav>
+<button class="md:hidden text-primary">
+<span class="material-symbols-outlined">menu</span>
+</button>
+</div>
+</header>
+<main class="flex-grow flex items-center justify-center p-6 md:p-12">
+<div class="max-w-6xl w-full grid grid-cols-1 md:grid-cols-2 gap-16 md:gap-24 items-center">
+<!-- Left Column: Product Message -->
+<div class="flex flex-col pr-0 md:pr-8 space-y-8">
+<div class="space-y-6">
+<h1 class="text-[32px] md:text-[48px] text-on-surface tracking-tight leading-[1.1] font-medium whitespace-pre-line">複雑な就職活動を、
+                        ひとつに。</h1>
+<p class="text-[16px] text-on-surface-variant whitespace-pre-line max-w-lg leading-[1.5]">企業、選考、予定をまとめて管理。
+                        JobCalなら、次にやることがすぐに分かります。</p>
+</div>
+<ul class="space-y-4">
+<li class="flex items-center space-x-4 text-on-surface-variant">
+<div class="w-7 h-7 rounded-full bg-primary-fixed/50 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[16px]" data-icon="business_center">business_center</span>
+</div>
+<span class="text-[15px]">企業と選考をまとめて管理</span>
+</li>
+<li class="flex items-center space-x-4 text-on-surface-variant">
+<div class="w-7 h-7 rounded-full bg-primary-fixed/50 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[16px]" data-icon="calendar_today">calendar_today</span>
+</div>
+<span class="text-[15px]">大切な予定を見逃さない</span>
+</li>
+<li class="flex items-center space-x-4 text-on-surface-variant">
+<div class="w-7 h-7 rounded-full bg-primary-fixed/50 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[16px]" data-icon="auto_awesome">auto_awesome</span>
+</div>
+<span class="text-[15px]">AIでメールから情報を整理</span>
+</li>
+</ul>
+</div>
+<!-- Right Column: Forgot Password Panel -->
+<div class="w-full max-w-[440px] mx-auto md:ml-auto md:mr-0">
+<div class="bg-surface flex flex-col space-y-8">
+<div class="text-center space-y-2">
+<h2 class="text-[32px] text-on-surface font-medium tracking-tight">パスワードを再設定</h2>
+<p class="text-[15px] text-on-surface-variant">新しいパスワードを入力してください。</p>
+</div>
+<form class="space-y-6">
+<div class="space-y-2">
+<label class="block text-[14px] text-on-surface font-medium" for="new_password">新しいパスワード</label>
+<div class="relative">
+<input class="w-full bg-surface border border-outline rounded-full px-5 py-3.5 pr-10 text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary-fixed focus:border-primary transition-all text-[15px]" id="new_password" placeholder="••••••••" type="password"/>
+<button class="absolute right-4 top-1/2 -translate-y-1/2 text-outline hover:text-on-surface transition-colors flex items-center" type="button">
+<span class="material-symbols-outlined text-[18px]" data-icon="visibility_off">visibility_off</span>
+</button>
+</div>
+</div>
+<div class="space-y-2">
+<label class="block text-[14px] text-on-surface font-medium" for="new_password_confirmation">パスワード確認</label>
+<div class="relative">
+<input class="w-full bg-surface border border-outline rounded-full px-5 py-3.5 pr-10 text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary-fixed focus:border-primary transition-all text-[15px]" id="new_password_confirmation" placeholder="••••••••" type="password"/>
+<button class="absolute right-4 top-1/2 -translate-y-1/2 text-outline hover:text-on-surface transition-colors flex items-center" type="button">
+<span class="material-symbols-outlined text-[18px]" data-icon="visibility_off">visibility_off</span>
+</button>
+</div>
+</div>
+<button class="w-full h-[52px] bg-primary text-on-primary rounded-full px-6 text-[15px] font-medium hover:bg-[#152c6e] transition-colors mt-4 shadow-sm" type="submit">
+                            パスワードを更新
+                        </button>
+</form>
+<div class="text-center pt-4">
+<p class="text-[14px] text-on-surface-variant">
+<a class="text-primary font-medium hover:underline transition-colors ml-1" href="#">ログインに戻る</a>
+</p>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>

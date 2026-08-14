@@ -1,11 +1,11 @@
 "use client";
 
-import { CalendarDays, ListChecks, X } from "lucide-react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import type { AppEvent, EventType } from "@/lib/events";
+import type { AppEvent } from "@/lib/events";
 import { useLocale, useT } from "@/lib/locale-context";
-import Badge, { type BadgeVariant } from "@/components/ui/Badge";
-import Button from "@/components/ui/Button";
+import MaterialIcon from "@/components/ui/MaterialIcon";
+import { EVENT_CHIP_CLASS } from "@/components/calendar/eventChipStyle";
 
 interface EventDetailPopoverProps {
   event: AppEvent;
@@ -14,19 +14,15 @@ interface EventDetailPopoverProps {
   onClose: () => void;
 }
 
-// calendar/page.tsx, CompanySchedulePanel.tsx와 동일한 타입별 배지 색/라벨 매핑을 재사용한다.
-const EVENT_TYPE_BADGE_VARIANT: Record<EventType, BadgeVariant> = {
-  schedule: "primary",
-  deadline: "warning",
-  result_announcement: "purple",
-};
-
-const EVENT_TYPE_LABEL_KEYS: Record<EventType, string> = {
+const EVENT_TYPE_LABEL_KEYS = {
   schedule: "companies.events.types.schedule",
   deadline: "companies.events.types.deadline",
   result_announcement: "companies.events.types.resultAnnouncement",
-};
+} as const;
 
+// Stitch 캘린더 시안에는 "일정 클릭 → 상세" 상태가 없어, 표준 Modal(폼용 header+footer)로
+// 억지로 맞추지 않고 ConfirmDialog와 같은 방식(공용 Modal을 감싸지 않는 독립 오버레이)으로
+// 기존 중앙 오버레이 구조를 유지한 채 현재 디자인 토큰만 입힌다.
 export default function EventDetailPopover({
   event,
   companyName,
@@ -36,6 +32,14 @@ export default function EventDetailPopover({
   const t = useT();
   const { locale } = useLocale();
   const router = useRouter();
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
 
   const localeCode = locale === "ja" ? "ja-JP" : "ko-KR";
   const at = event.startsAt ?? event.dueAt;
@@ -59,46 +63,51 @@ export default function EventDetailPopover({
         role="dialog"
         aria-modal="true"
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-sm rounded-lg border border-border bg-card p-6 shadow-lg"
+        className="w-full max-w-[400px] overflow-hidden rounded-[24px] border border-stitch-border bg-white p-7 shadow-sm"
       >
-        <div className="mb-4 flex items-start justify-between gap-3">
+        <div className="mb-5 flex items-start justify-between gap-3">
           <div>
-            <Badge variant={EVENT_TYPE_BADGE_VARIANT[event.eventType]} size="sm">
+            <span
+              className={
+                "inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-[500] " +
+                EVENT_CHIP_CLASS[event.eventType]
+              }
+            >
               {t(EVENT_TYPE_LABEL_KEYS[event.eventType])}
-            </Badge>
-            <h2 className="mt-2 text-[16px] font-semibold text-foreground">{event.title}</h2>
-            <p className="text-sm text-secondary">{companyName}</p>
+            </span>
+            <h2 className="mt-3 text-[18px] font-[500] text-stitch-ink">{event.title}</h2>
+            <p className="text-[13px] text-secondary">{companyName}</p>
           </div>
           <button
             type="button"
             onClick={onClose}
             aria-label={t("common.close")}
-            className="rounded-md p-1 text-secondary hover:bg-background hover:text-foreground"
+            className="shrink-0 text-secondary transition-colors hover:text-foreground"
           >
-            <X size={18} />
+            <MaterialIcon name="close" size={20} />
           </button>
         </div>
 
-        <div className="flex flex-col gap-3 text-sm">
+        <div className="flex flex-col gap-3 text-[13px] text-stitch-ink">
           {formattedAt && (
             <div className="flex items-center gap-2">
-              <CalendarDays size={14} className="shrink-0 text-secondary" />
-              <span className="text-foreground">{formattedAt}</span>
+              <MaterialIcon name="calendar_today" size={16} className="shrink-0 text-secondary" />
+              <span>{formattedAt}</span>
             </div>
           )}
           <div className="flex items-center gap-2">
-            <ListChecks size={14} className="shrink-0 text-secondary" />
-            <span className="text-foreground">{stepName ?? t("dashboard.noStepLabel")}</span>
+            <MaterialIcon name="checklist" size={16} className="shrink-0 text-secondary" />
+            <span>{stepName ?? t("dashboard.noStepLabel")}</span>
           </div>
         </div>
 
-        <Button
+        <button
           type="button"
-          className="mt-6 w-full"
           onClick={() => router.push(`/companies/${event.companyId}`)}
+          className="mt-6 w-full rounded-full bg-primary-navy px-6 py-2.5 text-[14px] font-[500] text-white transition-all hover:opacity-90"
         >
           {t("calendar.viewCompanyDetail")}
-        </Button>
+        </button>
       </div>
     </div>
   );

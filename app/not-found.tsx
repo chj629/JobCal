@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { FileQuestion } from "lucide-react";
 import { useT } from "@/lib/locale-context";
 import Logo from "@/components/ui/Logo";
 import Button from "@/components/ui/Button";
@@ -16,7 +15,7 @@ export default function NotFound() {
     <div className="flex min-h-screen flex-col items-center justify-center gap-8 bg-background px-6 py-16">
       <Logo size="lg" />
       <EmptyState
-        icon={FileQuestion}
+        icon="search_off"
         title={t("errorPages.notFound.title")}
         description={t("errorPages.notFound.description")}
       />

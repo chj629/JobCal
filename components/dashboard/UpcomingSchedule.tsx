@@ -1,20 +1,16 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CalendarClock, ChevronRight } from "lucide-react";
 import { getTodayResultsList } from "@/components/dashboard/TodayResults";
 import { getUpcomingHighlights } from "@/components/dashboard/UpcomingDDay";
 import { getUpcomingDeadlinesList } from "@/components/dashboard/UpcomingDeadlines";
 import { dateKeyOf, diffInDays, formatTimeOfDay, todayKey } from "@/lib/date";
-import { useLocale, useT } from "@/lib/locale-context";
-import type { Locale } from "@/lib/i18n/messages";
+import { useT } from "@/lib/locale-context";
 import type { Company } from "@/lib/companies";
-import type { AppEvent, EventType } from "@/lib/events";
+import type { AppEvent } from "@/lib/events";
 import { getStepDisplayName, type ApplicationStep } from "@/lib/applicationSteps";
-import Badge, { type BadgeVariant } from "@/components/ui/Badge";
-import Button from "@/components/ui/Button";
 import EmptyState from "@/components/ui/EmptyState";
+import MaterialIcon from "@/components/ui/MaterialIcon";
 
 interface UpcomingScheduleProps {
   companies: Company[];
@@ -22,48 +18,41 @@ interface UpcomingScheduleProps {
   steps: ApplicationStep[];
 }
 
-// 요일 약칭은 언어별로 통째로 다른 문자라 t()의 단일 문자열 치환 대신 locale별 배열로 둔다.
-const WEEKDAY_LABELS: Record<Locale, string[]> = {
-  ja: ["日", "月", "火", "水", "木", "金", "土"],
-  ko: ["일", "월", "화", "수", "목", "금", "토"],
-};
 const MAX_ROWS = 5;
 
-// lib/events.ts의 EVENT_TYPE_LABELS(한국어 고정)는 그대로 두고, 기업 상세 단계에서 만든
-// companies.events.types.* 키를 재사용해 표시 라벨만 번역한다.
-const EVENT_TYPE_LABEL_KEYS: Record<EventType, string> = {
-  schedule: "companies.events.types.schedule",
-  deadline: "companies.events.types.deadline",
-  result_announcement: "companies.events.types.resultAnnouncement",
-};
+function formatRelativeBadge(at: string, t: (key: string, vars?: Record<string, string | number>) => string) {
+  const today = todayKey();
+  const diff = diffInDays(today, dateKeyOf(at));
 
-// lib/events.ts의 EVENT_TYPE_BADGE_CLASS와 동일한 색 의미를 Badge variant로 재사용한다.
-const EVENT_TYPE_BADGE_VARIANT: Record<EventType, BadgeVariant> = {
-  schedule: "primary",
-  deadline: "warning",
-  result_announcement: "purple",
-};
+  if (diff <= 0) {
+    const hoursLeft = Math.max(1, Math.ceil((new Date(at).getTime() - Date.now()) / (1000 * 60 * 60)));
+    return { label: t("dashboard.upcomingSchedule.hoursLeft", { hours: hoursLeft }), urgent: true };
+  }
 
-function formatRowDate(iso: string, t: (key: string) => string, weekdayLabels: string[]) {
-  const key = dateKeyOf(iso);
-  const diff = diffInDays(todayKey(), key);
-  if (diff === 0) return t("dashboard.today");
-  if (diff === 1) return t("dashboard.tomorrow");
+  if (diff === 1) {
+    return {
+      label: t("dashboard.upcomingSchedule.tomorrowAt", { time: formatTimeOfDay(at) }),
+      urgent: false,
+    };
+  }
 
-  const date = new Date(iso);
+  const date = new Date(at);
   const pad = (n: number) => String(n).padStart(2, "0");
-  return `${pad(date.getMonth() + 1)}.${pad(date.getDate())} (${weekdayLabels[date.getDay()]})`;
+  return {
+    label: t("dashboard.upcomingSchedule.dateAt", {
+      date: `${pad(date.getMonth() + 1)}.${pad(date.getDate())}`,
+      time: formatTimeOfDay(at),
+    }),
+    urgent: false,
+  };
 }
 
-// 6_homeAIOFF.png의 "직근 예정" 리스트. TodayResults/UpcomingDDay/UpcomingDeadlines의
-// 기존 계산 함수를 그대로 재사용해 이벤트를 시간순으로 합친다. 같은 이벤트가 여러 계산에
-// 동시에 걸리는 경우(예: 회사별 최근 일정과 마감 목록이 겹치는 경우)를 대비해 event.id
-// 기준으로 중복만 제거하고, 필터링/정렬 로직 자체는 손대지 않는다.
+// docs/stitch/메인페이지 5개/jobcal_dashboard_added_weekly_progress_summary의 "今後の予定" 카드.
+// TodayResults/UpcomingDDay/UpcomingDeadlines의 기존 계산 함수를 그대로 재사용해 이벤트를
+// 시간순으로 합친다(오늘 마감은 TodayChecklist 카드가 담당하므로 여기서는 제외됨).
 export default function UpcomingSchedule({ companies, events, steps }: UpcomingScheduleProps) {
   const t = useT();
   const router = useRouter();
-  const { locale } = useLocale();
-  const weekdayLabels = WEEKDAY_LABELS[locale];
   const combined = new Map<string, { event: AppEvent; at: string }>();
 
   for (const event of getTodayResultsList(events)) {
@@ -81,76 +70,60 @@ export default function UpcomingSchedule({ companies, events, steps }: UpcomingS
     .slice(0, MAX_ROWS);
 
   return (
-    <section className="flex h-[346px] flex-col rounded-[10px] border border-border bg-card">
-      <h2 className="border-b border-border px-6 py-4 text-[16px] font-semibold text-foreground">
+    <div className="flex h-[275px] flex-col rounded-stitch-xl border border-stitch-border bg-card p-6 shadow-sm">
+      <h3 className="mb-3 flex shrink-0 items-center gap-1.5 text-[13px] font-[400] text-stitch-ink">
+        <MaterialIcon name="schedule" size={15} className="text-secondary" />
         {t("dashboard.upcomingSchedule.title")}
-      </h2>
+      </h3>
 
       {rows.length === 0 ? (
-        <div className="flex flex-1 items-center justify-center px-6">
-          <EmptyState icon={CalendarClock} title={t("dashboard.upcomingSchedule.empty")} />
+        <div className="flex flex-1 items-center justify-center">
+          <EmptyState icon="schedule" title={t("dashboard.upcomingSchedule.empty")} />
         </div>
       ) : (
-        <ul className="flex-1 overflow-y-auto">
-          {rows.map(({ event, at }, index) => {
+        <div className="flex-1 space-y-1 overflow-y-auto overflow-x-hidden stitch-scrollbar-hidden pr-1">
+          {rows.map(({ event, at }) => {
             const company = companies.find((c) => c.id === event.companyId);
             const step = steps.find((s) => s.id === event.applicationStepId);
-            const isSoon = diffInDays(todayKey(), dateKeyOf(at)) <= 1;
-            const isLast = index === rows.length - 1;
+            const badge = formatRelativeBadge(at, t);
 
             return (
-              <li key={event.id} className="transition-colors duration-150 hover:bg-background">
-                <div className={"mx-4 " + (isLast ? "" : "border-b border-border")}>
-                  <Link
-                    href={`/companies/${event.companyId}`}
-                    className="flex items-center gap-3 px-2 py-3"
-                  >
-                    <div className="w-16 shrink-0 self-start">
-                      <p
-                        className={
-                          "text-sm font-semibold " + (isSoon ? "text-primary" : "text-secondary")
-                        }
-                      >
-                        {formatRowDate(at, t, weekdayLabels)}
-                      </p>
-                      <p className="text-xs text-secondary">{formatTimeOfDay(at)}</p>
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <p className="truncate text-sm font-bold text-foreground">
-                          {company?.name ?? ""}
-                        </p>
-                        <Badge
-                          variant={EVENT_TYPE_BADGE_VARIANT[event.eventType]}
-                          size="sm"
-                          className="shrink-0"
-                        >
-                          {t(EVENT_TYPE_LABEL_KEYS[event.eventType])}
-                        </Badge>
-                      </div>
-                      <p className="mt-0.5 truncate text-xs text-secondary">
-                        {step ? getStepDisplayName(step, t) : event.title}
-                      </p>
-                    </div>
-                    <ChevronRight size={16} className="shrink-0 text-secondary" />
-                  </Link>
+              <div
+                key={event.id}
+                className="-mx-2 flex items-center justify-between gap-3 rounded-stitch-xl p-2 transition-colors hover:bg-black/[0.015]"
+              >
+                <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <p className="truncate text-[10px] text-secondary">{company?.name ?? ""}</p>
+                  <p className="truncate text-[12px] font-[400] leading-tight text-stitch-ink">
+                    {step ? getStepDisplayName(step, t) : event.title}
+                  </p>
                 </div>
-              </li>
+                <span
+                  className={
+                    "shrink-0 whitespace-nowrap rounded-stitch-md px-2 py-1 text-[10px] font-[400] " +
+                    (badge.urgent
+                      ? "bg-error/10 text-error"
+                      : "border border-stitch-border bg-background text-secondary")
+                  }
+                >
+                  {badge.label}
+                </span>
+              </div>
             );
           })}
-        </ul>
+        </div>
       )}
 
-      <div className="mx-6 pt-3 pb-3">
-        <Button
+      <div className="mt-2 flex shrink-0 justify-end">
+        <button
           type="button"
-          variant="secondary"
-          className="w-full"
           onClick={() => router.push("/calendar")}
+          className="flex items-center gap-0.5 text-[11px] font-[400] text-primary-navy transition-colors hover:opacity-80"
         >
-          {t("dashboard.upcomingSchedule.viewMore")}
-        </Button>
+          {t("dashboard.upcomingSchedule.viewAll")}
+          <MaterialIcon name="chevron_right" size={14} />
+        </button>
       </div>
-    </section>
+    </div>
   );
 }

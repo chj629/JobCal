@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+
+<html class="light" lang="ja" style=""><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>JobCal - Analytics</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,100..900;1,100..900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+                "error-container": "#ffdad6",
+                "tertiary-fixed": "#dfe3e7",
+                "surface-container": "#e6eeff",
+                "on-surface": "#0d1c2f",
+                "on-primary-fixed": "#00164e",
+                "surface": "#f8f9ff",
+                "on-primary-fixed-variant": "#264191",
+                "inverse-primary": "#b6c4ff",
+                "primary-fixed-dim": "#b6c4ff",
+                "surface-container-high": "#dde9ff",
+                "surface-container-low": "#eff4ff",
+                "on-primary-container": "#90a8ff",
+                "inverse-on-surface": "#ebf1ff",
+                "on-tertiary-fixed-variant": "#43474b",
+                "primary": "#00236f",
+                "on-secondary-fixed-variant": "#004883",
+                "tertiary-fixed-dim": "#c3c7cb",
+                "primary-container": "#1e3a8a",
+                "surface-container-highest": "#d5e3fd",
+                "inverse-surface": "#233144",
+                "tertiary": "#262b2e",
+                "on-secondary": "#ffffff",
+                "on-surface-variant": "#444651",
+                "on-secondary-container": "#003c70",
+                "surface-bright": "#f8f9ff",
+                "secondary-fixed-dim": "#a4c9ff",
+                "on-background": "#0d1c2f",
+                "surface-tint": "#4059aa",
+                "outline-variant": "#c5c5d3",
+                "on-tertiary-fixed": "#171c1f",
+                "on-tertiary": "#ffffff",
+                "on-secondary-fixed": "#001c39",
+                "outline": "#757682",
+                "on-error": "#ffffff",
+                "secondary": "#0060ac",
+                "secondary-fixed": "#d4e3ff",
+                "on-tertiary-container": "#a8adb1",
+                "on-error-container": "#93000a",
+                "background": "#f8f9ff",
+                "tertiary-container": "#3c4144",
+                "error": "#ba1a1a",
+                "surface-container-lowest": "#ffffff",
+                "primary-fixed": "#dce1ff",
+                "on-primary": "#ffffff",
+                "surface-dim": "#ccdbf4",
+                "secondary-container": "#64a8fe",
+                "surface-variant": "#d5e3fd",
+                "primary-navy": "#1e3a8a",
+                "surface-main": "#f8f9ff",
+                "border-subtle": "#e9e8ea",
+                "text-primary": "#0d1c2f",
+                "text-secondary": "#6b7280"
+        },
+        "borderRadius": {
+                "DEFAULT": "1rem",
+                "lg": "2rem",
+                "xl": "3rem",
+                "full": "9999px"
+        },
+        "spacing": {
+                "container-margin": "32px",
+                "pill-padding-y": "12px",
+                "base": "8px",
+                "pill-padding-x": "24px",
+                "gutter": "24px",
+                "section-gap": "64px"
+        },
+        "fontFamily": {
+                "body-md": [
+                        "Hanken Grotesk"
+                ],
+                "headline-md": [
+                        "Hanken Grotesk"
+                ],
+                "body-lg": [
+                        "Hanken Grotesk"
+                ],
+                "display-lg-mobile": [
+                        "Hanken Grotesk"
+                ],
+                "label-sm": [
+                        "JetBrains Mono"
+                ],
+                "display-lg": [
+                        "Hanken Grotesk"
+                ]
+        },
+        "fontSize": {
+                "body-md": [
+                        "16px",
+                        {
+                                "lineHeight": "24px",
+                                "fontWeight": "350"
+                        }
+                ],
+                "headline-md": [
+                        "24px",
+                        {
+                                "lineHeight": "32px",
+                                "fontWeight": "500"
+                        }
+                ],
+                "body-lg": [
+                        "18px",
+                        {
+                                "lineHeight": "28px",
+                                "fontWeight": "350"
+                        }
+                ],
+                "display-lg-mobile": [
+                        "32px",
+                        {
+                                "lineHeight": "40px",
+                                "letterSpacing": "-0.01em",
+                                "fontWeight": "350"
+                        }
+                ],
+                "label-sm": [
+                        "12px",
+                        {
+                                "lineHeight": "16px",
+                                "letterSpacing": "0.05em",
+                                "fontWeight": "500"
+                        }
+                ],
+                "display-lg": [
+                        "48px",
+                        {
+                                "lineHeight": "56px",
+                                "letterSpacing": "-0.02em",
+                                "fontWeight": "350"
+                        }
+                ]
+        }
+},
+    },
+  }
+</script>
+<style>
+        body { font-family: 'Hanken Grotesk', sans-serif; font-weight: 350; letter-spacing: -0.025em; background-color: #f8f9ff; color: #0d1c2f; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 20; }
+        .material-symbols-outlined.fill { font-variation-settings: 'FILL' 1; }
+        html { scroll-behavior: smooth; }
+        * { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+        
+        .premium-card {
+            background-color: #ffffff;
+            border-radius: 20px;
+            border: 1px solid #e9e8ea;
+            box-shadow: none;
+        }
+        
+        .subtle-divider {
+            border-color: #e9e8ea;
+        }
+
+        h1, h2, h3, h4, p, span { letter-spacing: -0.025em; font-weight: 350; }
+        .font-medium { font-weight: 400; }
+        .font-bold { font-weight: 500; }
+    </style>
+</head>
+<body class="flex min-h-screen text-text-primary bg-surface-container-low overflow-hidden">
+<!-- SideNavBar -->
+<nav class="hidden md:flex fixed left-0 top-0 h-full flex-col z-50 py-8 border-r border-border-subtle w-64 bg-primary-navy">
+<div class="px-6 pb-8 mb-2 pt-0.5">
+<div class="flex flex-col gap-1">
+<h1 class="text-[28px] font-bold tracking-tight text-white leading-none">JobCal</h1>
+<p class="text-[11px] tracking-normal text-white/70">就活を、もっとスマートに。</p>
+</div>
+</div>
+<div class="flex-1 px-3 space-y-1">
+<a class="flex items-center gap-3 px-3 py-2 text-white/70 hover:text-white rounded-xl transition-all duration-200 text-[13px] hover:bg-white/5" href="#">
+<span class="material-symbols-outlined text-[18px]" data-icon="home">home</span>
+                ホーム
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 text-white/70 hover:text-white rounded-xl transition-all duration-200 text-[13px] hover:bg-white/5" href="#">
+<span class="material-symbols-outlined text-[18px]" data-icon="business_center">business_center</span>
+                企業
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 text-white/70 hover:text-white rounded-xl transition-all duration-200 text-[13px] hover:bg-white/5" href="#">
+<span class="material-symbols-outlined text-[18px]" data-icon="calendar_today">calendar_today</span>
+                カレンダー
+            </a>
+<a class="flex items-center gap-3 bg-white/10 text-white rounded-xl px-3 py-2 text-[13px]" href="#">
+<span class="material-symbols-outlined fill text-[18px]" data-icon="bar_chart">bar_chart</span>
+                アナリティクス
+            </a>
+</div>
+<div class="px-3 mt-auto mb-2">
+<a class="flex items-center gap-3 px-3 py-2 text-white/70 hover:text-white rounded-xl transition-all duration-200 text-[13px] hover:bg-white/5" href="#">
+<span class="material-symbols-outlined text-[18px]" data-icon="settings">settings</span>
+                設定
+            </a>
+</div>
+</nav>
+<!-- Main Content Area -->
+<main class="flex-1 ml-0 flex flex-col h-screen relative md:ml-64 overflow-hidden">
+<!-- TopAppBar -->
+<header class="flex justify-between items-center w-full px-8 h-16 bg-white shrink-0 z-40 border-b border-border-subtle"><div class="flex justify-between items-center w-full max-w-[960px] mx-auto h-full"><div class="flex-1"><button class="md:hidden text-text-primary p-2 -ml-2"><span class="material-symbols-outlined">menu</span></button></div><div class="flex items-center gap-3"><button class="flex items-center gap-1.5 bg-surface border border-border-subtle text-text-secondary px-3 py-1.5 rounded-full text-[11px] hover:bg-black/[0.02] hover:text-text-primary transition-all font-medium"><span class="material-symbols-outlined text-[14px]">auto_awesome</span>JobCal AI</button><button class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-black/[0.02] text-text-secondary hover:text-text-primary transition-all"><span class="material-symbols-outlined text-[18px]" data-icon="notifications">notifications</span></button><button class="w-8 h-8 rounded-full overflow-hidden hover:opacity-90 transition-opacity ring-1 ring-border-subtle"><img alt="User profile photo" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBCSde5LELE9CUq1iAQn_0cXBq4rg9txgxeJLU_CousrdMYxudiIfc2ULcXBeLlEZsOtKq1TKaxCVPDcWswUl7ZigQF5wTLCXF8KbSmQXrMg9scV3PQQD_NijtWcg3rp3qSLMt5m8gE0KET_0VxAMH_Ek94Ge3thGzJ1OF3wsYX1ZThej_oCDVaLFKDP9BnXKahVL-9jtX7c79IyZMzlSH1bf3_-dtfBZ5CNxtY2crIITj3cCryQrBp0Q"/></button></div></div></header>
+<!-- Scrollable Content -->
+<div class="w-full overflow-y-auto flex-1">
+<div class="py-6 mx-auto max-w-[880px] px-6">
+<!-- Greeting & KPIs -->
+<section class="flex flex-col gap-4 mb-8">
+<div class="flex justify-between items-end w-full">
+<div>
+<h2 class="tracking-tight leading-[1.2] text-text-primary mb-1.5 font-medium text-[32px]">アナリティクス</h2>
+<p class="text-[15px] text-text-secondary">就職活動の進捗を振り返る</p>
+</div>
+</div>
+<div class="flex w-full pt-2 gap-8"><div class="flex flex-col gap-0.5 min-w-[80px]"><span class="text-[11px] text-text-secondary tracking-normal font-medium">応募企業</span><div class="flex flex-col items-start"><div class="flex items-end gap-2"><span class="text-text-primary tracking-tight leading-none font-medium text-[32px]">24</span></div></div></div><div class="flex flex-col gap-0.5 min-w-[80px]"><span class="text-[11px] text-text-secondary tracking-normal font-medium">選考中</span><div class="flex flex-col items-start"><span class="text-text-primary tracking-tight leading-none font-medium text-[32px]">10</span></div></div><div class="flex flex-col gap-0.5 min-w-[80px]"><span class="text-[11px] text-text-secondary tracking-normal font-medium">内定</span><div class="flex flex-col items-start"><div class="flex items-end gap-2"><span class="text-[#10b981] tracking-tight leading-none font-medium text-[32px]">2</span></div></div></div><div class="w-[1px] h-10 bg-outline-variant self-center mx-2"></div><div class="flex flex-col gap-0.5 min-w-[80px]"><div class="flex items-center gap-1"><span class="text-[11px] text-text-secondary tracking-normal font-medium">内定率</span></div><div class="flex flex-col items-start"><div class="flex items-end gap-2"><span class="text-text-primary tracking-tight leading-none font-medium text-[32px]">8.3%</span></div></div></div></div>
+</section>
+<!-- Main Analytics Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-3 items-stretch mb-8">
+<!-- Card 1: Status Donut Chart -->
+<div class="premium-card p-6 h-[340px] shadow-sm rounded-xl flex flex-col">
+<section class="flex flex-col h-full">
+<h3 class="text-[13px] text-text-primary flex items-center gap-2 mb-6 font-medium">
+<span class="material-symbols-outlined text-[15px] text-text-secondary">donut_large</span>
+    ステータス別企業数
+</h3>
+<div class="flex items-center justify-center gap-8 flex-1 pb-4">
+<div class="relative w-36 h-36"><svg class="w-full h-full transform -rotate-90" viewbox="0 0 100 100">
+<circle cx="50" cy="50" fill="transparent" r="40" stroke="#1e3a8a" stroke-dasharray="41.67 58.33" stroke-dashoffset="0" stroke-width="12"></circle>
+<circle cx="50" cy="50" fill="transparent" r="40" stroke="#93c5fd" stroke-dasharray="8.33 91.67" stroke-dashoffset="-41.67" stroke-width="12"></circle>
+<circle cx="50" cy="50" fill="transparent" r="40" stroke="#10b981" stroke-dasharray="4.17 95.83" stroke-dashoffset="-50.0" stroke-width="12"></circle>
+<circle cx="50" cy="50" fill="transparent" r="40" stroke="#fca5a5" stroke-dasharray="29.17 70.83" stroke-dashoffset="-54.17" stroke-width="12"></circle>
+<circle cx="50" cy="50" fill="transparent" r="40" stroke="#e2e8f0" stroke-dasharray="16.66 83.34" stroke-dashoffset="-83.34" stroke-width="12"></circle>
+<circle cx="50" cy="50" fill="transparent" r="40" stroke="#ffffff" stroke-dasharray="0.5 99.5" stroke-dashoffset="-41.67" stroke-width="13"></circle>
+<circle cx="50" cy="50" fill="transparent" r="40" stroke="#ffffff" stroke-dasharray="0.5 99.5" stroke-dashoffset="-50.0" stroke-width="13"></circle>
+<circle cx="50" cy="50" fill="transparent" r="40" stroke="#ffffff" stroke-dasharray="0.5 99.5" stroke-dashoffset="-54.17" stroke-width="13"></circle>
+<circle cx="50" cy="50" fill="transparent" r="40" stroke="#ffffff" stroke-dasharray="0.5 99.5" stroke-dashoffset="-83.34" stroke-width="13"></circle>
+<circle cx="50" cy="50" fill="transparent" r="40" stroke="#ffffff" stroke-dasharray="0.5 99.5" stroke-dashoffset="-100" stroke-width="13"></circle>
+</svg>
+<div class="absolute inset-0 flex flex-col items-center justify-center text-center">
+<div class="text-[28px] text-text-primary font-medium leading-none tracking-tight">24</div>
+<div class="text-[11px] font-medium text-text-secondary mt-1 tracking-normal">合計</div>
+</div></div>
+<div class="flex flex-col gap-3.5 w-24">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-[#1e3a8a]"></div><span class="text-[12px] text-text-primary">選考中</span></div>
+<span class="font-medium text-text-primary text-[12px]">10</span>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-[#93c5fd]"></div><span class="text-[12px] text-text-primary">内定</span></div>
+<span class="font-medium text-text-primary text-[12px]">2</span>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-[#10b981]"></div><span class="text-[12px] text-text-primary">入社</span></div>
+<span class="font-medium text-text-primary text-[12px]">1</span>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-[#fca5a5]"></div><span class="text-[12px] text-text-primary">不合格</span></div>
+<span class="font-medium text-text-primary text-[12px]">7</span>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-[#e2e8f0]"></div><span class="text-[12px] text-text-primary">応募取消</span></div>
+<span class="font-medium text-text-primary text-[12px]">4</span>
+</div></div></div>
+</section>
+</div>
+<!-- Card 2: Selection Funnel -->
+<div class="premium-card p-6 h-[340px] shadow-sm rounded-xl flex flex-col">
+<section class="flex flex-col h-full">
+<h3 class="text-[13px] text-text-primary flex items-center gap-2 mb-6 font-medium">
+<span class="material-symbols-outlined text-[15px] text-text-secondary">filter_list</span>
+    選考ステップ
+</h3>
+<div class="flex flex-col gap-5 w-full flex-1 justify-center pb-4">
+<div class="flex items-center gap-4 group">
+<span class="w-16 text-[11px] text-text-secondary text-right tracking-normal">エントリー</span>
+<div class="flex-1 h-1.5 bg-surface-main overflow-hidden rounded-full">
+<div class="h-full bg-primary-navy w-full rounded-full"></div>
+</div>
+<span class="w-6 text-[12px] text-text-primary text-right font-medium">24</span>
+</div>
+<div class="flex items-center gap-4 group">
+<span class="w-16 text-[11px] text-text-secondary text-right tracking-normal">書類選考</span>
+<div class="flex-1 h-1.5 bg-surface-main overflow-hidden rounded-full">
+<div class="h-full bg-primary-navy w-[75%] rounded-full"></div>
+</div>
+<span class="w-6 text-[12px] text-text-primary text-right font-medium">18</span>
+</div>
+<div class="flex items-center gap-4 group">
+<span class="w-16 text-[11px] text-text-secondary text-right tracking-normal">Webテスト</span>
+<div class="flex-1 h-1.5 bg-surface-main overflow-hidden rounded-full">
+<div class="h-full bg-primary-navy w-[58%] rounded-full"></div>
+</div>
+<span class="w-6 text-[12px] text-text-primary text-right font-medium">14</span>
+</div>
+<div class="flex items-center gap-4 group">
+<span class="w-16 text-[11px] text-text-secondary text-right tracking-normal">1次面接</span>
+<div class="flex-1 h-1.5 bg-surface-main overflow-hidden rounded-full">
+<div class="h-full bg-primary-navy w-[41%] rounded-full"></div>
+</div>
+<span class="w-6 text-[12px] text-text-primary text-right font-medium">10</span>
+</div>
+<div class="flex items-center gap-4 group">
+<span class="w-16 text-[11px] text-text-secondary text-right tracking-normal">2次面接</span>
+<div class="flex-1 h-1.5 bg-surface-main overflow-hidden rounded-full">
+<div class="h-full bg-primary-navy w-[29%] rounded-full"></div>
+</div>
+<span class="w-6 text-[12px] text-text-primary text-right font-medium">7</span>
+</div>
+<div class="flex items-center gap-4 group">
+<span class="w-16 text-[11px] text-text-secondary text-right tracking-normal">最終面接</span>
+<div class="flex-1 h-1.5 bg-surface-main overflow-hidden rounded-full">
+<div class="h-full bg-primary-navy w-[16%] rounded-full"></div>
+</div>
+<span class="w-6 text-[12px] text-text-primary text-right font-medium">4</span>
+</div>
+<div class="flex items-center gap-4 group">
+<span class="w-16 text-[11px] text-text-secondary text-right tracking-normal">内定</span>
+<div class="flex-1 h-1.5 bg-surface-main overflow-hidden rounded-full">
+<div class="h-full bg-[#10b981] w-[8%] rounded-full"></div>
+</div>
+<span class="w-6 text-[12px] text-[#10b981] text-right font-medium">2</span>
+</div>
+</div>
+</section>
+</div>
+<!-- Card 3: Application Trend -->
+<div class="premium-card p-6 h-[340px] shadow-sm rounded-xl flex flex-col">
+<section class="flex flex-col h-full">
+<h3 class="text-[13px] text-text-primary flex items-center gap-2 mb-4 font-medium">
+<span class="material-symbols-outlined text-[15px] text-text-secondary">show_chart</span>
+    応募企業の推移
+</h3>
+<div class="flex-1 relative flex items-end min-h-[200px] pt-2 pb-4 pl-4 pr-2"><div class="absolute left-0 top-2 bottom-10 flex flex-col justify-between text-text-secondary text-[10px] z-10 w-6 text-right tracking-normal">
+<span class="">25</span>
+<span class="">20</span>
+<span class="">15</span>
+<span class="">10</span>
+<span class="">5</span>
+<span class="">0</span>
+</div>
+<div class="flex-1 h-full mb-6 relative ml-6">
+<svg class="w-full h-full overflow-visible" preserveaspectratio="none" viewbox="0 0 100 100">
+<line stroke="#e9e8ea" stroke-dasharray="6,4" stroke-width="1.5" x1="0" x2="100" y1="100" y2="100"></line>
+<line stroke="#e9e8ea" stroke-dasharray="6,4" stroke-width="1.5" x1="0" x2="100" y1="80" y2="80"></line>
+<line stroke="#e9e8ea" stroke-dasharray="6,4" stroke-width="1.5" x1="0" x2="100" y1="60" y2="60"></line>
+<line stroke="#e9e8ea" stroke-dasharray="6,4" stroke-width="1.5" x1="0" x2="100" y1="40" y2="40"></line>
+<line stroke="#e9e8ea" stroke-dasharray="6,4" stroke-width="1.5" x1="0" x2="100" y1="20" y2="20"></line>
+<line stroke="#e9e8ea" stroke-dasharray="6,4" stroke-width="1.5" x1="0" x2="100" y1="0" y2="0"></line>
+<polyline fill="none" points="0,92 20,76 40,56 60,44 80,24 100,4" stroke="#1e3a8a" stroke-width="4"></polyline>
+<circle cx="0" cy="92" fill="#1e3a8a" r="6" style="vector-effect: non-scaling-stroke;"></circle>
+<circle cx="20" cy="76" fill="#1e3a8a" r="6" style="vector-effect: non-scaling-stroke;"></circle>
+<circle cx="40" cy="56" fill="#1e3a8a" r="6" style="vector-effect: non-scaling-stroke;"></circle>
+<circle cx="60" cy="44" fill="#1e3a8a" r="6" style="vector-effect: non-scaling-stroke;"></circle>
+<circle cx="80" cy="24" fill="#1e3a8a" r="6" style="vector-effect: non-scaling-stroke;"></circle>
+<circle cx="100" cy="4" fill="#1e3a8a" r="6" style="vector-effect: non-scaling-stroke;"></circle>
+</svg>
+</div>
+<div class="absolute bottom-1 left-10 right-3 flex justify-between text-text-secondary text-[10px] tracking-normal">
+<span class="">3月</span>
+<span class="">4月</span>
+<span class="">5月</span>
+<span class="">6月</span>
+<span class="">7月</span>
+<span class="">8月</span>
+</div></div>
+</section>
+</div>
+<!-- Card 4: Selection Results -->
+<div class="premium-card p-6 h-[340px] shadow-sm rounded-xl flex flex-col">
+<section class="flex flex-col h-full overflow-hidden">
+<h3 class="text-[13px] text-text-primary flex items-center gap-2 mb-6 font-medium">
+<span class="material-symbols-outlined text-[15px] text-text-secondary">fact_check</span>
+    選考結果
+</h3>
+<div class="flex flex-col gap-6 flex-1 justify-center pb-2">
+<div class="space-y-1.5">
+<div class="flex justify-between items-end mb-1">
+<span class="text-[12px] text-text-primary font-medium">書類選考</span>
+<span class="text-[10px] text-text-secondary tracking-normal">75%</span>
+</div>
+<div class="h-1 bg-surface-main overflow-hidden w-full rounded-full">
+<div class="h-full bg-primary-navy w-[75%] rounded-full"></div>
+</div>
+<div class="flex gap-3 text-[10px] text-text-secondary mt-1 tracking-normal">
+<span class="">通過: <span class="text-text-primary font-medium">18</span></span>
+<span class="">不合格: <span class="text-text-primary font-medium">6</span></span>
+</div>
+</div>
+<div class="space-y-1.5">
+<div class="flex justify-between items-end mb-1">
+<span class="text-[12px] text-text-primary font-medium">Webテスト</span>
+<span class="text-[10px] text-text-secondary tracking-normal">78%</span>
+</div>
+<div class="h-1 bg-surface-main overflow-hidden w-full rounded-full">
+<div class="h-full bg-primary-navy w-[78%] rounded-full"></div>
+</div>
+<div class="flex gap-3 text-[10px] text-text-secondary mt-1 tracking-normal">
+<span class="">通過: <span class="text-text-primary font-medium">14</span></span>
+<span class="">不合格: <span class="text-text-primary font-medium">4</span></span>
+</div>
+</div>
+<div class="space-y-1.5">
+<div class="flex justify-between items-end mb-1">
+<span class="text-[12px] text-text-primary font-medium">1次面接</span>
+<span class="text-[10px] text-text-secondary tracking-normal">71%</span>
+</div>
+<div class="h-1 bg-surface-main overflow-hidden w-full rounded-full">
+<div class="h-full bg-primary-navy w-[71%] rounded-full"></div>
+</div>
+<div class="flex gap-3 text-[10px] text-text-secondary mt-1 tracking-normal">
+<span class="">通過: <span class="text-text-primary font-medium">10</span></span>
+<span class="">不合格: <span class="text-text-primary font-medium">4</span></span>
+</div>
+</div>
+<div class="space-y-1.5">
+<div class="flex justify-between items-end mb-1">
+<span class="text-[12px] text-text-primary font-medium">2次面接</span>
+<span class="text-[10px] text-text-secondary tracking-normal">70%</span>
+</div>
+<div class="h-1 bg-surface-main overflow-hidden w-full rounded-full">
+<div class="h-full bg-primary-navy w-[70%] rounded-full"></div>
+</div>
+<div class="flex gap-3 text-[10px] text-text-secondary mt-1 tracking-normal">
+<span class="">通過: <span class="text-text-primary font-medium">7</span></span>
+<span class="">不合格: <span class="text-text-primary font-medium">3</span></span>
+</div>
+</div>
+<div class="space-y-1.5">
+<div class="flex justify-between items-end mb-1">
+<span class="text-[12px] text-text-primary font-medium">最終面接</span>
+<span class="text-[10px] text-text-secondary tracking-normal">57%</span>
+</div>
+<div class="h-1 bg-surface-main overflow-hidden w-full rounded-full">
+<div class="h-full bg-primary-navy w-[57%] rounded-full"></div>
+</div>
+<div class="flex gap-3 text-[10px] text-text-secondary mt-1 tracking-normal">
+<span class="">通過: <span class="text-text-primary font-medium">4</span></span>
+<span class="">不合格: <span class="text-text-primary font-medium">3</span></span>
+</div>
+</div>
+</div>
+</section>
+</div>
+</div>
+</div></div>
+</main>
+</body></html>

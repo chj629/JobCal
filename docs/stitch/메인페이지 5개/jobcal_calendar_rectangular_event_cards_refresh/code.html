@@ -1,0 +1,481 @@
+<!DOCTYPE html><html class="light" lang="ja" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>JobCal - Calendar</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,100..900;1,100..900&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+                "on-tertiary-fixed-variant": "#43474b",
+                "surface-bright": "#f8f9ff",
+                "on-error": "#ffffff",
+                "on-tertiary": "#ffffff",
+                "on-secondary-fixed": "#001c39",
+                "on-primary-fixed": "#00164e",
+                "tertiary": "#262b2e",
+                "tertiary-fixed": "#dfe3e7",
+                "secondary-fixed": "#d4e3ff",
+                "on-tertiary-container": "#a8adb1",
+                "inverse-on-surface": "#ebf1ff",
+                "surface-container-low": "#eff4ff",
+                "on-secondary": "#ffffff",
+                "surface-tint": "#4059aa",
+                "background": "#f8f9ff",
+                "on-secondary-fixed-variant": "#004883",
+                "inverse-surface": "#233144",
+                "on-secondary-container": "#003c70",
+                "surface-container": "#e6eeff",
+                "tertiary-fixed-dim": "#c3c7cb",
+                "secondary-container": "#64a8fe",
+                "surface-container-high": "#dde9ff",
+                "on-primary-fixed-variant": "#264191",
+                "on-error-container": "#93000a",
+                "surface-dim": "#ccdbf4",
+                "on-tertiary-fixed": "#171c1f",
+                "inverse-primary": "#b6c4ff",
+                "surface-container-highest": "#d5e3fd",
+                "surface": "#f8f9ff",
+                "primary": "#00236f",
+                "outline": "#757682",
+                "error": "#ba1a1a",
+                "on-surface": "#0d1c2f",
+                "error-container": "#ffdad6",
+                "on-surface-variant": "#444651",
+                "primary-fixed": "#dce1ff",
+                "surface-variant": "#d5e3fd",
+                "outline-variant": "#c5c5d3",
+                "secondary": "#0060ac",
+                "on-primary": "#ffffff",
+                "primary-fixed-dim": "#b6c4ff",
+                "primary-container": "#1e3a8a",
+                "tertiary-container": "#3c4144",
+                "on-primary-container": "#90a8ff",
+                "on-background": "#0d1c2f",
+                "secondary-fixed-dim": "#a4c9ff",
+                "surface-container-lowest": "#ffffff",
+                "primary-navy": "#1e3a8a",
+                "border-subtle": "#e9e8ea",
+                "text-primary": "#0d1c2f",
+                "text-secondary": "#6b7280"
+        },
+        "borderRadius": {
+                "DEFAULT": "1rem",
+                "lg": "2rem",
+                "xl": "3rem",
+                "full": "9999px"
+        },
+        "spacing": {
+                "pill-padding-x": "24px",
+                "pill-padding-y": "12px",
+                "gutter": "24px",
+                "container-margin": "32px",
+                "base": "8px",
+                "section-gap": "64px"
+        },
+        "fontFamily": {
+                "display-lg": [
+                        "Hanken Grotesk"
+                ],
+                "display-lg-mobile": [
+                        "Hanken Grotesk"
+                ],
+                "body-md": [
+                        "Hanken Grotesk"
+                ],
+                "body-lg": [
+                        "Hanken Grotesk"
+                ],
+                "headline-md": [
+                        "Hanken Grotesk"
+                ],
+                "label-sm": [
+                        "JetBrains Mono"
+                ]
+        },
+        "fontSize": {
+                "display-lg": [
+                        "48px",
+                        {
+                                "lineHeight": "56px",
+                                "letterSpacing": "-0.02em",
+                                "fontWeight": "350"
+                        }
+                ],
+                "display-lg-mobile": [
+                        "32px",
+                        {
+                                "lineHeight": "40px",
+                                "letterSpacing": "-0.01em",
+                                "fontWeight": "350"
+                        }
+                ],
+                "body-md": [
+                        "16px",
+                        {
+                                "lineHeight": "24px",
+                                "fontWeight": "350"
+                        }
+                ],
+                "body-lg": [
+                        "18px",
+                        {
+                                "lineHeight": "28px",
+                                "fontWeight": "350"
+                        }
+                ],
+                "headline-md": [
+                        "24px",
+                        {
+                                "lineHeight": "32px",
+                                "fontWeight": "500"
+                        }
+                ],
+                "label-sm": [
+                        "12px",
+                        {
+                                "lineHeight": "16px",
+                                "letterSpacing": "0.05em",
+                                "fontWeight": "500"
+                        }
+                ]
+        }
+},
+    },
+  }
+</script>
+<style>
+        body { font-family: 'Hanken Grotesk', sans-serif; font-weight: 350; letter-spacing: -0.025em; background-color: #f8f9ff; color: #0d1c2f; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 20; }
+        .material-symbols-outlined.fill { font-variation-settings: 'FILL' 1; }
+        html { scroll-behavior: smooth; }
+        * { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+        
+        .premium-card {
+            background-color: #ffffff;
+            border-radius: 24px;
+            border: 1px solid #e9e8ea;
+            box-shadow: none;
+        }
+        
+        .subtle-divider {
+            border-color: #e9e8ea;
+        }
+
+        h1, h2, h3, h4, p, span { letter-spacing: -0.025em; font-weight: 350; }
+        .font-medium { font-weight: 400; }
+        .font-bold { font-weight: 500; }
+        
+        /* Custom scrollbar for time column */
+        .time-grid-scroll::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .time-grid-scroll::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .time-grid-scroll::-webkit-scrollbar-thumb {
+            background: #e5e7eb;
+            border-radius: 10px;
+        }
+        .time-grid-scroll::-webkit-scrollbar-thumb:hover {
+            background: #d1d5db;
+        }
+    </style>
+</head>
+<body class="flex min-h-screen text-text-primary bg-surface-container-low overflow-hidden">
+<!-- SideNavBar -->
+<nav class="hidden md:flex fixed left-0 top-0 h-full flex-col z-50 py-8 border-r border-border-subtle w-64 bg-primary-navy">
+<div class="px-6 pb-8 mb-2 pt-0.5">
+<div class="flex flex-col gap-1">
+<h1 class="text-[28px] font-bold tracking-tight text-white leading-none">JobCal</h1>
+<p class="text-[11px] tracking-normal text-white/70">就活を、もっとスマートに。</p>
+</div>
+</div>
+<div class="flex-1 px-3 space-y-1">
+<a class="flex items-center gap-3 px-3 py-2 text-white/70 hover:text-white rounded-xl transition-all duration-200 text-[13px] hover:bg-white/5" href="#">
+<span class="material-symbols-outlined text-[18px]" data-icon="home">home</span>
+                ホーム
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 text-white/70 hover:text-white rounded-xl transition-all duration-200 text-[13px] hover:bg-white/5" href="#">
+<span class="material-symbols-outlined text-[18px]" data-icon="business_center">business_center</span>
+                企業
+            </a>
+<a class="flex items-center gap-3 bg-white/10 text-white rounded-xl px-3 py-2 text-[13px]" href="#">
+<span class="material-symbols-outlined fill text-[18px]" data-icon="calendar_today">calendar_today</span>
+                カレンダー
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 text-white/70 hover:text-white rounded-xl transition-all duration-200 text-[13px] hover:bg-white/5" href="#">
+<span class="material-symbols-outlined text-[18px]" data-icon="bar_chart">bar_chart</span>
+                アナリティクス
+            </a>
+</div>
+<div class="px-3 mt-auto mb-2">
+<a class="flex items-center gap-3 px-3 py-2 text-white/70 hover:text-white rounded-xl transition-all duration-200 text-[13px] hover:bg-white/5" href="#">
+<span class="material-symbols-outlined text-[18px]" data-icon="settings">settings</span>
+                設定
+            </a>
+</div>
+</nav>
+<!-- Main Content Area -->
+<main class="flex-1 ml-0 flex flex-col h-screen relative md:ml-64 overflow-hidden">
+<!-- TopAppBar -->
+<header class="flex justify-between items-center w-full px-8 h-16 bg-white shrink-0 z-40 border-b border-border-subtle"><div class="flex justify-between items-center w-full max-w-[1440px] mx-auto h-full"><div class="flex-1"><button class="md:hidden text-text-primary p-2 -ml-2"><span class="material-symbols-outlined">menu</span></button></div><div class="flex items-center gap-3"><button class="flex items-center gap-1.5 bg-surface border border-border-subtle text-text-secondary px-3 py-1.5 rounded-full text-[11px] hover:bg-black/[0.02] hover:text-text-primary transition-all font-medium"><span class="material-symbols-outlined text-[14px]">auto_awesome</span>JobCal AI</button><button class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-black/[0.02] text-text-secondary hover:text-text-primary transition-all"><span class="material-symbols-outlined text-[18px]" data-icon="notifications">notifications</span></button><button class="w-8 h-8 rounded-full overflow-hidden hover:opacity-90 transition-opacity ring-1 ring-border-subtle"><img alt="User profile photo" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBCSde5LELE9CUq1iAQn_0cXBq4rg9txgxeJLU_CousrdMYxudiIfc2ULcXBeLlEZsOtKq1TKaxCVPDcWswUl7ZigQF5wTLCXF8KbSmQXrMg9scV3PQQD_NijtWcg3rp3qSLMt5m8gE0KET_0VxAMH_Ek94Ge3thGzJ1OF3wsYX1ZThej_oCDVaLFKDP9BnXKahVL-9jtX7c79IyZMzlSH1bf3_-dtfBZ5CNxtY2crIITj3cCryQrBp0Q"></button></div></div></header>
+<!-- Scrollable Content -->
+<div class="w-full overflow-y-auto flex-1">
+<div class="py-6 mx-auto max-w-[1440px] px-6 h-full flex flex-col">
+<div class="flex justify-between items-end mb-6 shrink-0">
+<div>
+<h2 class="tracking-tight leading-[1.2] text-text-primary mb-1.5 font-medium text-[32px]">カレンダー</h2>
+<p class="text-[15px] text-text-secondary">選考スケジュールを管理・確認</p>
+</div>
+<div class="flex items-center gap-3">
+<div class="flex items-center gap-1 bg-white rounded-xl shadow-sm border border-border-subtle p-1">
+<button class="px-4 py-1.5 rounded-lg text-[12px] text-text-primary hover:bg-black/[0.04] transition-colors font-medium">今日</button>
+<div class="w-[1px] h-4 bg-border-subtle mx-1"></div>
+<button class="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-black/[0.04] transition-colors text-text-secondary hover:text-text-primary"><span class="material-symbols-outlined text-[18px]">chevron_left</span></button>
+<button class="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-black/[0.04] transition-colors text-text-secondary hover:text-text-primary"><span class="material-symbols-outlined text-[18px]">chevron_right</span></button>
+<h3 class="font-medium text-[13px] text-text-primary px-3 tracking-normal min-w-[120px] text-center">2026年8月9日-15日</h3>
+</div>
+<div class="flex items-center bg-white rounded-xl shadow-sm border border-border-subtle p-1">
+<button class="px-4 py-1.5 rounded-lg text-[12px] text-text-secondary hover:text-text-primary transition-colors font-medium">月</button>
+<button class="px-4 py-1.5 rounded-lg text-[12px] bg-black/[0.04] text-text-primary transition-colors font-medium">週</button>
+</div>
+</div>
+</div>
+<div class="flex gap-6 flex-1 min-h-0">
+<!-- Left Panel (Utility) -->
+<div class="w-72 shrink-0 flex flex-col gap-4">
+<!-- Mini Calendar -->
+<div class="premium-card p-5">
+<div class="flex justify-between items-center mb-4">
+<h4 class="font-medium text-[14px]">2026年8月</h4>
+<div class="flex gap-1">
+<button class="w-6 h-6 flex items-center justify-center rounded hover:bg-black/[0.04]"><span class="material-symbols-outlined text-[16px]">chevron_left</span></button>
+<button class="w-6 h-6 flex items-center justify-center rounded hover:bg-black/[0.04]"><span class="material-symbols-outlined text-[16px]">chevron_right</span></button>
+</div>
+</div>
+<div class="grid grid-cols-7 text-center text-[10px] text-text-secondary font-medium mb-2">
+<div class="">日</div><div class="">月</div><div class="">火</div><div class="">水</div><div class="">木</div><div class="">金</div><div class="">土</div>
+</div>
+<div class="grid grid-cols-7 text-center text-[11px] gap-y-2">
+<div class="text-text-secondary/40">26</div><div class="text-text-secondary/40">27</div><div class="text-text-secondary/40">28</div><div class="text-text-secondary/40">29</div><div class="text-text-secondary/40">30</div><div class="text-text-secondary/40">31</div><div class="">1</div>
+<div class="">2</div><div class="">3</div><div class="">4</div><div class="">5</div><div class="">6</div><div class="">7</div><div class="">8</div>
+<div class="w-6 h-6 mx-auto flex items-center justify-center rounded-full bg-primary-navy text-white font-medium">9</div>
+<div class="">10</div>
+<div class="w-6 h-6 mx-auto flex items-center justify-center rounded-full bg-primary-fixed text-primary-navy font-medium cursor-pointer">11</div>
+<div class="w-6 h-6 mx-auto flex items-center justify-center rounded-full bg-primary-fixed text-primary-navy font-medium cursor-pointer">12</div>
+<div class="">13</div><div class="">14</div>
+<div class="w-6 h-6 mx-auto flex items-center justify-center rounded-full bg-primary-fixed text-primary-navy font-medium cursor-pointer">15</div>
+<div class="">16</div><div class="">17</div><div class="">18</div><div class="">19</div>
+<div class="w-6 h-6 mx-auto flex items-center justify-center rounded-full bg-primary-fixed text-primary-navy font-medium cursor-pointer">20</div>
+<div class="">21</div><div class="">22</div>
+<div class="">23</div><div class="">24</div><div class="">25</div><div class="">26</div><div class="">27</div><div class="">28</div><div class="">29</div>
+<div class="">30</div><div class="">31</div><div class="text-text-secondary/40">1</div><div class="text-text-secondary/40">2</div><div class="text-text-secondary/40">3</div><div class="text-text-secondary/40">4</div><div class="text-text-secondary/40">5</div>
+</div>
+</div>
+<!-- Today's Events -->
+<div class="premium-card p-5 flex flex-col min-h-0">
+<div class="flex justify-between items-center mb-4 shrink-0">
+<h4 class="font-medium text-[14px]">今日の予定</h4>
+<a class="text-[11px] text-text-secondary hover:text-text-primary" href="#">すべて見る</a>
+</div>
+<div class="pr-2 time-grid-scroll">
+<div class="space-y-3">
+<div class="flex gap-3 items-start">
+<span class="material-symbols-outlined text-[16px] text-primary mt-0.5">check_box_outline_blank</span>
+<div>
+<div class="text-[12px] font-medium text-text-primary">自己分析ワークショップ</div>
+<div class="text-[10px] text-text-secondary">10:00 - 11:30</div>
+</div>
+</div>
+<div class="flex gap-3 items-start">
+<span class="material-symbols-outlined text-[16px] text-primary mt-0.5">check_box_outline_blank</span>
+<div>
+<div class="text-[12px] font-medium text-text-primary">キャリア面談</div>
+<div class="text-[10px] text-text-secondary">14:00 - 15:00</div>
+</div>
+</div>
+</div>
+<div class="grid transition-[grid-template-rows] duration-300 ease-in-out" id="extra-schedule-items" style="grid-template-rows: 0fr;">
+<div class="overflow-hidden">
+<div class="space-y-3 pt-3">
+<div class="flex gap-3 items-start">
+<span class="material-symbols-outlined text-[16px] text-primary mt-0.5">check_box_outline_blank</span>
+<div>
+<div class="text-[12px] font-medium text-text-primary">企業説明会：株式会社A</div>
+<div class="text-[10px] text-text-secondary">16:00 - 17:00</div>
+</div>
+</div>
+<div class="flex gap-3 items-start">
+<span class="material-symbols-outlined text-[16px] text-primary mt-0.5">check_box_outline_blank</span>
+<div>
+<div class="text-[12px] font-medium text-text-primary">ES添削</div>
+<div class="text-[10px] text-text-secondary">18:00 - 19:00</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<button class="mt-4 shrink-0 w-full py-2 bg-surface hover:bg-surface-variant border border-border-subtle text-text-secondary hover:text-text-primary text-[12px] font-medium rounded-xl transition-colors flex justify-center items-center" id="toggle-schedule-btn"><span class="">もっと見る ↓</span></button></div>
+<!-- Weekly Progress -->
+<div class="premium-card p-5">
+<h4 class="font-medium text-[14px] mb-3">今週の進捗</h4>
+<div class="space-y-3">
+<div>
+<div class="flex justify-between text-[11px] mb-1">
+<span class="text-text-secondary">面接・選考</span>
+<span class="font-medium">2 / 4 完了</span>
+</div>
+<div class="h-1.5 w-full bg-border-subtle rounded-full overflow-hidden">
+<div class="h-full bg-primary-navy rounded-full" style="width: 50%"></div>
+</div>
+</div>
+<div>
+<div class="flex justify-between text-[11px] mb-1">
+<span class="text-text-secondary">ES提出</span>
+<span class="font-medium">1 / 2 完了</span>
+</div>
+<div class="h-1.5 w-full bg-border-subtle rounded-full overflow-hidden">
+<div class="h-full bg-secondary-container rounded-full" style="width: 50%"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Calendar (Week View) -->
+<div class="premium-card flex-1 flex flex-col overflow-hidden bg-white">
+<div class="grid grid-cols-8 border-b border-border-subtle bg-white shrink-0">
+<div class="col-span-1"></div>
+<div class="text-center py-4 bg-primary-navy/5 flex flex-col items-center justify-center">
+<span class="text-[11px] text-text-secondary font-medium mb-1">日</span>
+<div class="w-8 h-8 flex items-center justify-center rounded-full bg-primary-navy text-white text-[14px] font-medium">9</div>
+</div>
+<div class="text-center py-4 flex flex-col items-center justify-center">
+<span class="text-[11px] text-text-secondary font-medium mb-1">月</span>
+<span class="text-[14px] text-text-primary font-medium w-8 h-8 flex items-center justify-center">10</span>
+</div>
+<div class="text-center py-4 flex flex-col items-center justify-center">
+<span class="text-[11px] text-text-secondary font-medium mb-1">火</span>
+<span class="text-[14px] text-text-primary font-medium w-8 h-8 flex items-center justify-center">11</span>
+</div>
+<div class="text-center py-4 flex flex-col items-center justify-center">
+<span class="text-[11px] text-text-secondary font-medium mb-1">水</span>
+<span class="text-[14px] text-text-primary font-medium w-8 h-8 flex items-center justify-center">12</span>
+</div>
+<div class="text-center py-4 flex flex-col items-center justify-center">
+<span class="text-[11px] text-text-secondary font-medium mb-1">木</span>
+<span class="text-[14px] text-text-primary font-medium w-8 h-8 flex items-center justify-center">13</span>
+</div>
+<div class="text-center py-4 flex flex-col items-center justify-center">
+<span class="text-[11px] text-text-secondary font-medium mb-1">金</span>
+<span class="text-[14px] text-text-primary font-medium w-8 h-8 flex items-center justify-center">14</span>
+</div>
+<div class="text-center py-4 flex flex-col items-center justify-center">
+<span class="text-[11px] text-text-secondary font-medium mb-1">土</span>
+<span class="text-[14px] text-text-primary font-medium w-8 h-8 flex items-center justify-center">15</span>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto time-grid-scroll relative">
+<div class="grid grid-cols-8 relative min-h-[800px]">
+<!-- Time Axis -->
+<div class="col-span-1 border-r border-border-subtle relative">
+<div class="h-16 text-right pr-3 text-[11px] text-text-secondary flex flex-col justify-end pb-1 border-b border-transparent relative"><span class="absolute bottom-[-8px] right-3 bg-white px-1">09:00</span></div>
+<div class="h-16 text-right pr-3 text-[11px] text-text-secondary flex flex-col justify-end pb-1 border-b border-transparent relative"><span class="absolute bottom-[-8px] right-3 bg-white px-1">10:00</span></div>
+<div class="h-16 text-right pr-3 text-[11px] text-text-secondary flex flex-col justify-end pb-1 border-b border-transparent relative"><span class="absolute bottom-[-8px] right-3 bg-white px-1">11:00</span></div>
+<div class="h-16 text-right pr-3 text-[11px] text-text-secondary flex flex-col justify-end pb-1 border-b border-transparent relative"><span class="absolute bottom-[-8px] right-3 bg-white px-1">12:00</span></div>
+<div class="h-16 text-right pr-3 text-[11px] text-text-secondary flex flex-col justify-end pb-1 border-b border-transparent relative"><span class="absolute bottom-[-8px] right-3 bg-white px-1">13:00</span></div>
+<div class="h-16 text-right pr-3 text-[11px] text-text-secondary flex flex-col justify-end pb-1 border-b border-transparent relative"><span class="absolute bottom-[-8px] right-3 bg-white px-1">14:00</span></div>
+<div class="h-16 text-right pr-3 text-[11px] text-text-secondary flex flex-col justify-end pb-1 border-b border-transparent relative"><span class="absolute bottom-[-8px] right-3 bg-white px-1">15:00</span></div>
+<div class="h-16 text-right pr-3 text-[11px] text-text-secondary flex flex-col justify-end pb-1 border-b border-transparent relative"><span class="absolute bottom-[-8px] right-3 bg-white px-1">16:00</span></div>
+<div class="h-16 text-right pr-3 text-[11px] text-text-secondary flex flex-col justify-end pb-1 border-b border-transparent relative"><span class="absolute bottom-[-8px] right-3 bg-white px-1">17:00</span></div>
+<div class="h-16 text-right pr-3 text-[11px] text-text-secondary flex flex-col justify-end pb-1 border-b border-transparent relative"><span class="absolute bottom-[-8px] right-3 bg-white px-1">18:00</span></div>
+<div class="h-16 text-right pr-3 text-[11px] text-text-secondary flex flex-col justify-end pb-1 border-b border-transparent relative"><span class="absolute bottom-[-8px] right-3 bg-white px-1">19:00</span></div>
+<div class="h-16 text-right pr-3 text-[11px] text-text-secondary flex flex-col justify-end pb-1 border-b border-transparent relative"><span class="absolute bottom-[-8px] right-3 bg-white px-1">20:00</span></div>
+</div>
+<!-- Grid Lines -->
+<div class="col-span-7 relative">
+<div class="absolute inset-0 flex flex-col pointer-events-none">
+<div class="h-16 border-b border-border-subtle w-full"></div>
+<div class="h-16 border-b border-border-subtle w-full"></div>
+<div class="h-16 border-b border-border-subtle w-full"></div>
+<div class="h-16 border-b border-border-subtle w-full"></div>
+<div class="h-16 border-b border-border-subtle w-full"></div>
+<div class="h-16 border-b border-border-subtle w-full"></div>
+<div class="h-16 border-b border-border-subtle w-full"></div>
+<div class="h-16 border-b border-border-subtle w-full"></div>
+<div class="h-16 border-b border-border-subtle w-full"></div>
+<div class="h-16 border-b border-border-subtle w-full"></div>
+<div class="h-16 border-b border-border-subtle w-full"></div>
+<div class="h-16 border-b border-border-subtle w-full"></div>
+</div>
+<div class="absolute inset-0 grid grid-cols-7 pointer-events-none">
+<div class="h-full bg-primary-navy/5"></div>
+<div class="h-full border-r border-border-subtle/50"></div>
+<div class="h-full border-r border-border-subtle/50"></div>
+<div class="h-full border-r border-border-subtle/50"></div>
+<div class="h-full border-r border-border-subtle/50"></div>
+<div class="h-full border-r border-border-subtle/50"></div>
+<div class="h-full border-r border-border-subtle/50"></div>
+</div>
+<!-- Events -->
+<!-- Tue 11th 14:00-15:00 -->
+<div class="absolute left-[28.57%] w-[14.28%] top-[320px] h-[64px] py-[2px] px-1 flex">
+<div class="w-full h-full bg-blue-50 border-primary-navy rounded-[6px] p-2 cursor-pointer hover:bg-blue-100 transition-colors flex flex-col overflow-hidden">
+<div class="text-[12px] font-semibold text-primary-navy leading-tight truncate">△△株式会社</div>
+<div class="text-[11px] text-primary-navy/80 mt-0.5 truncate">1次面接</div>
+<div class="text-[10px] text-primary-navy/60 mt-auto truncate">14:00 - 15:00</div>
+</div>
+</div>
+<!-- Wed 12th 11:00-12:00 -->
+<div class="absolute left-[42.85%] w-[14.28%] top-[128px] h-[64px] py-[2px] px-1 flex">
+<div class="w-full h-full bg-blue-50 border-primary-navy rounded-[6px] p-2 cursor-pointer hover:bg-blue-100 transition-colors flex flex-col overflow-hidden">
+<div class="text-[12px] font-semibold text-primary-navy leading-tight truncate">リテールジャイアント</div>
+<div class="text-[11px] text-primary-navy/80 mt-0.5 truncate">2次面接</div>
+<div class="text-[10px] text-primary-navy/60 mt-auto truncate">11:00 - 12:00</div>
+</div>
+</div>
+<!-- Sat 15th 18:00 (ES Deadline) -->
+<div class="absolute left-[85.71%] w-[14.28%] top-[576px] h-[64px] py-[2px] px-1 flex">
+<div class="w-full h-full bg-red-50 border-error rounded-[6px] p-2 cursor-pointer hover:bg-red-100 transition-colors flex flex-col overflow-hidden">
+<div class="text-[12px] font-semibold text-error leading-tight truncate">テックスタートアップX</div>
+<div class="text-[11px] text-error/80 mt-0.5 truncate">ES提出期限</div>
+<div class="text-[10px] text-error/60 mt-auto truncate">18:00</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const toggleBtn = document.getElementById('toggle-schedule-btn');
+    const extraItems = document.getElementById('extra-schedule-items');
+    const btnText = toggleBtn.querySelector('span');
+    let isExpanded = false;
+
+    toggleBtn.addEventListener('click', () => {
+        isExpanded = !isExpanded;
+        if (isExpanded) {
+            extraItems.style.gridTemplateRows = '1fr';
+            btnText.textContent = '閉じる ↑';
+        } else {
+            extraItems.style.gridTemplateRows = '0fr';
+            btnText.textContent = 'もっと見る ↓';
+        }
+    });
+});
+</script>
+
+
+</body></html>

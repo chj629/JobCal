@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+
+<html class="light" lang="ja" style=""><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>JobCal - Settings</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+                "on-surface": "#1c1b1e",
+                "outline": "#7a757f",
+                "ghost-lavender": "#e2dffe",
+                "on-tertiary-fixed": "#1a075a",
+                "tertiary-fixed-dim": "#c9bfff",
+                "tertiary": "#221260",
+                "secondary-container": "#e2dffe",
+                "on-secondary-fixed": "#1a192f",
+                "surface-container-highest": "#e6e1e5",
+                "on-primary": "#ffffff",
+                "error": "#ba1a1a",
+                "aubergine": "#3c315b",
+                "inverse-surface": "#313033",
+                "on-error": "#ffffff",
+                "on-error-container": "#93000a",
+                "surface-container": "#f1ecf1",
+                "tertiary-container": "#372b77",
+                "fog": "#86848d",
+                "primary-fixed": "#e8ddff",
+                "blush-mist": "#ffdadc",
+                "outline-variant": "#cac4cf",
+                "surface-container-high": "#ece7eb",
+                "on-tertiary": "#ffffff",
+                "cornflower-pop": "#4a87f2",
+                "ash": "#e9e8ea",
+                "primary-fixed-dim": "#cdbff2",
+                "inverse-primary": "#cdbff2",
+                "on-primary-container": "#a79acb",
+                "surface": "#fdf8fc",
+                "paper-white": "#fdfcfe",
+                "surface-bright": "#fdf8fc",
+                "error-container": "#ffdad6",
+                "tertiary-fixed": "#e5deff",
+                "primary-container": "#3c315b",
+                "primary": "#261b44",
+                "surface-container-lowest": "#ffffff",
+                "background": "#fdf8fc",
+                "bone": "#f4f2f4",
+                "on-secondary": "#ffffff",
+                "surface-variant": "#e6e1e5",
+                "on-primary-fixed-variant": "#4b406b",
+                "on-background": "#1c1b1e",
+                "surface-tint": "#635884",
+                "on-tertiary-container": "#a297e9",
+                "on-secondary-fixed-variant": "#45445d",
+                "periwinkle": "#ab9ff2",
+                "secondary": "#5d5c76",
+                "inverse-on-surface": "#f4eff4",
+                "surface-dim": "#ddd9dd",
+                "mint-signal": "#2ec08b",
+                "obsidian": "#1c1c1c",
+                "on-primary-fixed": "#1f143d",
+                "surface-container-low": "#f7f2f6",
+                "on-surface-variant": "#49454e",
+                "on-tertiary-fixed-variant": "#473b87",
+                "secondary-fixed": "#e2dffe",
+                "buttercream": "#ffffc4",
+                "secondary-fixed-dim": "#c6c3e1",
+                "on-secondary-container": "#63627c",
+                "primary-navy": "#1e3a8a",
+                "surface-main": "#f8f9ff",
+                "border-subtle": "#e9e8ea",
+                "text-primary": "#3c315b",
+                "text-secondary": "#86848d"
+        },
+        "borderRadius": {
+                "DEFAULT": "1rem",
+                "lg": "2rem",
+                "xl": "3rem",
+                "full": "9999px"
+        },
+        "spacing": {
+                "padding-card": "48px",
+                "gap-section": "64px",
+                "max-width": "1200px",
+                "gap-element": "12px",
+                "base": "4px"
+        },
+        "fontFamily": {
+                "label-sm": [
+                        "DM Sans"
+                ],
+                "body-md": [
+                        "DM Sans"
+                ],
+                "display-md": [
+                        "DM Sans"
+                ],
+                "headline-sm": [
+                        "DM Sans"
+                ],
+                "display-lg": [
+                        "DM Sans"
+                ],
+                "display-hero": [
+                        "DM Sans"
+                ],
+                "title-md": [
+                        "DM Sans"
+                ],
+                "body-lg": [
+                        "DM Sans"
+                ],
+                "title-lg": [
+                        "DM Sans"
+                ]
+        },
+        "fontSize": {
+                "label-sm": [
+                        "13px",
+                        {
+                                "lineHeight": "1.21",
+                                "letterSpacing": "-0.025em",
+                                "fontWeight": "400"
+                        }
+                ],
+                "body-md": [
+                        "15px",
+                        {
+                                "lineHeight": "1.4",
+                                "letterSpacing": "-0.025em",
+                                "fontWeight": "400"
+                        }
+                ],
+                "display-md": [
+                        "64px",
+                        {
+                                "lineHeight": "1.1",
+                                "letterSpacing": "-0.025em",
+                                "fontWeight": "300"
+                        }
+                ],
+                "headline-sm": [
+                        "30px",
+                        {
+                                "lineHeight": "1.2",
+                                "letterSpacing": "-0.025em",
+                                "fontWeight": "400"
+                        }
+                ],
+                "display-lg": [
+                        "80px",
+                        {
+                                "lineHeight": "1.1",
+                                "letterSpacing": "-0.025em",
+                                "fontWeight": "300"
+                        }
+                ],
+                "display-hero": [
+                        "96px",
+                        {
+                                "lineHeight": "1.0",
+                                "letterSpacing": "-0.025em",
+                                "fontWeight": "300"
+                        }
+                ],
+                "title-md": [
+                        "20px",
+                        {
+                                "lineHeight": "1.35",
+                                "letterSpacing": "-0.025em",
+                                "fontWeight": "400"
+                        }
+                ],
+                "body-lg": [
+                        "16px",
+                        {
+                                "lineHeight": "1.4",
+                                "letterSpacing": "-0.025em",
+                                "fontWeight": "400"
+                        }
+                ],
+                "title-lg": [
+                        "24px",
+                        {
+                                "lineHeight": "1.25",
+                                "letterSpacing": "-0.025em",
+                                "fontWeight": "400"
+                        }
+                ]
+        }
+},
+    },
+  }
+</script>
+<style>
+        body { font-family: 'DM Sans', sans-serif; font-weight: 350; letter-spacing: -0.025em; background-color: #fdfcfe; color: #3c315b; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 20; }
+        .material-symbols-outlined.fill { font-variation-settings: 'FILL' 1; }
+        html { scroll-behavior: smooth; }
+        * { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+        
+        .subtle-divider {
+            border-color: #e9e8ea;
+        }
+
+        h1, h2, h3, h4, p, span { letter-spacing: -0.025em; font-weight: 350; }
+        .font-medium { font-weight: 400; }
+        .font-bold { font-weight: 500; }
+    </style>
+</head>
+<body class="flex min-h-screen bg-paper-white text-text-primary overflow-hidden">
+<!-- SideNavBar -->
+<nav class="hidden md:flex fixed left-0 top-0 h-full flex-col z-50 py-8 border-r border-border-subtle w-64 bg-primary-navy">
+<div class="px-6 pb-8 mb-2 pt-0.5">
+<div class="flex flex-col gap-1">
+<h1 class="text-[28px] font-bold tracking-tight text-white leading-none">JobCal</h1>
+<p class="text-[11px] tracking-normal text-white/70">就活を、もっとスマートに。</p>
+</div>
+</div>
+<div class="flex-1 px-3 space-y-1">
+<a class="flex items-center gap-3 px-3 py-2 text-white/70 hover:text-white rounded-xl transition-all duration-200 text-[13px] hover:bg-white/5" href="#">
+<span class="material-symbols-outlined text-[18px]" data-icon="home">home</span>
+                ホーム
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 text-white/70 hover:text-white rounded-xl transition-all duration-200 text-[13px] hover:bg-white/5" href="#">
+<span class="material-symbols-outlined text-[18px]" data-icon="business_center">business_center</span>
+                企業
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 text-white/70 hover:text-white rounded-xl transition-all duration-200 text-[13px] hover:bg-white/5" href="#">
+<span class="material-symbols-outlined text-[18px]" data-icon="calendar_today">calendar_today</span>
+                カレンダー
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 text-white/70 hover:text-white rounded-xl transition-all duration-200 text-[13px] hover:bg-white/5" href="#">
+<span class="material-symbols-outlined text-[18px]" data-icon="bar_chart">bar_chart</span>
+                アナリティクス
+            </a>
+</div>
+<div class="px-3 mt-auto mb-2">
+<a class="flex items-center gap-3 bg-white/10 text-white rounded-xl px-3 py-2 text-[13px]" href="#">
+<span class="material-symbols-outlined fill text-[18px]" data-icon="settings">settings</span>
+                設定
+            </a>
+</div>
+</nav>
+<!-- Main Content Area -->
+<main class="flex-1 ml-0 flex flex-col h-screen relative md:ml-64 overflow-hidden bg-surface-container-low">
+<!-- TopAppBar -->
+<header class="flex justify-between items-center w-full px-8 h-16 bg-white shrink-0 z-40 border-b border-border-subtle"><div class="flex justify-between items-center w-full max-w-[960px] mx-auto h-full"><div class="flex-1"><button class="md:hidden text-text-primary p-2 -ml-2"><span class="material-symbols-outlined">menu</span></button></div><div class="flex items-center gap-3"><button class="flex items-center gap-1.5 bg-surface-main border border-border-subtle text-text-secondary px-3 py-1.5 rounded-full text-[11px] hover:bg-black/[0.02] hover:text-text-primary transition-all font-medium"><span class="material-symbols-outlined text-[14px]">auto_awesome</span>JobCal AI</button><button class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-black/[0.02] text-text-secondary hover:text-text-primary transition-all"><span class="material-symbols-outlined text-[18px]" data-icon="notifications">notifications</span></button><button class="w-8 h-8 rounded-full overflow-hidden hover:opacity-90 transition-opacity ring-1 ring-border-subtle"><img alt="User profile photo" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBCSde5LELE9CUq1iAQn_0cXBq4rg9txgxeJLU_CousrdMYxudiIfc2ULcXBeLlEZsOtKq1TKaxCVPDcWswUl7ZigQF5wTLCXF8KbSmQXrMg9scV3PQQD_NijtWcg3rp3qSLMt5m8gE0KET_0VxAMH_Ek94Ge3thGzJ1OF3wsYX1ZThej_oCDVaLFKDP9BnXKahVL-9jtX7c79IyZMzlSH1bf3_-dtfBZ5CNxtY2crIITj3cCryQrBp0Q"/></button></div></div></header>
+<!-- Scrollable Content -->
+<div class="w-full overflow-y-auto flex-1 bg-paper-white">
+<div class="py-6 mx-auto max-w-[960px] px-6 pb-20">
+<section class="flex flex-col gap-6 mb-10 mt-2">
+<div>
+<h2 class="text-[32px] tracking-tight leading-[1.2] text-text-primary mb-1.5 font-medium">設定</h2>
+<p class="text-[15px] text-text-secondary">アカウント情報や表示設定を管理します。</p>
+</div>
+<div class="flex gap-8 border-b border-border-subtle"><button class="text-text-primary text-[14px] font-medium border-b-2 border-aubergine pb-4">プロフィール</button><button class="text-text-secondary text-[14px] hover:text-text-primary transition-colors pb-4">アカウント</button><button class="text-text-secondary text-[14px] hover:text-text-primary transition-colors pb-4">言語</button></div>
+</section>
+<div class="max-w-2xl"><div class="mb-10"><h3 class="text-[16px] text-text-primary font-medium mb-1">プロフィール</h3><p class="text-[13px] text-text-secondary mb-6">基本情報を管理します。</p><div class="space-y-4 max-w-md"><div class="flex flex-col gap-1.5"><label class="text-[12px] text-text-secondary ml-1">名前</label><input class="w-full px-5 py-2.5 bg-surface-main border border-border-subtle rounded-full text-[13px] focus:outline-none focus:ring-1 focus:ring-primary-navy transition-all" type="text" value="チェ ホジュン"/></div><div class="flex flex-col gap-1.5"><label class="text-[12px] text-text-secondary ml-1">メールアドレス</label><input class="w-full px-5 py-2.5 bg-surface-main border border-border-subtle rounded-full text-[13px] focus:outline-none focus:ring-1 focus:ring-primary-navy transition-all" type="email" value="example@email.com"/></div><div class="pt-2"><button class="bg-ghost-lavender text-on-secondary-fixed px-6 py-2.5 rounded-full text-[13px] font-medium hover:opacity-90 transition-all shadow-sm">変更を保存</button></div></div></div></div></div>
+</div>
+</main>
+</body></html>

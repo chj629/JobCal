@@ -3,12 +3,13 @@
 import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Lock, Mail } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useT } from "@/lib/locale-context";
-import AuthLayout from "@/components/auth/AuthLayout";
-import Input from "@/components/ui/Input";
-import Button from "@/components/ui/Button";
+import AuthHeader from "@/components/auth/AuthHeader";
+import AuthHeroPanel from "@/components/auth/AuthHeroPanel";
+import AuthPillField from "@/components/auth/AuthPillField";
+import GoogleIcon from "@/components/auth/GoogleIcon";
+import MaterialIcon from "@/components/ui/MaterialIcon";
 
 function mapSignInError(t: (key: string) => string, message: string): string {
   if (message.includes("Invalid login credentials")) {
@@ -20,11 +21,17 @@ function mapSignInError(t: (key: string) => string, message: string): string {
   return t("auth.errors.loginFailed");
 }
 
+// docs/stitch/인증플로우/jobcal_login_unified_auth_design_sync/screen.png 기준. 헤더/좌측
+// 패널/우측 폼 스타일은 app/signup/page.tsx가 먼저 구현한 것과 시안상 완전히 동일해,
+// components/auth/{AuthHeader,AuthHeroPanel,AuthPillField,GoogleIcon}로 분리해 공유한다
+// (signup 자체 파일은 이번 범위에서 수정하지 않음). 공용 AuthLayout(다른 인증 페이지가
+// 계속 쓰는 좌측 브랜딩 패널)은 이번 시안과 구조가 달라 그대로 두고 건드리지 않는다.
 export default function LoginPage() {
   const router = useRouter();
   const t = useT();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   // 정적 프리렌더 결과는 쿼리스트링을 알 수 없어 항상 빈 문자열이다. 최초 렌더를 그 값과
   // 동일하게 유지해 hydration mismatch를 피하고, 마운트 이후에만 쿼리를 확인해 반영한다.
@@ -86,66 +93,101 @@ export default function LoginPage() {
   }
 
   return (
-    <AuthLayout>
-      <div className="w-full max-w-sm rounded-[10px] border border-border bg-card p-8">
-        <h1 className="text-center text-[28px] font-semibold text-foreground">
-          {t("common.appName")}
-        </h1>
-        <p className="mt-2 text-center text-sm text-secondary">{t("auth.login.description")}</p>
+    <div className="min-h-screen bg-white font-[350] font-[family-name:var(--font-hanken-grotesk)] tracking-[-0.025em] text-neutral-900">
+      <AuthHeader />
 
-        <Button
-          type="button"
-          variant="secondary"
-          onClick={handleGoogleLogin}
-          disabled={isLoading}
-          className="mt-8 w-full"
-        >
-          {isLoading ? t("auth.login.googleLoading") : t("auth.login.google")}
-        </Button>
+      <main className="flex min-h-screen items-center justify-center p-6 pt-24 md:p-12 md:pt-24">
+        <div className="grid w-full max-w-6xl grid-cols-1 items-center gap-16 md:grid-cols-2 md:gap-24">
+          <AuthHeroPanel />
 
-        <div className="my-6 flex items-center gap-3">
-          <div className="h-px flex-1 bg-border" />
-          <span className="text-xs text-secondary">{t("auth.login.divider")}</span>
-          <div className="h-px flex-1 bg-border" />
+          {/* 우측: 로그인 폼 */}
+          <div className="mx-auto w-full max-w-[440px] md:mr-0 md:ml-auto">
+            <div className="flex flex-col space-y-8">
+              <div className="space-y-2 text-center">
+                <h2 className="text-[32px] font-[400] tracking-tight text-neutral-900">
+                  {t("auth.login.title")}
+                </h2>
+                <p className="text-[15px] text-neutral-600">{t("auth.login.description")}</p>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleGoogleLogin}
+                disabled={isLoading}
+                className="flex w-full items-center justify-center gap-3 rounded-full border border-neutral-300 bg-white px-6 py-3.5 text-[15px] font-[400] text-neutral-900 transition-all duration-200 hover:bg-[#f3f4f6] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <GoogleIcon />
+                <span>{isLoading ? t("auth.login.googleLoading") : t("auth.login.google")}</span>
+              </button>
+
+              <div className="relative flex items-center py-2">
+                <div className="h-px flex-grow border-t border-neutral-200" />
+                <span className="mx-4 shrink-0 text-[13px] text-neutral-600">
+                  {t("auth.login.divider")}
+                </span>
+                <div className="h-px flex-grow border-t border-neutral-200" />
+              </div>
+
+              <form onSubmit={handleEmailLogin} className="space-y-6">
+                <AuthPillField
+                  id="email"
+                  type="email"
+                  label={t("auth.login.email")}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={isLoading}
+                />
+                <AuthPillField
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  label={t("auth.login.password")}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={isLoading}
+                  labelSlot={
+                    <Link
+                      href="/forgot-password"
+                      className="text-[13px] font-[400] text-primary-navy transition-colors hover:underline"
+                    >
+                      {t("auth.login.forgotPassword")}
+                    </Link>
+                  }
+                  rightSlot={
+                    <button
+                      type="button"
+                      tabIndex={-1}
+                      onClick={() => setShowPassword((v) => !v)}
+                      aria-label={showPassword ? t("common.hidePassword") : t("common.showPassword")}
+                      className="text-neutral-300 transition-colors hover:text-neutral-600"
+                    >
+                      <MaterialIcon name={showPassword ? "visibility" : "visibility_off"} size={20} />
+                    </button>
+                  }
+                />
+
+                {errorMessage && <p className="text-[13px] text-error">{errorMessage}</p>}
+
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="mt-4 h-[52px] w-full rounded-full bg-primary-navy px-6 text-[15px] font-[400] text-white shadow-sm transition-colors hover:bg-[#152c6e] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isLoading ? t("auth.login.submitLoading") : t("auth.login.submit")}
+                </button>
+              </form>
+
+              <div className="pt-4 text-center">
+                <p className="text-[14px] text-neutral-600">
+                  {t("auth.login.signupPrompt")}{" "}
+                  <Link href="/signup" className="ml-1 font-[400] text-primary-navy hover:underline">
+                    {t("auth.login.signupLink")}
+                  </Link>
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
-
-        <form onSubmit={handleEmailLogin} className="flex flex-col gap-4">
-          <Input
-            type="email"
-            icon={Mail}
-            label={t("auth.login.email")}
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-          <Input
-            type="password"
-            icon={Lock}
-            label={t("auth.login.password")}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-
-          <Button type="submit" variant="primary" disabled={isLoading} className="w-full">
-            {isLoading ? t("auth.login.submitLoading") : t("auth.login.submit")}
-          </Button>
-
-          <Link
-            href="/forgot-password"
-            className="text-center text-sm text-secondary hover:text-foreground hover:underline"
-          >
-            {t("auth.login.forgotPassword")}
-          </Link>
-        </form>
-
-        {errorMessage && <p className="mt-3 text-center text-xs text-error">{errorMessage}</p>}
-
-        <p className="mt-6 text-center text-sm text-secondary">
-          {t("auth.login.signupPrompt")}{" "}
-          <Link href="/signup" className="font-medium text-primary hover:underline">
-            {t("auth.login.signupLink")}
-          </Link>
-        </p>
-      </div>
-    </AuthLayout>
+      </main>
+    </div>
   );
 }

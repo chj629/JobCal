@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { Calendar, User } from "lucide-react";
+import { useMemo, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { useCompanies } from "@/lib/companies-context";
 import { useApplicationSteps } from "@/lib/application-steps-context";
 import { useEvents } from "@/lib/events-context";
@@ -27,17 +27,16 @@ import {
 import { createEmptyContactFormValues, type ContactFormValues } from "@/lib/companyContacts";
 import type { EmailAnalysisResult, ExtractedEvent } from "@/lib/ai/emailAnalysis";
 import { useT } from "@/lib/locale-context";
-import Button from "@/components/ui/Button";
-import Input from "@/components/ui/Input";
-import Select from "@/components/ui/Select";
-import EmptyState from "@/components/ui/EmptyState";
+import MaterialIcon from "@/components/ui/MaterialIcon";
 import { useToast } from "@/components/ui/Toast";
 
 interface EmailAnalysisReviewProps {
   analysis: EmailAnalysisResult;
   existingCompany: Company | null;
   onBack: () => void;
-  onDone: (companyId: string) => void;
+  onDone: (companyId: string, companyName: string) => void;
+  // EmailPasteForm과 동일한 목적 — 제공되면 footer 버튼을 Drawer의 고정 footer로 portal.
+  footerContainer?: HTMLDivElement | null;
 }
 
 // 아래 두 맵은 lib/companies.ts, lib/events.ts의 *_LABELS(한국어 고정)를 건드리지 않고,
@@ -54,6 +53,23 @@ const EVENT_TYPE_LABEL_KEYS: Record<EventType, string> = {
   deadline: "companies.events.types.deadline",
   result_announcement: "companies.events.types.resultAnnouncement",
 };
+const RESULT_OPTION_KEYS = ["inProgress", "passed", "failed", "withdrawn"] as const;
+const FORMAT_OPTION_KEYS = ["online", "offline", "undecided"] as const;
+const REMINDER_OPTION_KEYS = ["min15", "min30", "hour1", "day1"] as const;
+
+// docs/stitch/AI Drawer/*의 공통 필드 스타일(rounded-full input, text-[12px] label). 공용
+// Input/Button 컴포넌트는 건드리지 않고 이 화면 전용 마크업으로만 쓴다.
+function Field({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="space-y-2">
+      <p className="px-2 text-[12px] font-[500] text-stitch-ink">{label}</p>
+      {children}
+    </div>
+  );
+}
+
+const fieldInputClass =
+  "w-full rounded-full border border-stitch-border bg-white px-4 py-2.5 text-[14px] text-stitch-ink outline-none transition-all focus:border-primary-navy/30 focus:bg-stitch-bg";
 
 // 일정 dedup 비교용: 타입별로 실제 의미 있는 시각 필드만 ISO 문자열로 뽑는다
 // (schedule은 startsAt, deadline/result_announcement는 dueAt).
@@ -75,11 +91,18 @@ function extractedEventToFormValues(event: ExtractedEvent): EventFormValues {
   };
 }
 
+// docs/stitch/AI Drawer/jobcal_dashboard_ai_drawer_step_3_sophisticated_refresh의 "内容を確認"
+// 화면. Stitch 목업은 이벤트/담당자를 각각 1개만 가정한 단일 폼이지만, 실제 앱은 이메일
+// 하나에서 여러 일정·담당자가 추출될 수 있어(기존 기능) 그 배열 구조는 그대로 유지하고
+// Stitch의 필드 스타일(rounded-full, 라벨-상단 배치, 2열 그리드)만 입혔다. 選考結果/形式/
+// リマインダー는 현재 스키마에 대응하는 칼럼이 없어 로컬 상태로만 두고 저장하지 않는다
+// (Stitch에 있지만 기능이 없는 요소 = UI만 구현).
 export default function EmailAnalysisReview({
   analysis,
   existingCompany,
   onBack,
   onDone,
+  footerContainer,
 }: EmailAnalysisReviewProps) {
   const t = useT();
   const { showToast } = useToast();
@@ -107,6 +130,14 @@ export default function EmailAnalysisReview({
     }))
   );
   const [memo, setMemo] = useState(analysis.memo ?? "");
+
+  // UI 전용(저장 안 함) — 아래 handleRegister/addEvent 호출 어디에도 쓰이지 않는다.
+  const [resultOption, setResultOption] = useState<(typeof RESULT_OPTION_KEYS)[number]>(
+    "inProgress"
+  );
+  const [formatOption, setFormatOption] = useState<(typeof FORMAT_OPTION_KEYS)[number]>("online");
+  const [reminderOption, setReminderOption] =
+    useState<(typeof REMINDER_OPTION_KEYS)[number]>("min15");
 
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -295,308 +326,402 @@ export default function EmailAnalysisReview({
     setSaving(false);
     // 여기까지 도달했다는 것은 위의 모든 저장 단계(기업/전형/일정/담당자/메모)가
     // 하나도 실패하지 않고 통과했다는 뜻이다(각 단계는 실패 시 위에서 이미 return함).
-    showToast(
-      t("aiEmail.review.saveSuccessToast", {
-        name: existingCompany ? existingCompany.name : companyValues.name,
-      })
-    );
-    onDone(companyId);
+    const finalName = existingCompany ? existingCompany.name : companyValues.name;
+    showToast(t("aiEmail.review.saveSuccessToast", { name: finalName }));
+    onDone(companyId, finalName);
   }
 
-  return (
-    <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-[20px] font-semibold text-foreground">{t("aiEmail.review.title")}</h1>
-        <p className="mt-1 text-sm text-secondary">{t("aiEmail.review.description")}</p>
-      </div>
+  const footer = (
+    <>
+      <button
+        type="button"
+        onClick={onBack}
+        disabled={saving}
+        className="flex-1 rounded-full border border-stitch-border py-4 text-[14px] font-[500] text-stitch-ink transition-all hover:bg-stitch-bg disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        {t("aiEmail.review.back")}
+      </button>
+      <button
+        type="button"
+        onClick={handleRegister}
+        disabled={saving}
+        className="flex-[2] rounded-full bg-primary-navy py-4 text-[14px] font-[500] text-white transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        {saving ? t("aiEmail.review.submitting") : t("aiEmail.review.submit")}
+      </button>
+    </>
+  );
 
-      <section className="rounded-[10px] border border-border bg-card p-6">
-        <h2 className="mb-4 text-[16px] font-semibold text-foreground">
-          {t("aiEmail.review.companySection")}
-        </h2>
+  return (
+    <div className={footerContainer ? "" : "flex h-full flex-col"}>
+      <h3 className="mb-8 text-[24px] font-[500] tracking-tight text-stitch-ink">
+        {t("aiEmail.review.title")}
+      </h3>
+
+      <div className={footerContainer ? "space-y-8" : "flex-1 space-y-8"}>
+        <div className="rounded-stitch-2xl bg-stitch-bg px-6 py-3">
+          <p className="flex items-center gap-2 text-[12px] text-secondary">
+            <MaterialIcon name="info" size={16} />
+            {existingCompany
+              ? t("aiEmail.review.addingToExistingBanner")
+              : t("aiEmail.review.newCompanyBanner")}
+          </p>
+        </div>
 
         {existingCompany ? (
-          <p className="text-sm text-foreground">
-            <span className="font-medium">{existingCompany.name}</span>{" "}
-            <span className="text-secondary">{t("aiEmail.review.addingToExistingSuffix")}</span>
-          </p>
-        ) : (
-          <div className="flex flex-col gap-4">
-            <Input
-              label={t("companies.form.name")}
+          <Field label={t("aiEmail.review.companyNameLabel")}>
+            <input
               type="text"
-              value={companyValues.name}
-              onChange={(e) => setCompanyValues({ ...companyValues, name: e.target.value })}
+              value={existingCompany.name}
+              disabled
+              className={fieldInputClass + " cursor-not-allowed opacity-70"}
             />
+          </Field>
+        ) : (
+          <div className="space-y-4">
+            <Field label={t("companies.form.name")}>
+              <input
+                type="text"
+                value={companyValues.name}
+                onChange={(e) => setCompanyValues({ ...companyValues, name: e.target.value })}
+                className={fieldInputClass}
+              />
+            </Field>
             <div className="grid grid-cols-2 gap-4">
-              <Select
-                label={t("companies.form.status")}
-                value={companyValues.overallStatus}
-                onChange={(e) =>
-                  setCompanyValues({
-                    ...companyValues,
-                    overallStatus: e.target.value as OverallStatus,
-                  })
-                }
-              >
-                {OVERALL_STATUSES.map((status) => (
-                  <option key={status} value={status}>
-                    {t(STATUS_LABEL_KEYS[status])}
-                  </option>
-                ))}
-              </Select>
-              <Select
-                label={t("companies.form.priorityLabel")}
-                value={companyValues.priority}
-                onChange={(e) =>
-                  setCompanyValues({ ...companyValues, priority: e.target.value as Priority })
-                }
-              >
-                {PRIORITIES.map((priority) => (
-                  <option key={priority} value={priority}>
-                    {t(`companies.list.priority.${priority}`)}
-                  </option>
-                ))}
-              </Select>
+              <Field label={t("companies.form.status")}>
+                <select
+                  value={companyValues.overallStatus}
+                  onChange={(e) =>
+                    setCompanyValues({
+                      ...companyValues,
+                      overallStatus: e.target.value as OverallStatus,
+                    })
+                  }
+                  className={fieldInputClass + " appearance-none"}
+                >
+                  {OVERALL_STATUSES.map((status) => (
+                    <option key={status} value={status}>
+                      {t(STATUS_LABEL_KEYS[status])}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label={t("companies.form.priorityLabel")}>
+                <select
+                  value={companyValues.priority}
+                  onChange={(e) =>
+                    setCompanyValues({ ...companyValues, priority: e.target.value as Priority })
+                  }
+                  className={fieldInputClass + " appearance-none"}
+                >
+                  {PRIORITIES.map((priority) => (
+                    <option key={priority} value={priority}>
+                      {t(`companies.list.priority.${priority}`)}
+                    </option>
+                  ))}
+                </select>
+              </Field>
             </div>
           </div>
         )}
-      </section>
 
-      <section className="rounded-[10px] border border-border bg-card p-6">
-        <h2 className="mb-4 text-[16px] font-semibold text-foreground">
-          {t("aiEmail.review.stepSection")}
-        </h2>
-        <Input
-          type="text"
-          value={stepName}
-          onChange={(e) => setStepName(e.target.value)}
-          placeholder={t("aiEmail.review.stepPlaceholder")}
-        />
-        {stepNameSuggestions.length > 0 && (
-          <div className="mt-2 flex flex-wrap gap-2">
-            {stepNameSuggestions.map((name) => (
-              <button
-                key={name}
-                type="button"
-                onClick={() => setStepName(name)}
-                className="rounded-full border border-border px-3 py-1 text-xs text-secondary hover:border-primary hover:text-primary"
-              >
-                {name}
-              </button>
-            ))}
-          </div>
-        )}
-      </section>
-
-      <section className="rounded-[10px] border border-border bg-card p-6">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-[16px] font-semibold text-foreground">
-            {t("companies.steps.eventsHeading")}
-          </h2>
-          <button
-            type="button"
-            onClick={() => setEvents((prev) => [...prev, createEmptyEventFormValues()])}
-            className="text-xs font-medium text-primary hover:underline"
-          >
-            {t("companies.steps.addEvent")}
-          </button>
+        <div className="space-y-2">
+          <Field label={t("aiEmail.review.stepLabel")}>
+            <input
+              type="text"
+              value={stepName}
+              onChange={(e) => setStepName(e.target.value)}
+              placeholder={t("aiEmail.review.stepPlaceholder")}
+              className={fieldInputClass}
+            />
+          </Field>
+          {stepNameSuggestions.length > 0 && (
+            <div className="flex flex-wrap gap-2 px-1 pt-1">
+              {stepNameSuggestions.map((name) => (
+                <button
+                  key={name}
+                  type="button"
+                  onClick={() => setStepName(name)}
+                  className="rounded-full border border-stitch-border px-3 py-1 text-[11px] text-secondary transition-colors hover:border-primary-navy/40 hover:text-primary-navy"
+                >
+                  {name}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
-        {events.length === 0 ? (
-          <EmptyState icon={Calendar} title={t("aiEmail.review.noEvents")} />
-        ) : (
-          <div className="flex flex-col gap-4">
-            {events.map((event, index) => {
-              const isSchedule = event.eventType === "schedule";
-              const isDeadlineOrResult =
-                event.eventType === "deadline" || event.eventType === "result_announcement";
+        {/* docs/stitch/AI Drawer/jobcal_dashboard_ai_drawer_step_3_sophisticated_refresh에는
+            있지만 현재 스키마에 대응하는 컬럼이 없는 필드들(選考結果/形式/リマインダー).
+            로컬 상태로만 두고 handleRegister에는 전달하지 않는다(UI만 구현). */}
+        <div className="grid grid-cols-2 gap-4">
+          <Field label={t("aiEmail.review.resultLabel")}>
+            <select
+              value={resultOption}
+              onChange={(e) => setResultOption(e.target.value as typeof resultOption)}
+              className={fieldInputClass + " appearance-none"}
+            >
+              {RESULT_OPTION_KEYS.map((key) => (
+                <option key={key} value={key}>
+                  {t(`aiEmail.review.resultOptions.${key}`)}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label={t("aiEmail.review.formatLabel")}>
+            <select
+              value={formatOption}
+              onChange={(e) => setFormatOption(e.target.value as typeof formatOption)}
+              className={fieldInputClass + " appearance-none"}
+            >
+              {FORMAT_OPTION_KEYS.map((key) => (
+                <option key={key} value={key}>
+                  {t(`aiEmail.review.formatOptions.${key}`)}
+                </option>
+              ))}
+            </select>
+          </Field>
+        </div>
+        <Field label={t("aiEmail.review.reminderLabel")}>
+          <select
+            value={reminderOption}
+            onChange={(e) => setReminderOption(e.target.value as typeof reminderOption)}
+            className={fieldInputClass + " appearance-none"}
+          >
+            {REMINDER_OPTION_KEYS.map((key) => (
+              <option key={key} value={key}>
+                {t(`aiEmail.review.reminderOptions.${key}`)}
+              </option>
+            ))}
+          </select>
+        </Field>
 
-              return (
-                <div key={index} className="rounded-[10px] border border-border p-4">
-                  <div className="flex items-start justify-between gap-2">
-                    <Select
-                      value={event.eventType}
-                      onChange={(e) => updateEvent(index, { eventType: e.target.value as EventType })}
-                      containerClassName="w-40"
-                    >
-                      {EVENT_TYPES.map((type) => (
-                        <option key={type} value={type}>
-                          {t(EVENT_TYPE_LABEL_KEYS[type])}
-                        </option>
-                      ))}
-                    </Select>
-                    <button
-                      type="button"
-                      onClick={() => removeEvent(index)}
-                      className="mt-2 text-xs text-secondary hover:text-error hover:underline"
-                    >
-                      {t("common.delete")}
-                    </button>
-                  </div>
+        <section>
+          <div className="mb-4 flex items-center justify-between">
+            <h4 className="text-[13px] font-[500] text-stitch-ink">
+              {t("companies.steps.eventsHeading")}
+            </h4>
+            <button
+              type="button"
+              onClick={() => setEvents((prev) => [...prev, createEmptyEventFormValues()])}
+              className="text-[12px] font-[500] text-primary-navy hover:underline"
+            >
+              {t("companies.steps.addEvent")}
+            </button>
+          </div>
 
-                  <div className="mt-3">
-                    <Input
-                      label={t("companies.events.titleLabel")}
-                      type="text"
-                      value={event.title}
-                      onChange={(e) => updateEvent(index, { title: e.target.value })}
-                    />
-                  </div>
+          {events.length === 0 ? (
+            <p className="rounded-stitch-2xl border border-dashed border-stitch-border py-6 text-center text-[12px] text-secondary">
+              {t("aiEmail.review.noEvents")}
+            </p>
+          ) : (
+            <div className="flex flex-col gap-4">
+              {events.map((event, index) => {
+                const isSchedule = event.eventType === "schedule";
+                const isDeadlineOrResult =
+                  event.eventType === "deadline" || event.eventType === "result_announcement";
 
-                  {isSchedule && (
-                    // datetime-local 입력은 네이티브 위젯 폭이 고정적이라 grid-cols-2로
-                    // 나란히 두면 Drawer 폭(520px)에서 값이 잘려 보인다. 좁은 폭에서도
-                    // 안전하게 세로로 쌓는다.
-                    <div className="mt-3 flex flex-col gap-4">
-                      <Input
-                        label={t("companies.events.startsAt")}
-                        type="datetime-local"
-                        value={event.startsAt}
-                        onChange={(e) => updateEvent(index, { startsAt: e.target.value })}
-                      />
-                      <Input
-                        label={
-                          <>
-                            {t("companies.events.endsAt")}{" "}
-                            <span className="text-secondary">{t("common.optional")}</span>
-                          </>
-                        }
-                        type="datetime-local"
-                        value={event.endsAt}
-                        onChange={(e) => updateEvent(index, { endsAt: e.target.value })}
-                      />
+                return (
+                  <div
+                    key={index}
+                    className="space-y-4 rounded-stitch-2xl border border-stitch-border bg-white p-5"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1">
+                        <Field label={t("aiEmail.review.typeLabel")}>
+                          <select
+                            value={event.eventType}
+                            onChange={(e) =>
+                              updateEvent(index, { eventType: e.target.value as EventType })
+                            }
+                            className={fieldInputClass + " appearance-none"}
+                          >
+                            {EVENT_TYPES.map((type) => (
+                              <option key={type} value={type}>
+                                {t(EVENT_TYPE_LABEL_KEYS[type])}
+                              </option>
+                            ))}
+                          </select>
+                        </Field>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeEvent(index)}
+                        className="mt-8 shrink-0 text-[11px] text-secondary hover:text-error hover:underline"
+                      >
+                        {t("common.delete")}
+                      </button>
                     </div>
-                  )}
 
-                  {isDeadlineOrResult && (
-                    <div className="mt-3">
-                      <Input
+                    <Field label={t("companies.events.titleLabel")}>
+                      <input
+                        type="text"
+                        value={event.title}
+                        onChange={(e) => updateEvent(index, { title: e.target.value })}
+                        className={fieldInputClass}
+                      />
+                    </Field>
+
+                    {isSchedule && (
+                      // datetime-local 입력은 네이티브 위젯 폭이 고정적이라 Drawer 폭(440px)에서
+                      // grid-cols-2로 나란히 두면 값이 잘려 보인다. 세로로 쌓는다.
+                      <div className="flex flex-col gap-4">
+                        <Field label={t("companies.events.startsAt")}>
+                          <input
+                            type="datetime-local"
+                            value={event.startsAt}
+                            onChange={(e) => updateEvent(index, { startsAt: e.target.value })}
+                            className={fieldInputClass}
+                          />
+                        </Field>
+                        <Field
+                          label={`${t("companies.events.endsAt")} ${t("common.optional")}`}
+                        >
+                          <input
+                            type="datetime-local"
+                            value={event.endsAt}
+                            onChange={(e) => updateEvent(index, { endsAt: e.target.value })}
+                            className={fieldInputClass}
+                          />
+                        </Field>
+                      </div>
+                    )}
+
+                    {isDeadlineOrResult && (
+                      <Field
                         label={
                           event.eventType === "deadline"
                             ? t("companies.events.dueAtDeadline")
                             : t("companies.events.dueAtResult")
                         }
-                        type="datetime-local"
-                        value={event.dueAt}
-                        onChange={(e) => updateEvent(index, { dueAt: e.target.value })}
+                      >
+                        <input
+                          type="datetime-local"
+                          value={event.dueAt}
+                          onChange={(e) => updateEvent(index, { dueAt: e.target.value })}
+                          className={fieldInputClass}
+                        />
+                      </Field>
+                    )}
+
+                    <Field
+                      label={`${isSchedule ? t("companies.events.onlineLink") : t("aiEmail.review.urlLabel")} ${t("common.optional")}`}
+                    >
+                      <input
+                        type="text"
+                        value={event.onlineUrl}
+                        onChange={(e) => updateEvent(index, { onlineUrl: e.target.value })}
+                        className={fieldInputClass}
                       />
+                    </Field>
+
+                    <Field label={`${t("aiEmail.review.locationLabel")} ${t("common.optional")}`}>
+                      <input
+                        type="text"
+                        value={event.location}
+                        onChange={(e) => updateEvent(index, { location: e.target.value })}
+                        className={fieldInputClass}
+                      />
+                    </Field>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </section>
+
+        <section>
+          <div className="mb-4 flex items-center justify-between">
+            <h4 className="text-[13px] font-[500] text-stitch-ink">
+              {t("companies.contacts.heading")}
+            </h4>
+            <button
+              type="button"
+              onClick={() => setContacts((prev) => [...prev, createEmptyContactFormValues()])}
+              className="text-[12px] font-[500] text-primary-navy hover:underline"
+            >
+              {t("companies.contacts.addButton")}
+            </button>
+          </div>
+
+          {contacts.length === 0 ? (
+            <p className="rounded-stitch-2xl border border-dashed border-stitch-border py-6 text-center text-[12px] text-secondary">
+              {t("aiEmail.review.noContacts")}
+            </p>
+          ) : (
+            <div className="flex flex-col gap-4">
+              {contacts.map((contact, index) => (
+                <div
+                  key={index}
+                  className="space-y-4 rounded-stitch-2xl border border-stitch-border bg-white p-5"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1">
+                      <Field label={t("companies.contacts.name")}>
+                        <input
+                          type="text"
+                          value={contact.name}
+                          onChange={(e) => updateContact(index, { name: e.target.value })}
+                          placeholder={t("aiEmail.review.assigneePlaceholder")}
+                          className={fieldInputClass}
+                        />
+                      </Field>
                     </div>
-                  )}
-
-                  <div className="mt-3">
-                    <Input
-                      label={
-                        <>
-                          {isSchedule ? t("companies.events.onlineLink") : t("aiEmail.review.linkGeneric")}{" "}
-                          <span className="text-secondary">{t("common.optional")}</span>
-                        </>
-                      }
-                      type="text"
-                      value={event.onlineUrl}
-                      onChange={(e) => updateEvent(index, { onlineUrl: e.target.value })}
-                    />
+                    <button
+                      type="button"
+                      onClick={() => removeContact(index)}
+                      className="mt-8 shrink-0 text-[11px] text-secondary hover:text-error hover:underline"
+                    >
+                      {t("common.delete")}
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <Field label={`${t("companies.contacts.email")} ${t("common.optional")}`}>
+                      <input
+                        type="text"
+                        value={contact.email}
+                        onChange={(e) => updateContact(index, { email: e.target.value })}
+                        className={fieldInputClass}
+                      />
+                    </Field>
+                    <Field label={`${t("companies.contacts.phone")} ${t("common.optional")}`}>
+                      <input
+                        type="text"
+                        value={contact.phone}
+                        onChange={(e) => updateContact(index, { phone: e.target.value })}
+                        className={fieldInputClass}
+                      />
+                    </Field>
                   </div>
                 </div>
-              );
-            })}
-          </div>
+              ))}
+            </div>
+          )}
+        </section>
+
+        <Field label={t("aiEmail.review.memoLabel")}>
+          <textarea
+            value={memo}
+            onChange={(e) => setMemo(e.target.value)}
+            rows={4}
+            className="min-h-[100px] w-full resize-none rounded-stitch-2xl border border-stitch-border bg-white p-4 text-[14px] text-stitch-ink outline-none transition-all focus:border-primary-navy/30 focus:bg-stitch-bg"
+          />
+        </Field>
+
+        {saveError && (
+          <p className="rounded-stitch-2xl border border-error/40 bg-error/10 px-4 py-3 text-[13px] text-error">
+            {saveError}
+          </p>
         )}
-      </section>
-
-      <section className="rounded-[10px] border border-border bg-card p-6">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-[16px] font-semibold text-foreground">
-            {t("companies.contacts.heading")}
-          </h2>
-          <button
-            type="button"
-            onClick={() => setContacts((prev) => [...prev, createEmptyContactFormValues()])}
-            className="text-xs font-medium text-primary hover:underline"
-          >
-            {t("companies.contacts.addButton")}
-          </button>
-        </div>
-
-        {contacts.length === 0 ? (
-          <EmptyState icon={User} title={t("aiEmail.review.noContacts")} />
-        ) : (
-          <div className="flex flex-col gap-4">
-            {contacts.map((contact, index) => (
-              <div key={index} className="rounded-[10px] border border-border p-4">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1">
-                    <Input
-                      label={t("companies.contacts.name")}
-                      type="text"
-                      value={contact.name}
-                      onChange={(e) => updateContact(index, { name: e.target.value })}
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => removeContact(index)}
-                    className="mt-6 shrink-0 text-xs text-secondary hover:text-error hover:underline"
-                  >
-                    {t("common.delete")}
-                  </button>
-                </div>
-                <div className="mt-3 grid grid-cols-2 gap-4">
-                  <Input
-                    label={
-                      <>
-                        {t("companies.contacts.email")}{" "}
-                        <span className="text-secondary">{t("common.optional")}</span>
-                      </>
-                    }
-                    type="text"
-                    value={contact.email}
-                    onChange={(e) => updateContact(index, { email: e.target.value })}
-                  />
-                  <Input
-                    label={
-                      <>
-                        {t("companies.contacts.phone")}{" "}
-                        <span className="text-secondary">{t("common.optional")}</span>
-                      </>
-                    }
-                    type="text"
-                    value={contact.phone}
-                    onChange={(e) => updateContact(index, { phone: e.target.value })}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
-
-      <section className="rounded-[10px] border border-border bg-card p-6">
-        <h2 className="mb-4 text-[16px] font-semibold text-foreground">
-          {t("companies.notes.heading")}
-        </h2>
-        <textarea
-          value={memo}
-          onChange={(e) => setMemo(e.target.value)}
-          rows={4}
-          className="w-full rounded-[10px] border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none"
-        />
-      </section>
-
-      {saveError && (
-        <p className="rounded-[10px] border border-error/40 bg-error/10 px-4 py-3 text-sm text-error">
-          {saveError}
-        </p>
-      )}
-
-      <div className="flex justify-end gap-2">
-        <Button type="button" variant="secondary" onClick={onBack} disabled={saving}>
-          {t("aiEmail.review.back")}
-        </Button>
-        <Button type="button" variant="primary" onClick={handleRegister} disabled={saving}>
-          {saving ? t("aiEmail.review.submitting") : t("aiEmail.review.submit")}
-        </Button>
       </div>
+
+      {footerContainer ? (
+        // footerContainer가 이미 "flex gap-3" 행이므로 또 감싸지 않는다(중첩 시 안쪽 div가
+        // flex-grow 없이 내용 크기로만 축소되어 버튼이 좁아지는 문제가 있었다).
+        createPortal(footer, footerContainer)
+      ) : (
+        <div className="mt-auto flex gap-3 pt-8">{footer}</div>
+      )}
     </div>
   );
 }
