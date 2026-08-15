@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { handleSupabaseError } from "@/lib/supabase/errorHandling";
 import { rowToNextAction, type NextAction, type NextActionRow } from "@/lib/nextActions";
 
 interface NextActionsContextValue {
@@ -45,7 +46,7 @@ export function NextActionsProvider({ children }: { children: ReactNode }) {
       .order("created_at", { ascending: true });
 
     if (fetchError) {
-      setError(fetchError.message);
+      await handleSupabaseError(fetchError.message, setError);
       setLoading(false);
       return;
     }
@@ -90,7 +91,7 @@ export function NextActionsProvider({ children }: { children: ReactNode }) {
       .single();
 
     if (insertError) {
-      setError(insertError.message);
+      await handleSupabaseError(insertError.message, setError);
       return false;
     }
 
@@ -110,7 +111,7 @@ export function NextActionsProvider({ children }: { children: ReactNode }) {
       .single();
 
     if (updateError) {
-      setError(updateError.message);
+      await handleSupabaseError(updateError.message, setError);
       return false;
     }
 

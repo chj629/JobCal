@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { handleSupabaseError } from "@/lib/supabase/errorHandling";
 import {
   rowToCompanyNote,
   noteFormValuesToRow,
@@ -52,7 +53,7 @@ export function CompanyNotesProvider({ children }: { children: ReactNode }) {
       .order("position", { ascending: true });
 
     if (fetchError) {
-      setError(fetchError.message);
+      await handleSupabaseError(fetchError.message, setError);
       setLoading(false);
       return;
     }
@@ -102,7 +103,7 @@ export function CompanyNotesProvider({ children }: { children: ReactNode }) {
       .single();
 
     if (insertError) {
-      setError(insertError.message);
+      await handleSupabaseError(insertError.message, setError);
       return false;
     }
 
@@ -122,7 +123,7 @@ export function CompanyNotesProvider({ children }: { children: ReactNode }) {
       .single();
 
     if (updateError) {
-      setError(updateError.message);
+      await handleSupabaseError(updateError.message, setError);
       return false;
     }
 
@@ -138,7 +139,7 @@ export function CompanyNotesProvider({ children }: { children: ReactNode }) {
     const { error: deleteError } = await supabase.from("company_notes").delete().eq("id", id);
 
     if (deleteError) {
-      setError(deleteError.message);
+      await handleSupabaseError(deleteError.message, setError);
       return false;
     }
 

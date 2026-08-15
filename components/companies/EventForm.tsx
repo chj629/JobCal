@@ -10,7 +10,7 @@ interface EventFormProps {
   title: string;
   initialValues: EventFormValues;
   onCancel: () => void;
-  onSubmit: (values: EventFormValues) => void;
+  onSubmit: (values: EventFormValues) => void | Promise<void>;
 }
 
 // docs/stitch/모달다이어로그/.../screen.png의 pill 입력창(label + rounded-full input,
@@ -82,9 +82,13 @@ export default function EventForm({ title, initialValues, onCancel, onSubmit }: 
   const t = useT();
   const [values, setValues] = useState<EventFormValues>(initialValues);
   const [error, setError] = useState("");
+  // 저장 요청이 진행 중일 때 버튼을 비활성화해 더블클릭으로 같은 요청이 중복 실행되는
+  // 것을 막는다. onSubmit이 끝나면(성공/실패 상관없이) 다시 눌러볼 수 있게 되돌린다.
+  const [isSaving, setIsSaving] = useState(false);
 
-  function handleSubmit(event: FormEvent) {
+  async function handleSubmit(event: FormEvent) {
     event.preventDefault();
+    if (isSaving) return;
     if (!values.title.trim()) {
       setError(t("companies.events.titleRequired"));
       return;
@@ -100,7 +104,12 @@ export default function EventForm({ title, initialValues, onCancel, onSubmit }: 
       setError(t("companies.events.dueAtRequired"));
       return;
     }
-    onSubmit(values);
+    setIsSaving(true);
+    try {
+      await onSubmit(values);
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   const isSchedule = values.eventType === "schedule";
@@ -123,9 +132,10 @@ export default function EventForm({ title, initialValues, onCancel, onSubmit }: 
           <button
             type="submit"
             form="event-form"
-            className="rounded-full bg-primary-navy px-8 py-2.5 text-[14px] font-[500] text-white transition-all hover:opacity-90"
+            disabled={isSaving}
+            className="rounded-full bg-primary-navy px-8 py-2.5 text-[14px] font-[500] text-white transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {t("common.save")}
+            {isSaving ? t("common.loading") : t("common.save")}
           </button>
         </>
       }

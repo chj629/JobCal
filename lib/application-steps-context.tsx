@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { handleSupabaseError } from "@/lib/supabase/errorHandling";
 import {
   rowToApplicationStep,
   type ApplicationStep,
@@ -53,7 +54,7 @@ export function ApplicationStepsProvider({ children }: { children: ReactNode }) 
       .order("step_order", { ascending: true });
 
     if (fetchError) {
-      setError(fetchError.message);
+      await handleSupabaseError(fetchError.message, setError);
       setLoading(false);
       return [];
     }
@@ -110,7 +111,7 @@ export function ApplicationStepsProvider({ children }: { children: ReactNode }) 
       .single();
 
     if (insertError) {
-      setError(insertError.message);
+      await handleSupabaseError(insertError.message, setError);
       return null;
     }
 
@@ -126,7 +127,7 @@ export function ApplicationStepsProvider({ children }: { children: ReactNode }) 
     const { error: deleteError } = await supabase.from("application_steps").delete().eq("id", id);
 
     if (deleteError) {
-      setError(deleteError.message);
+      await handleSupabaseError(deleteError.message, setError);
       return false;
     }
 
@@ -148,7 +149,7 @@ export function ApplicationStepsProvider({ children }: { children: ReactNode }) 
       .single();
 
     if (updateError) {
-      setError(updateError.message);
+      await handleSupabaseError(updateError.message, setError);
       return false;
     }
 
@@ -169,7 +170,7 @@ export function ApplicationStepsProvider({ children }: { children: ReactNode }) 
       .single();
 
     if (updateError) {
-      setError(updateError.message);
+      await handleSupabaseError(updateError.message, setError);
       return false;
     }
 
@@ -201,7 +202,7 @@ export function ApplicationStepsProvider({ children }: { children: ReactNode }) 
     ]);
 
     if (errorA || errorB) {
-      setError((errorA ?? errorB)!.message);
+      await handleSupabaseError((errorA ?? errorB)!.message, setError);
       return false;
     }
 
