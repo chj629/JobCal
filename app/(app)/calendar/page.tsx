@@ -5,6 +5,7 @@ import { useCompanies } from "@/lib/companies-context";
 import { useEvents } from "@/lib/events-context";
 import { useApplicationSteps } from "@/lib/application-steps-context";
 import { getStepDisplayName } from "@/lib/applicationSteps";
+import { useEventCompletions } from "@/lib/event-completions";
 import { EVENT_TYPES, type AppEvent, type EventType } from "@/lib/events";
 import { formatDateKey, dateKeyOf, formatTimeOfDay } from "@/lib/date";
 import { useLocale, useT } from "@/lib/locale-context";
@@ -70,6 +71,10 @@ export default function CalendarPage() {
   const { companies, loading: companiesLoading, error } = useCompanies();
   const { events, loading: eventsLoading } = useEvents();
   const { steps } = useApplicationSteps();
+  // 이 페이지에서 한 번만 호출해 TodayEventsCard/CalendarWeeklyProgress/EventDetailPopover에
+  // 그대로 내려준다. 각자 따로 호출하면 완료 상태가 컴포넌트별로 분리되어, 한쪽에서 체크해도
+  // 다른 쪽(진행률 등)이 페이지를 새로고침하기 전까지 반영되지 않는 문제가 있었다.
+  const { checkedIds, loaded: completionsLoaded, toggle: toggleCompletion } = useEventCompletions();
   const loading = companiesLoading || eventsLoading;
   const today = useMemo(() => new Date(), []);
 
@@ -344,9 +349,12 @@ export default function CalendarPage() {
                 <TodayEventsCard
                   events={todayEvents}
                   companies={companies}
+                  checkedIds={checkedIds}
+                  loaded={completionsLoaded}
+                  onToggleComplete={toggleCompletion}
                   onSelectEvent={setSelectedEvent}
                 />
-                <CalendarWeeklyProgress events={events} />
+                <CalendarWeeklyProgress events={events} checkedIds={checkedIds} />
               </div>
 
               {viewMode === "month" ? (
@@ -507,6 +515,8 @@ export default function CalendarPage() {
             const step = steps.find((s) => s.id === selectedEvent.applicationStepId);
             return step ? getStepDisplayName(step, t) : null;
           })()}
+          checked={checkedIds.has(selectedEvent.id)}
+          onToggleComplete={() => toggleCompletion(selectedEvent.id)}
           onClose={() => setSelectedEvent(null)}
         />
       )}

@@ -83,6 +83,60 @@
       "copyright": "© {year} JobCal. All rights reserved."
     }
   },
+  "legal": {
+    "common": {
+      "lastUpdated": "最終更新日：{date}",
+      "backToHome": "トップへ戻る"
+    },
+    "privacy": {
+      "title": "プライバシーポリシー",
+      "intro": "JobCal（以下「本サービス」）は、利用者の個人情報を以下の通り取り扱います。本ポリシーは、サービス利用に必要な最小限の情報の取り扱いについてご案内するものです。",
+      "section1Title": "1. 取得する情報",
+      "section1Account": "アカウント情報：メールアドレス、パスワード（暗号化して保存）。Googleログイン利用時は氏名、メールアドレス、プロフィール画像。",
+      "section1Service": "サービス利用情報：利用者が入力する企業名、選考ステップ、予定、担当者連絡先、メモ、マイページのログインIDなど、就職活動管理のためのデータ。マイページのパスワードは保存しません。",
+      "section1Ai": "AIメール解析情報：利用者が貼り付けた採用関連メールの本文。解析のためOpenAIへ送信されますが、本文自体は本サービスのサーバーやデータベースには保存されません。",
+      "section2Title": "2. 利用目的",
+      "section2Body": "アカウント認証およびサービス提供、利用者が入力した就職活動データの保存・表示、AIメール解析機能の提供のためにのみ利用します。",
+      "section3Title": "3. 情報の処理委託・第三者提供",
+      "section3Supabase": "Supabase：アカウント認証およびデータベースの運営",
+      "section3Google": "Google：Googleログイン利用時の認証処理",
+      "section3Openai": "OpenAI：AIメール解析機能利用時のメール本文の解析処理",
+      "section4Title": "4. 保管期間",
+      "section4Body": "アカウントおよびサービス利用データは、退会または削除依頼があるまで保管します。AI解析に使用したメール本文は別途保存しません。",
+      "section5Title": "5. 利用者の権利",
+      "section5Body": "利用者はご自身の個人情報の開示、訂正、削除を請求できます。お問い合わせページよりご連絡ください。",
+      "section6Title": "6. Cookie",
+      "section6Body": "ログイン状態を維持するための認証Cookieを使用します。広告・分析目的のCookieは使用していません。",
+      "section7Title": "7. お問い合わせ",
+      "section7Body": "個人情報の取り扱いに関するお問い合わせは、お問い合わせページをご利用ください。",
+      "operator": "本サービスはJobCal運営者が運営しています。"
+    },
+    "terms": {
+      "title": "利用規約",
+      "intro": "本規約は、JobCal（以下「本サービス」）の利用条件を定めるものです。本サービスは現在MVP（初期）段階として提供されています。",
+      "section1Title": "1. サービス概要",
+      "section1Body": "JobCalは、日本での就職活動における応募企業、選考ステップ、予定、メモなどを管理できるサービスです。",
+      "section2Title": "2. アカウント",
+      "section2Body": "利用者は正確な情報でアカウントを登録するものとし、アカウント情報の管理責任は利用者本人にあります。",
+      "section3Title": "3. AI機能のご利用について",
+      "section3Body": "AIメール解析機能が抽出した情報は参考情報であり、正確性を保証するものではありません。登録前に必ず利用者ご自身で内容をご確認ください。",
+      "section4Title": "4. 禁止事項",
+      "section4Body": "他人の情報を無断で利用する行為、本サービスを不正な目的で利用する行為を禁止します。",
+      "section5Title": "5. サービスの変更・中断",
+      "section5Body": "本サービスはMVP段階のため、事前の通知なく機能の変更や一時的な中断が行われる場合があります。",
+      "section6Title": "6. 免責事項",
+      "section6Body": "本サービスは現状有姿のまま無償で提供されており、サービスの利用により生じた損害について、関連法令が許容する範囲内で責任を負いません。",
+      "section7Title": "7. 規約の変更",
+      "section7Body": "本規約の内容は必要に応じて変更されることがあり、変更時はサービス内でお知らせします。",
+      "operator": "本サービスはJobCal運営者が運営しています。"
+    },
+    "contact": {
+      "title": "お問い合わせ",
+      "description": "サービスのご利用に関するご質問や個人情報に関するご依頼がございましたら、以下のメールアドレスまでご連絡ください。",
+      "pending": "お問い合わせ先は準備中です。",
+      "emailLabel": "メールアドレス"
+    }
+  },
   "sidebar": {
     "dashboard": "ダッシュボード",
     "companies": "企業管理",
@@ -217,6 +271,7 @@
       "description": "アカウントのセキュリティと管理",
       "currentPassword": "現在のパスワード",
       "currentPasswordPlaceholder": "パスワードを入力",
+      "currentPasswordIncorrect": "現在のパスワードが正しくありません。",
       "newPassword": "新しいパスワード",
       "newPasswordPlaceholder": "新しいパスワードを入力",
       "confirmPassword": "新しいパスワード（確認）",
@@ -569,6 +624,9 @@
     "weeklyProgress": {
       "interview": "面接・選考",
       "esSubmission": "ES提出"
+    },
+    "eventDetail": {
+      "markComplete": "完了"
     }
   },
   "aiEmail": {

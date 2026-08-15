@@ -11,6 +11,8 @@ interface EventDetailPopoverProps {
   event: AppEvent;
   companyName: string;
   stepName: string | null;
+  checked: boolean;
+  onToggleComplete: () => void;
   onClose: () => void;
 }
 
@@ -27,6 +29,8 @@ export default function EventDetailPopover({
   event,
   companyName,
   stepName,
+  checked,
+  onToggleComplete,
   onClose,
 }: EventDetailPopoverProps) {
   const t = useT();
@@ -100,6 +104,16 @@ export default function EventDetailPopover({
             <span>{stepName ?? t("dashboard.noStepLabel")}</span>
           </div>
         </div>
+
+        <label className="mt-4 flex items-center gap-2 text-[13px] text-stitch-ink">
+          <input
+            type="checkbox"
+            checked={checked}
+            onChange={onToggleComplete}
+            className="h-4 w-4 shrink-0 cursor-pointer rounded-[4px] border-stitch-border bg-background text-primary-navy focus:ring-0 focus:ring-offset-0"
+          />
+          {t("calendar.eventDetail.markComplete")}
+        </label>
 
         <button
           type="button"

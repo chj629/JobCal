@@ -3,7 +3,6 @@
 import { useState } from "react";
 import EmptyState from "@/components/ui/EmptyState";
 import { formatTimeOfDay } from "@/lib/date";
-import { useEventCompletions } from "@/lib/event-completions";
 import { useT } from "@/lib/locale-context";
 import type { AppEvent } from "@/lib/events";
 import type { Company } from "@/lib/companies";
@@ -11,6 +10,9 @@ import type { Company } from "@/lib/companies";
 interface TodayEventsCardProps {
   events: AppEvent[]; // 이미 "오늘" + 시간순으로 걸러진 목록을 그대로 받는다.
   companies: Company[];
+  checkedIds: Set<string>;
+  loaded: boolean;
+  onToggleComplete: (eventId: string) => void;
   onSelectEvent: (event: AppEvent) => void;
 }
 
@@ -21,9 +23,18 @@ const ALWAYS_VISIBLE_COUNT = 2;
 // 저장/토글되도록 구현했다(TodayChecklist.tsx가 마감 이벤트만 다루는 것과 달리, 여기는
 // 오늘의 이벤트 전체를 대상으로 한다). "もっと見る/閉じる" 펼치기는 code.html의
 // grid-template-rows 트랜지션을 그대로 옮겼다.
-export default function TodayEventsCard({ events, companies, onSelectEvent }: TodayEventsCardProps) {
+// checkedIds/loaded/onToggleComplete는 calendar/page.tsx가 useEventCompletions()를 한 번만
+// 호출해 내려준다 — CalendarWeeklyProgress, EventDetailPopover와 같은 상태를 공유해야
+// 체크 직후 진행률/팝오버가 즉시 갱신된다.
+export default function TodayEventsCard({
+  events,
+  companies,
+  checkedIds,
+  loaded,
+  onToggleComplete,
+  onSelectEvent,
+}: TodayEventsCardProps) {
   const t = useT();
-  const { checkedIds, loaded, toggle } = useEventCompletions();
   const [isExpanded, setIsExpanded] = useState(false);
 
   const visible = events.slice(0, ALWAYS_VISIBLE_COUNT);
@@ -49,7 +60,7 @@ export default function TodayEventsCard({ events, companies, onSelectEvent }: To
           type="checkbox"
           checked={checked}
           disabled={!loaded}
-          onChange={() => toggle(event.id)}
+          onChange={() => onToggleComplete(event.id)}
           className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer rounded-[4px] border-stitch-border bg-background text-primary-navy focus:ring-0 focus:ring-offset-0 disabled:cursor-not-allowed"
         />
         <button

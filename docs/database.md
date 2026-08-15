@@ -9,6 +9,7 @@
 5. `company_contacts`
 6. `company_credentials`
 7. `company_notes`
+8. `next_actions`
 
 ---
 
@@ -32,8 +33,20 @@
 - overall_status
 - priority
 - website_url
+- selection_memo
+- location
+- industry
+- source
+- position
 - created_at
 - updated_at
+
+`selection_memo`는 기업당 하나만 존재하는 자유 메모입니다. 여러 개를 등록할 수 있는
+`company_notes`와는 별개입니다. 기존 기업은 값이 없어 `null`을 허용합니다.
+
+`location`(勤務地), `industry`(業界), `source`(応募経路), `position`(応募職種)은
+Company Detail의 "企業情報" 카드에서 사용하는 자유 입력 필드입니다. 기존 기업은
+값이 없어 `null`을 허용합니다.
 
 ### overall_status
 
@@ -210,6 +223,13 @@
 마이페이지 비밀번호는 평문으로 저장하지 않습니다.
 
 암호화 방식이 확정되기 전까지 비밀번호 저장 기능은 구현하지 않을 수 있습니다.
+현재 `encrypted_password`는 컬럼만 존재하고 앱에서 채우지 않습니다.
+
+`company_id`에 unique 제약이 있어 기업당 최대 1건만 존재합니다.
+
+`login_url`은 companies.mypage_url과 별개로 설계되어 있지만, Company Detail의
+"マイページ情報" 카드는 URL을 companies.mypage_url에 저장하므로 현재 앱은
+`login_url`을 채우지 않습니다.
 
 ---
 
@@ -227,6 +247,23 @@
 
 ---
 
+## next_actions
+
+Company Detail "次のアクション" 카드의 자유 형식 할일 목록을 저장합니다.
+
+- id
+- user_id
+- company_id
+- text
+- due_label
+- done
+- created_at
+- updated_at
+
+`due_label`은 현재 UI에서 표시/입력하지 않는 필드로, 항상 빈 문자열입니다.
+
+---
+
 ## 삭제 규칙
 
 기업이 삭제되면 해당 기업과 연결된 데이터도 함께 삭제합니다.
@@ -236,6 +273,7 @@
 - `company_contacts`
 - `company_credentials`
 - `company_notes`
+- `next_actions`
 
 외래 키에는 `ON DELETE CASCADE`를 적용합니다.
 

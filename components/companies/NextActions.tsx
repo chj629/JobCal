@@ -2,27 +2,24 @@
 
 import { useState } from "react";
 import MaterialIcon from "@/components/ui/MaterialIcon";
+import { useNextActions } from "@/lib/next-actions-context";
 import { useT } from "@/lib/locale-context";
 
-interface ActionItem {
-  id: string;
-  text: string;
-  dueLabel: string;
-  done: boolean;
+interface NextActionsProps {
+  companyId: string;
 }
 
 // docs/stitch/메인페이지 5개/jobcal_company_detail_refined_information_ia의 "次のアクション" 카드.
-// 마감일이 있는 자유 형식 할일 목록은 현재 스키마(supabase/migrations)에 대응하는 테이블이
-// 없다(task_completions 테이블은 있지만 어떤 코드에서도 쓰이지 않는 예전 설계의 흔적이라
-// 재사용하지 않았다). 그래서 로컬 state로만 UI를 구현하고, 새로고침하면 초기화된다.
-export default function NextActions() {
+// next_actions 테이블에 저장한다. dueLabel은 현재 UI에서 표시/입력하지 않는다.
+export default function NextActions({ companyId }: NextActionsProps) {
   const t = useT();
-  const [items, setItems] = useState<ActionItem[]>([]);
+  const { actions, addAction, toggleAction } = useNextActions();
+  const items = actions.filter((action) => action.companyId === companyId);
   const [isAdding, setIsAdding] = useState(false);
   const [draft, setDraft] = useState("");
 
-  function toggle(id: string) {
-    setItems((prev) => prev.map((item) => (item.id === id ? { ...item, done: !item.done } : item)));
+  function toggle(id: string, done: boolean) {
+    toggleAction(id, !done);
   }
 
   function addItem() {
@@ -30,10 +27,7 @@ export default function NextActions() {
       setIsAdding(false);
       return;
     }
-    setItems((prev) => [
-      ...prev,
-      { id: crypto.randomUUID(), text: draft.trim(), dueLabel: "", done: false },
-    ]);
+    addAction(companyId, draft.trim());
     setDraft("");
     setIsAdding(false);
   }
@@ -68,7 +62,7 @@ export default function NextActions() {
             <input
               type="checkbox"
               checked={item.done}
-              onChange={() => toggle(item.id)}
+              onChange={() => toggle(item.id, item.done)}
               className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer rounded border-stitch-border text-primary-navy focus:ring-0 focus:ring-offset-0"
             />
             <span

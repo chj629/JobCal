@@ -1,9 +1,8 @@
 "use client";
 
-import { useState } from "react";
 import MaterialIcon from "@/components/ui/MaterialIcon";
 import InlineEditField from "@/components/companies/InlineEditField";
-import { companyToFormValues, type Company } from "@/lib/companies";
+import { companyToFormValues, type Company, type CompanyFormValues } from "@/lib/companies";
 import { useCompanies } from "@/lib/companies-context";
 import { useT } from "@/lib/locale-context";
 
@@ -12,18 +11,17 @@ interface CompanyInfoCardProps {
 }
 
 // docs/stitch/메인페이지 5개/jobcal_company_detail_refined_information_ia의 "企業情報" 카드.
-// 企業URL(websiteUrl)만 실제 companies 테이블 컬럼이라 updateCompany로 저장하고,
-// 勤務地/業界/応募経路/応募職種은 대응하는 컬럼이 없어 로컬 state로만 UI를 구현한다.
+// 5개 필드 모두 companies 테이블 컬럼이라 updateCompany로 저장한다.
 export default function CompanyInfoCard({ company }: CompanyInfoCardProps) {
   const t = useT();
   const { updateCompany } = useCompanies();
-  const [location, setLocation] = useState("");
-  const [industry, setIndustry] = useState("");
-  const [source, setSource] = useState("");
-  const [position, setPosition] = useState("");
+
+  async function saveField(field: keyof CompanyFormValues, value: string) {
+    await updateCompany(company.id, { ...companyToFormValues(company), [field]: value });
+  }
 
   async function saveWebsiteUrl(value: string) {
-    await updateCompany(company.id, { ...companyToFormValues(company), websiteUrl: value });
+    await saveField("websiteUrl", value);
   }
 
   return (
@@ -39,8 +37,8 @@ export default function CompanyInfoCard({ company }: CompanyInfoCardProps) {
           </span>
           <div className="min-w-0 flex-1">
             <InlineEditField
-              value={location}
-              onSave={setLocation}
+              value={company.location}
+              onSave={(v) => saveField("location", v)}
               emptyLabel={t("companies.detail.companyInfo.emptyValue")}
             />
           </div>
@@ -51,8 +49,8 @@ export default function CompanyInfoCard({ company }: CompanyInfoCardProps) {
           </span>
           <div className="min-w-0 flex-1">
             <InlineEditField
-              value={industry}
-              onSave={setIndustry}
+              value={company.industry}
+              onSave={(v) => saveField("industry", v)}
               emptyLabel={t("companies.detail.companyInfo.emptyValue")}
             />
           </div>
@@ -63,8 +61,8 @@ export default function CompanyInfoCard({ company }: CompanyInfoCardProps) {
           </span>
           <div className="min-w-0 flex-1">
             <InlineEditField
-              value={source}
-              onSave={setSource}
+              value={company.source}
+              onSave={(v) => saveField("source", v)}
               emptyLabel={t("companies.detail.companyInfo.emptyValue")}
             />
           </div>
@@ -75,8 +73,8 @@ export default function CompanyInfoCard({ company }: CompanyInfoCardProps) {
           </span>
           <div className="min-w-0 flex-1">
             <InlineEditField
-              value={position}
-              onSave={setPosition}
+              value={company.position}
+              onSave={(v) => saveField("position", v)}
               emptyLabel={t("companies.detail.companyInfo.emptyValue")}
             />
           </div>

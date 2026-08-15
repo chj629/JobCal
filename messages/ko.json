@@ -83,6 +83,60 @@
       "copyright": "© {year} JobCal. All rights reserved."
     }
   },
+  "legal": {
+    "common": {
+      "lastUpdated": "최종 수정일: {date}",
+      "backToHome": "홈으로 돌아가기"
+    },
+    "privacy": {
+      "title": "개인정보처리방침",
+      "intro": "JobCal(이하 '서비스')은 이용자의 개인정보를 아래와 같이 처리합니다. 본 방침은 서비스 이용에 필요한 최소한의 정보 처리 내용을 안내합니다.",
+      "section1Title": "1. 수집하는 정보",
+      "section1Account": "계정 정보: 이메일 주소, 비밀번호(암호화 저장). Google 로그인 이용 시 이름, 이메일, 프로필 사진.",
+      "section1Service": "서비스 이용 정보: 이용자가 직접 입력하는 기업명, 전형 단계, 일정, 담당자 연락처, 메모, 마이페이지 로그인 ID 등 취업 활동 관리 데이터. 마이페이지 비밀번호는 저장하지 않습니다.",
+      "section1Ai": "AI 메일 분석 정보: 이용자가 붙여넣은 채용 관련 이메일 원문. 분석을 위해 OpenAI로 전송되며, 원문 자체는 서비스 서버나 데이터베이스에 저장되지 않습니다.",
+      "section2Title": "2. 이용 목적",
+      "section2Body": "계정 인증 및 서비스 제공, 이용자가 입력한 취업 활동 데이터의 저장·표시, AI 메일 분석 기능 제공을 위해서만 이용합니다.",
+      "section3Title": "3. 정보 처리 위탁 및 제3자 제공",
+      "section3Supabase": "Supabase: 계정 인증 및 데이터베이스 운영",
+      "section3Google": "Google: OAuth 로그인 이용 시 인증 처리",
+      "section3Openai": "OpenAI: AI 메일 분석 기능 이용 시 이메일 원문 분석 처리",
+      "section4Title": "4. 보관 기간",
+      "section4Body": "계정 및 서비스 이용 데이터는 회원 탈퇴 또는 삭제 요청 시까지 보관합니다. AI 분석에 사용된 이메일 원문은 별도로 저장하지 않습니다.",
+      "section5Title": "5. 이용자 권리",
+      "section5Body": "이용자는 본인의 개인정보 열람, 정정, 삭제를 요청할 수 있습니다. 문의하기 페이지를 통해 요청해 주세요.",
+      "section6Title": "6. 쿠키",
+      "section6Body": "로그인 상태 유지를 위한 인증 쿠키를 사용합니다. 광고·분석 목적의 쿠키는 사용하지 않습니다.",
+      "section7Title": "7. 문의",
+      "section7Body": "개인정보 처리에 관한 문의는 문의하기 페이지를 이용해 주세요.",
+      "operator": "본 서비스는 JobCal 運営者가 운영합니다."
+    },
+    "terms": {
+      "title": "이용약관",
+      "intro": "본 약관은 JobCal(이하 '서비스') 이용에 관한 조건을 규정합니다. 서비스는 현재 MVP(초기) 단계로 제공됩니다.",
+      "section1Title": "1. 서비스 개요",
+      "section1Body": "JobCal은 일본 취업 준비 과정에서 지원 기업, 전형 단계, 일정, 메모 등을 관리할 수 있도록 돕는 서비스입니다.",
+      "section2Title": "2. 계정",
+      "section2Body": "이용자는 정확한 정보로 계정을 등록해야 하며, 계정 정보 관리에 대한 책임은 이용자 본인에게 있습니다.",
+      "section3Title": "3. AI 기능 이용",
+      "section3Body": "AI 메일 분석 기능이 추출한 정보는 참고용이며, 정확성을 보증하지 않습니다. 등록 전 반드시 이용자가 직접 내용을 확인해야 합니다.",
+      "section4Title": "4. 금지 행위",
+      "section4Body": "타인의 정보를 무단으로 이용하는 행위, 서비스를 부정한 목적으로 이용하는 행위를 금지합니다.",
+      "section5Title": "5. 서비스 변경 및 중단",
+      "section5Body": "서비스는 MVP 단계로, 기능 변경이나 일시 중단이 사전 고지 없이 이루어질 수 있습니다.",
+      "section6Title": "6. 면책",
+      "section6Body": "서비스는 현재 상태 그대로 무료로 제공되며, 서비스 이용 중 발생한 손해에 대해 관련 법령이 허용하는 범위 내에서 책임을 지지 않습니다.",
+      "section7Title": "7. 약관 변경",
+      "section7Body": "약관 내용은 필요 시 변경될 수 있으며, 변경 시 서비스 내 공지합니다.",
+      "operator": "본 서비스는 JobCal 運営者가 운영합니다."
+    },
+    "contact": {
+      "title": "문의하기",
+      "description": "서비스 이용 중 궁금한 점이나 개인정보 관련 요청이 있으시면 아래 이메일로 문의해 주세요.",
+      "pending": "문의처는 준비 중입니다.",
+      "emailLabel": "이메일"
+    }
+  },
   "sidebar": {
     "dashboard": "대시보드",
     "companies": "기업 관리",
@@ -217,6 +271,7 @@
       "description": "계정 보안 관리",
       "currentPassword": "현재 비밀번호",
       "currentPasswordPlaceholder": "비밀번호 입력",
+      "currentPasswordIncorrect": "현재 비밀번호가 올바르지 않습니다.",
       "newPassword": "새 비밀번호",
       "newPasswordPlaceholder": "새 비밀번호 입력",
       "confirmPassword": "새 비밀번호 확인",
@@ -569,6 +624,9 @@
     "weeklyProgress": {
       "interview": "면접·전형",
       "esSubmission": "ES 제출"
+    },
+    "eventDetail": {
+      "markComplete": "완료"
     }
   },
   "aiEmail": {

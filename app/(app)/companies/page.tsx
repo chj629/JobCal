@@ -24,6 +24,8 @@ import { useEvents } from "@/lib/events-context";
 import { getNextEvent } from "@/lib/events";
 import { useCompanyContacts } from "@/lib/company-contacts-context";
 import { useCompanyNotes } from "@/lib/company-notes-context";
+import { useCompanyCredentials } from "@/lib/company-credentials-context";
+import { useNextActions } from "@/lib/next-actions-context";
 import { diffInDays, formatTimeOfDay, todayKey } from "@/lib/date";
 import { useT } from "@/lib/locale-context";
 import { useStepReconcileCheck } from "@/lib/useStepReconcileCheck";
@@ -90,6 +92,8 @@ export default function CompaniesPage() {
   const { events, loading: eventsLoading, refresh: refreshEvents } = useEvents();
   const { refresh: refreshContacts } = useCompanyContacts();
   const { refresh: refreshNotes } = useCompanyNotes();
+  const { refresh: refreshCredentials } = useCompanyCredentials();
+  const { refresh: refreshNextActions } = useNextActions();
   const stepReconcile = useStepReconcileCheck();
 
   const [search, setSearch] = useState("");
@@ -199,6 +203,8 @@ export default function CompaniesPage() {
       refreshEvents();
       refreshContacts();
       refreshNotes();
+      refreshCredentials();
+      refreshNextActions();
     }
     setDeleteTarget(null);
   }

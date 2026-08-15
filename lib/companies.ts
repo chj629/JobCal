@@ -42,6 +42,13 @@ export interface Company {
   updatedAt: string;
   websiteUrl: string;
   mypageUrl: string;
+  // company_notes(여러 개의 자유 메모 목록)와는 별개로, 기업당 하나만 존재하는 "選考メモ" 값.
+  selectionMemo: string;
+  // Company Detail "企業情報" 카드의 4개 필드.
+  location: string;
+  industry: string;
+  source: string;
+  position: string;
 }
 
 export interface CompanyFormValues {
@@ -50,6 +57,11 @@ export interface CompanyFormValues {
   priority: Priority;
   websiteUrl: string;
   mypageUrl: string;
+  selectionMemo: string;
+  location: string;
+  industry: string;
+  source: string;
+  position: string;
 }
 
 export function createEmptyCompanyFormValues(): CompanyFormValues {
@@ -59,6 +71,11 @@ export function createEmptyCompanyFormValues(): CompanyFormValues {
     priority: "medium",
     websiteUrl: "",
     mypageUrl: "",
+    selectionMemo: "",
+    location: "",
+    industry: "",
+    source: "",
+    position: "",
   };
 }
 
@@ -69,6 +86,11 @@ export function companyToFormValues(company: Company): CompanyFormValues {
     priority: company.priority,
     websiteUrl: company.websiteUrl,
     mypageUrl: company.mypageUrl,
+    selectionMemo: company.selectionMemo,
+    location: company.location,
+    industry: company.industry,
+    source: company.source,
+    position: company.position,
   };
 }
 
@@ -82,6 +104,11 @@ export interface CompanyRow {
   priority: Priority;
   website_url: string;
   mypage_url: string;
+  selection_memo: string | null;
+  location: string | null;
+  industry: string | null;
+  source: string | null;
+  position: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -96,6 +123,11 @@ export function rowToCompany(row: CompanyRow): Company {
     updatedAt: row.updated_at.slice(0, 10),
     websiteUrl: row.website_url,
     mypageUrl: row.mypage_url,
+    selectionMemo: row.selection_memo ?? "",
+    location: row.location ?? "",
+    industry: row.industry ?? "",
+    source: row.source ?? "",
+    position: row.position ?? "",
   };
 }
 
@@ -106,5 +138,10 @@ export function companyFormValuesToRow(values: CompanyFormValues) {
     priority: values.priority,
     website_url: values.websiteUrl.trim(),
     mypage_url: values.mypageUrl.trim(),
+    selection_memo: values.selectionMemo.trim() || null,
+    location: values.location.trim() || null,
+    industry: values.industry.trim() || null,
+    source: values.source.trim() || null,
+    position: values.position.trim() || null,
   };
 }

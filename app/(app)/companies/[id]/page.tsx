@@ -23,6 +23,8 @@ import { useApplicationSteps } from "@/lib/application-steps-context";
 import { useEvents } from "@/lib/events-context";
 import { useCompanyContacts } from "@/lib/company-contacts-context";
 import { useCompanyNotes } from "@/lib/company-notes-context";
+import { useCompanyCredentials } from "@/lib/company-credentials-context";
+import { useNextActions } from "@/lib/next-actions-context";
 import { useT } from "@/lib/locale-context";
 import { useStepReconcileCheck } from "@/lib/useStepReconcileCheck";
 
@@ -36,6 +38,8 @@ export default function CompanyDetailPage() {
   const { loading: eventsLoading, refresh: refreshEvents } = useEvents();
   const { refresh: refreshContacts } = useCompanyContacts();
   const { refresh: refreshNotes } = useCompanyNotes();
+  const { refresh: refreshCredentials } = useCompanyCredentials();
+  const { refresh: refreshNextActions } = useNextActions();
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
 
@@ -71,6 +75,8 @@ export default function CompanyDetailPage() {
       refreshEvents();
       refreshContacts();
       refreshNotes();
+      refreshCredentials();
+      refreshNextActions();
       router.push("/companies");
     } else {
       setIsDeleting(false);
@@ -216,7 +222,7 @@ function CompanyDetailView({ company, error, onDeleteClick }: CompanyDetailViewP
                 onClose={() => setSelectedStepId(null)}
               />
               <div className="h-px bg-stitch-border" />
-              <SelectionMemo />
+              <SelectionMemo company={company} />
             </div>
 
             <div className="flex flex-col gap-6 rounded-stitch-xl border border-stitch-border bg-card p-6 shadow-sm">
@@ -232,7 +238,7 @@ function CompanyDetailView({ company, error, onDeleteClick }: CompanyDetailViewP
 
           <div className="flex flex-col gap-4 lg:col-span-4">
             <CompanySchedulePanel companyId={company.id} />
-            <NextActions />
+            <NextActions companyId={company.id} />
           </div>
         </div>
 

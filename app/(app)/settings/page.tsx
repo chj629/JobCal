@@ -43,9 +43,6 @@ export default function SettingsPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isChangingPassword, setIsChangingPassword] = useState(false);
 
-  // docs/stitch/설정페이지/jobcal_settings_account_sophisticated_refresh에는 "現在のパスワード"
-  // 입력칸이 있지만, 기존 handleChangePassword는 Supabase updateUser(password만)를 그대로
-  // 재사용하므로 현재 비밀번호 확인 로직이 없다. 값을 저장/전송하지 않는 UI 전용 필드로 둔다.
   const [currentPassword, setCurrentPassword] = useState("");
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
@@ -96,7 +93,7 @@ export default function SettingsPage() {
   async function handleChangePassword(event: FormEvent) {
     event.preventDefault();
 
-    if (!newPassword || !confirmPassword) {
+    if (!currentPassword || !newPassword || !confirmPassword) {
       showToast(t("auth.errors.allFieldsRequired"), "error");
       return;
     }
@@ -111,6 +108,25 @@ export default function SettingsPage() {
 
     setIsChangingPassword(true);
     const supabase = createClient();
+
+    // 現在のパスワード로 항상 재인증한다. signInWithPassword는 성공 시 현재 세션을 같은
+    // 사용자의 새 세션으로 갱신하므로 로그인 상태는 끊기지 않는다. Google 등 OAuth로만
+    // 가입해 비밀번호가 없는 계정은 어떤 값을 넣어도 이 단계가 항상 실패한다 — Supabase가
+    // "비밀번호 없음"과 "비밀번호 틀림"을 구분해 알려주지 않고(보안상 동일한 에러), 클라이언트
+    // 에서도 계정에 비밀번호가 설정돼 있는지 미리 확인할 방법이 없기 때문이다(updateUser로
+    // 비밀번호를 추가해도 identities/app_metadata에는 반영되지 않아 실제로 확인해봐도
+    // 구분이 불가능했다). 그런 계정은 기존 "비밀번호를 잊으셨나요" 재설정 메일 흐름으로
+    // 최초 비밀번호를 만들어야 한다(이 화면은 건드리지 않는다).
+    const { error: reauthError } = await supabase.auth.signInWithPassword({
+      email,
+      password: currentPassword,
+    });
+    if (reauthError) {
+      setIsChangingPassword(false);
+      showToast(t("settings.account.currentPasswordIncorrect"), "error");
+      return;
+    }
+
     const { error } = await supabase.auth.updateUser({ password: newPassword });
     setIsChangingPassword(false);
 

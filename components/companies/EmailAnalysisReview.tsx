@@ -94,9 +94,10 @@ function extractedEventToFormValues(event: ExtractedEvent): EventFormValues {
 // docs/stitch/AI Drawer/jobcal_dashboard_ai_drawer_step_3_sophisticated_refresh의 "内容を確認"
 // 화면. Stitch 목업은 이벤트/담당자를 각각 1개만 가정한 단일 폼이지만, 실제 앱은 이메일
 // 하나에서 여러 일정·담당자가 추출될 수 있어(기존 기능) 그 배열 구조는 그대로 유지하고
-// Stitch의 필드 스타일(rounded-full, 라벨-상단 배치, 2열 그리드)만 입혔다. 選考結果/形式/
+// Stitch의 필드 스타일(rounded-full, 라벨-상단 배치, 2열 그리드)만 입혔다. 選考結果/
 // リマインダー는 현재 스키마에 대응하는 칼럼이 없어 로컬 상태로만 두고 저장하지 않는다
-// (Stitch에 있지만 기능이 없는 요소 = UI만 구현).
+// (Stitch에 있지만 기능이 없는 요소 = UI만 구현). 形式은 handleFormatChange 참고 —
+// events.location/online_url로 이미 저장되지만 일정이 정확히 1개일 때만 반영한다.
 export default function EmailAnalysisReview({
   analysis,
   existingCompany,
@@ -131,7 +132,10 @@ export default function EmailAnalysisReview({
   );
   const [memo, setMemo] = useState(analysis.memo ?? "");
 
-  // UI 전용(저장 안 함) — 아래 handleRegister/addEvent 호출 어디에도 쓰이지 않는다.
+  // 選考結果: application_steps.step_status(진행 여부만 표현)에도, companies.overall_status
+  // (기업 전체의 최종 결과)에도 "이 전형 하나의 합격/불합격"을 표현할 필드가 없어(중간 전형
+  // 합격을 overall_status="offer"로 매핑하면 의미가 왜곡된다), 대응하는 스키마가 생기기
+  // 전까지는 저장하지 않는다(UI만 존재).
   const [resultOption, setResultOption] = useState<(typeof RESULT_OPTION_KEYS)[number]>(
     "inProgress"
   );
@@ -170,6 +174,18 @@ export default function EmailAnalysisReview({
 
   function updateContact(index: number, patch: Partial<ContactFormValues>) {
     setContacts((prev) => prev.map((contact, i) => (i === index ? { ...contact, ...patch } : contact)));
+  }
+
+  // 形式: events.location/online_url로 이미 저장 가능하지만, 이 선택지는 화면 전체에 1개뿐이라
+  // 일정이 여러 개면 어느 일정에 적용할지 정할 수 없다. 일정이 정확히 1개일 때만, 선택한
+  // 형식에 맞지 않는 반대쪽 필드(온라인 선택 시 場所, 대면 선택 시 URL)를 비워
+  // 실제 저장되는 데이터가 선택값과 일치하게 한다. 일정이 0개나 2개 이상이면 아무 것도
+  // 바꾸지 않는다(어느 일정을 바꿔야 할지 알 수 없으므로).
+  function handleFormatChange(next: (typeof FORMAT_OPTION_KEYS)[number]) {
+    setFormatOption(next);
+    if (events.length !== 1) return;
+    if (next === "online") updateEvent(0, { location: "" });
+    else if (next === "offline") updateEvent(0, { onlineUrl: "" });
   }
 
   function removeContact(index: number) {
@@ -451,9 +467,10 @@ export default function EmailAnalysisReview({
           )}
         </div>
 
-        {/* docs/stitch/AI Drawer/jobcal_dashboard_ai_drawer_step_3_sophisticated_refresh에는
-            있지만 현재 스키마에 대응하는 컬럼이 없는 필드들(選考結果/形式/リマインダー).
-            로컬 상태로만 두고 handleRegister에는 전달하지 않는다(UI만 구현). */}
+        {/* docs/stitch/AI Drawer/jobcal_dashboard_ai_drawer_step_3_sophisticated_refresh의
+            필드들. 選考結果/リマインダー는 대응하는 컬럼이 없어 로컬 상태로만 두고
+            handleRegister에는 전달하지 않는다(UI만 구현). 形式은 handleFormatChange를 통해
+            일정이 정확히 1개일 때만 그 일정의 location/onlineUrl에 반영된다. */}
         <div className="grid grid-cols-2 gap-4">
           <Field label={t("aiEmail.review.resultLabel")}>
             <select
@@ -471,7 +488,7 @@ export default function EmailAnalysisReview({
           <Field label={t("aiEmail.review.formatLabel")}>
             <select
               value={formatOption}
-              onChange={(e) => setFormatOption(e.target.value as typeof formatOption)}
+              onChange={(e) => handleFormatChange(e.target.value as typeof formatOption)}
               className={fieldInputClass + " appearance-none"}
             >
               {FORMAT_OPTION_KEYS.map((key) => (

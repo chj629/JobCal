@@ -1,21 +1,21 @@
 "use client";
 
 import { dateKeyOf, diffInDays, todayKey } from "@/lib/date";
-import { useEventCompletions } from "@/lib/event-completions";
 import { useT } from "@/lib/locale-context";
 import type { AppEvent } from "@/lib/events";
 
 interface CalendarWeeklyProgressProps {
   events: AppEvent[];
+  checkedIds: Set<string>;
 }
 
 // docs/stitch/메인페이지 5개/jobcal_calendar_*의 좌측 "今週の進捗" 카드. 대시보드의
 // WeeklyProgress.tsx(마감 1개 지표, 얇은 가로 바)와 달리 이 화면은 "面接・選考"(오늘부터
 // 7일 이내 일정 이벤트)와 "ES提出"(같은 기간 마감 이벤트) 두 지표를 따로 보여준다.
-// 완료 여부는 TodayEventsCard와 같은 event_completions를 공유한다.
-export default function CalendarWeeklyProgress({ events }: CalendarWeeklyProgressProps) {
+// checkedIds는 calendar/page.tsx가 useEventCompletions()를 한 번만 호출해 내려준다 —
+// TodayEventsCard/EventDetailPopover와 같은 상태를 공유해야 체크 직후 진행률이 즉시 갱신된다.
+export default function CalendarWeeklyProgress({ events, checkedIds }: CalendarWeeklyProgressProps) {
   const t = useT();
-  const { checkedIds } = useEventCompletions();
 
   const today = todayKey();
   const weekEvents = events.filter((event) => {

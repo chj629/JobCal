@@ -2,16 +2,27 @@
 
 import { useState } from "react";
 import MaterialIcon from "@/components/ui/MaterialIcon";
+import { companyToFormValues, type Company } from "@/lib/companies";
+import { useCompanies } from "@/lib/companies-context";
 import { useT } from "@/lib/locale-context";
 
+interface SelectionMemoProps {
+  company: Company;
+}
+
 // docs/stitch/메인페이지 5개/jobcal_company_detail_refined_information_ia의 "選考メモ" 카드.
-// 전형(step)이나 기업 어디에도 이런 메모를 저장할 컬럼이 없어(선고 자체 메모는 신규 개념),
-// 우선 UI만 구현한다. 로컬 state만 쓰고 저장하지 않으므로 새로고침하면 초기화된다.
-export default function SelectionMemo() {
+// companies.selection_memo 컬럼에 저장한다. 여러 개를 등록할 수 있는 company_notes와는
+// 별개로 기업당 하나만 존재하는 메모다. CompanyInfoCard.saveWebsiteUrl과 동일하게, 현재
+// 폼 값은 그대로 두고 이 필드만 바꿔 기존 updateCompany를 재사용한다.
+export default function SelectionMemo({ company }: SelectionMemoProps) {
   const t = useT();
+  const { updateCompany } = useCompanies();
   const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState("");
-  const [saved, setSaved] = useState("");
+
+  function save(value: string) {
+    updateCompany(company.id, { ...companyToFormValues(company), selectionMemo: value });
+  }
 
   return (
     <section>
@@ -26,7 +37,7 @@ export default function SelectionMemo() {
         <button
           type="button"
           onClick={() => {
-            setDraft(saved);
+            setDraft(company.selectionMemo);
             setIsEditing(true);
           }}
           className={
@@ -61,7 +72,7 @@ export default function SelectionMemo() {
               <button
                 type="button"
                 onClick={() => {
-                  setSaved(draft);
+                  save(draft);
                   setIsEditing(false);
                 }}
                 className="rounded-stitch-md bg-primary-navy px-3 py-1 text-[11px] text-white transition-opacity hover:opacity-90"
@@ -73,12 +84,12 @@ export default function SelectionMemo() {
         ) : (
           <div
             onClick={() => {
-              setDraft(saved);
+              setDraft(company.selectionMemo);
               setIsEditing(true);
             }}
             className="min-h-[60px] cursor-pointer whitespace-pre-wrap rounded-stitch-xl border border-transparent bg-[#f8f9ff] p-4 text-[13px] leading-relaxed text-stitch-ink transition-colors hover:border-stitch-border"
           >
-            {saved || (
+            {company.selectionMemo || (
               <span className="text-secondary">{t("companies.detail.selectionMemo.empty")}</span>
             )}
           </div>

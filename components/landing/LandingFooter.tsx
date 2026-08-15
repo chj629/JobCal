@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useT } from "@/lib/locale-context";
 
 // docs/stitch/랜딩페이지/screen.png 푸터. 시안은 로고+Privacy/Terms/Contact 3개 링크+저작권
@@ -17,15 +18,24 @@ export default function LandingFooter() {
         </span>
 
         <nav className="flex gap-8 text-[13px]">
-          <span className="font-[400] text-neutral-400" aria-disabled="true">
+          <Link
+            href="/privacy"
+            className="font-[400] text-neutral-500 transition-colors hover:text-neutral-900"
+          >
             {t("landing.footer.privacy")}
-          </span>
-          <span className="font-[400] text-neutral-400" aria-disabled="true">
+          </Link>
+          <Link
+            href="/terms"
+            className="font-[400] text-neutral-500 transition-colors hover:text-neutral-900"
+          >
             {t("landing.footer.terms")}
-          </span>
-          <span className="font-[400] text-neutral-400" aria-disabled="true">
+          </Link>
+          <Link
+            href="/contact"
+            className="font-[400] text-neutral-500 transition-colors hover:text-neutral-900"
+          >
             {t("landing.footer.contact")}
-          </span>
+          </Link>
         </nav>
 
         <p className="text-[13px] text-neutral-400">{t("landing.footer.copyright", { year })}</p>
