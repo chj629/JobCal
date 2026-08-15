@@ -101,7 +101,7 @@ export default function CompanyContacts({ companyId }: CompanyContactsProps) {
                     )}
                   </div>
                 </div>
-                <div className="flex gap-1 pr-1 opacity-0 transition-opacity group-hover:opacity-100">
+                <div className="flex gap-1 pr-1 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100">
                   <button
                     type="button"
                     onClick={() => setFormState({ contact })}

@@ -10,9 +10,8 @@ interface PriorityBreakdownCardProps {
 }
 
 // "優先度別の状況" 카드. 우선순위별 전체 지원 수를 막대로, 그중 진행 중(in_progress)인
-// 수를 보조 텍스트로 보여준다. 막대 스타일(라벨 폭/두께/max-w-[200px] 제한)은
-// PipelineOverview.tsx·StepFunnelChart.tsx와 동일하게 재사용해 카드가 넓어져도
-// 막대만 과도하게 길어지지 않도록 한다.
+// 수를 보조 텍스트로 보여준다. 라벨-막대-숫자 배치는 StepFunnelChart.tsx와 동일한 구조
+// (라벨 고정 폭 + 막대 flex-1 + 숫자 고정 폭)라 카드가 넓어지면 막대가 그만큼 길어진다.
 export default function PriorityBreakdownCard({ companies }: PriorityBreakdownCardProps) {
   const t = useT();
 
@@ -40,11 +39,11 @@ export default function PriorityBreakdownCard({ companies }: PriorityBreakdownCa
         <div className="flex flex-1 flex-col justify-center gap-6">
           {rows.map(({ priority, total, inProgress }) => (
             <div key={priority} className="flex flex-col gap-1.5">
-              <div className="flex w-full items-center justify-center gap-3">
-                <span className="w-14 shrink-0 text-right text-[13px] text-secondary">
+              <div className="flex w-full items-center gap-4">
+                <span className="w-14 shrink-0 text-left text-[13px] text-secondary">
                   {t(`companies.list.priority.${priority}`)}
                 </span>
-                <div className="h-2 w-full max-w-[200px] flex-1 overflow-hidden rounded-full bg-background">
+                <div className="h-2 flex-1 overflow-hidden rounded-full bg-background">
                   <div
                     className="h-full rounded-full bg-primary-navy"
                     style={{ width: `${(total / maxTotal) * 100}%` }}
@@ -55,9 +54,13 @@ export default function PriorityBreakdownCard({ companies }: PriorityBreakdownCa
                 </span>
               </div>
               {inProgress > 0 && (
-                <p className="text-center text-[12px] text-secondary">
-                  {t("analytics.byPriority.inProgressCount", { count: inProgress })}
-                </p>
+                <div className="flex w-full items-center gap-4">
+                  <span className="w-14 shrink-0" aria-hidden="true" />
+                  <p className="flex-1 text-[12px] text-secondary">
+                    {t("analytics.byPriority.inProgressCount", { count: inProgress })}
+                  </p>
+                  <span className="w-6 shrink-0" aria-hidden="true" />
+                </div>
               )}
             </div>
           ))}

@@ -81,7 +81,7 @@ export default function CompanyNotes({ companyId }: CompanyNotesProps) {
                 key={note.id}
                 className="group relative rounded-stitch-xl border border-transparent bg-[#f8f9ff] p-4 transition-colors hover:border-stitch-border"
               >
-                <div className="absolute right-3 top-3 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                <div className="absolute right-3 top-3 flex gap-1 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100">
                   <button
                     type="button"
                     onClick={() => setFormState({ note })}

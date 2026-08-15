@@ -1,26 +1,14 @@
 // docs/database.md: application_steps.step_status
-export type StepStatus = "waiting" | "action_required" | "scheduled" | "completed";
+export type StepStatus = "waiting" | "in_progress" | "passed" | "failed";
 
-export const STEP_STATUSES: StepStatus[] = [
-  "waiting",
-  "action_required",
-  "scheduled",
-  "completed",
-];
-
-export const STEP_STATUS_LABELS: Record<StepStatus, string> = {
-  waiting: "대기",
-  action_required: "해야 함",
-  scheduled: "일정 확정",
-  completed: "완료",
-};
+export const STEP_STATUSES: StepStatus[] = ["waiting", "in_progress", "passed", "failed"];
 
 // StepDetailPanel.tsx의 전형 상태 select와 StepReconcileDialog.tsx가 공유하는 i18n 키.
 export const STEP_STATUS_LABEL_KEYS: Record<StepStatus, string> = {
   waiting: "companies.steps.statusLabels.waiting",
-  action_required: "companies.steps.statusLabels.actionRequired",
-  scheduled: "companies.steps.statusLabels.scheduled",
-  completed: "companies.steps.statusLabels.completed",
+  in_progress: "companies.steps.statusLabels.inProgress",
+  passed: "companies.steps.statusLabels.passed",
+  failed: "companies.steps.statusLabels.failed",
 };
 
 // 기업 생성 시 자동 생성되는 기본 전형 (docs/database.md 기준)
@@ -84,8 +72,7 @@ export function rowToApplicationStep(row: ApplicationStepRow): ApplicationStep {
 }
 
 // step_key가 있으면 i18n 기본 이름(언어별 번역)을, 없으면 사용자가 입력한 name을 그대로
-// 반환한다. StepTimeline 등 실제 화면 사용처 교체는 다음 Step에서 진행하므로, 이 헬퍼는
-// 아직 아무 컴포넌트에서도 호출되지 않는다.
+// 반환한다. StepTimeline/StepDetailPanel/Calendar 등 전형명을 표시하는 모든 화면이 공유한다.
 export function getStepDisplayName(
   step: Pick<ApplicationStep, "name" | "stepKey">,
   t: (key: string) => string
@@ -96,10 +83,18 @@ export function getStepDisplayName(
   return step.name;
 }
 
-// docs/database.md: step_order가 가장 앞서면서 step_status가 completed가 아닌 전형을 현재 전형으로 계산.
-// 모든 전형이 완료된 경우 가장 마지막 전형을 현재 전형으로 표시. 전형이 없으면 null.
+// application-steps-context.tsx의 updateStepStatus가 캐스케이드(뒤 단계 waiting 정리 + 다음
+// 단계 in_progress 승격)를 보장하므로, 기업당 in_progress는 항상 0개 또는 1개다.
+// - in_progress가 있으면 그 전형이 현재 전형이다.
+// - in_progress가 없고 failed가 있으면(뒤 단계로 넘어가지 않고 멈춘 상태) 그 failed 전형이
+//   현재 전형이다.
+// - 둘 다 없으면(전부 passed) 가장 마지막 전형을 현재 전형으로 표시한다. 전형이 없으면 null.
 export function getCurrentStep(steps: ApplicationStep[]): ApplicationStep | null {
   if (steps.length === 0) return null;
   const sorted = [...steps].sort((a, b) => a.stepOrder - b.stepOrder);
-  return sorted.find((step) => step.stepStatus !== "completed") ?? sorted[sorted.length - 1];
+  return (
+    sorted.find((step) => step.stepStatus === "in_progress") ??
+    sorted.find((step) => step.stepStatus === "failed") ??
+    sorted[sorted.length - 1]
+  );
 }

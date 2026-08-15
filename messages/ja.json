@@ -5,6 +5,7 @@
     "save": "保存",
     "cancel": "キャンセル",
     "add": "追加",
+    "next": "次へ",
     "edit": "編集",
     "delete": "削除",
     "close": "閉じる",
@@ -138,9 +139,9 @@
     }
   },
   "sidebar": {
-    "dashboard": "ダッシュボード",
-    "companies": "企業管理",
-    "calendar": "スケジュール",
+    "dashboard": "ホーム",
+    "companies": "企業",
+    "calendar": "カレンダー",
     "analytics": "分析",
     "settings": "設定",
     "logout": "ログアウト",
@@ -293,7 +294,7 @@
     "languageSaveSuccess": "言語設定を保存しました。"
   },
   "analytics": {
-    "title": "アナリティクス",
+    "title": "分析",
     "description": "就職活動の進捗を振り返る",
     "kpi": {
       "totalCompanies": "応募企業",
@@ -357,12 +358,6 @@
     "today": "今日",
     "tomorrow": "明日",
     "kpi": {
-      "inProgress": "進行中の企業",
-      "inProgressSubtext": "全体{total}社中",
-      "upcoming": "今後の予定",
-      "upcomingSubtext": "今週{count}件",
-      "completedSelection": "選考完了",
-      "completedSelectionSubtext": "内定{offer}・不合格{rejected}",
       "entryInProgress": "エントリー中",
       "interviewScheduled": "面接予定",
       "offer": "内定",
@@ -439,10 +434,8 @@
         "updatedAt": "最終更新"
       },
       "actions": {
-        "edit": "編集",
         "delete": "削除"
       },
-      "actionsMenuLabel": "{name} の操作メニュー",
       "empty": {
         "noResults": "条件に一致する企業がありません",
         "noCompaniesTitle": "登録した企業がまだありません",
@@ -457,7 +450,6 @@
       },
       "addCompanyModalTitle": "企業を追加",
       "addCompanyModalDescription": "選考中の企業情報を登録します。",
-      "editCompanyModalTitle": "企業を編集",
       "deleteConfirm": "「{name}」を削除しますか?",
       "addSuccessToast": "「{name}」を追加しました。",
       "deleteSuccessToast": "「{name}」を削除しました。",
@@ -476,26 +468,28 @@
         "empty": "登録された予定がありません。",
         "dDay": "あと{days}日"
       },
-      "moreMenu": "その他のメニュー",
       "priorityPrefix": "優先度：",
       "selectionDetail": {
-        "title": "選考詳細",
-        "moreMenu": "選考の操作メニュー",
         "status": "ステータス",
-        "nextStep": "次回ステップ",
         "datetime": "日時",
         "format": "形式",
         "noDateSet": "未定",
-        "online": "オンライン形式"
+        "online": "オンライン形式",
+        "offline": "対面",
+        "otherEventsNotice": "他に{count}件の予定があります",
+        "waitingStepStatusBlocked": "まだ順番が来ていない選考は合格/不合格に変更できません。",
+        "stepNotFound": "選考が見つかりません。更新して再度お試しください。"
       },
       "selectionMemo": {
-        "title": "選考メモ",
-        "empty": "クリックして選考メモを追加"
+        "title": "重要メモ",
+        "empty": "クリックして重要メモを追加"
       },
       "nextActions": {
         "title": "次のアクション",
         "empty": "登録されたアクションはありません。",
-        "placeholder": "新しいアクション"
+        "placeholder": "新しいアクション",
+        "dueLabelPlaceholder": "期限（任意）",
+        "deleteConfirm": "'{text}'を削除しますか？"
       },
       "companyInfo": {
         "title": "企業情報",
@@ -510,7 +504,6 @@
         "title": "マイページ情報",
         "url": "マイページURL",
         "loginId": "ログインID",
-        "password": "パスワード",
         "memo": "メモ"
       }
     },
@@ -518,8 +511,6 @@
       "name": "企業名",
       "status": "結果",
       "priorityLabel": "優先度",
-      "websiteUrl": "企業ホームページ",
-      "mypageUrl": "マイページURL",
       "nameRequired": "企業名を入力してください。"
     },
     "steps": {
@@ -532,9 +523,9 @@
       "deleteConfirm": "「{name}」を削除しますか?",
       "statusLabels": {
         "waiting": "待機",
-        "actionRequired": "要対応",
-        "scheduled": "日程確定",
-        "completed": "完了"
+        "inProgress": "進行中",
+        "passed": "合格",
+        "failed": "不合格"
       },
       "eventsHeading": "予定",
       "addEvent": "+ 予定を追加",
@@ -542,12 +533,10 @@
       "editEventModalTitle": "予定を編集"
     },
     "stepReconcile": {
-      "title": "未完了の選考ステップがあります",
-      "description": "「{name}」のステータスを変更する前に、未完了の選考ステップを確認してください。",
+      "title": "未決の選考ステップがあります",
+      "description": "「{name}」にはまだ結果が決まっていない選考ステップがあります。選考ステップの状態はそのままで、企業の状態だけ変更しますか？",
       "cancel": "キャンセル",
-      "saveWithoutChanges": "そのまま保存",
-      "saveWithChanges": "変更を反映して保存",
-      "stepUpdateError": "一部の選考ステップの保存に失敗しました。もう一度お試しください。"
+      "confirm": "状態だけ変更"
     },
     "events": {
       "type": "種類",
@@ -627,6 +616,13 @@
     },
     "eventDetail": {
       "markComplete": "完了"
+    },
+    "addEvent": {
+      "button": "予定を追加",
+      "title": "予定を追加",
+      "companyLabel": "企業",
+      "companyPlaceholder": "企業を選択してください",
+      "stepLabel": "選考"
     }
   },
   "aiEmail": {
@@ -688,6 +684,8 @@
       "noContacts": "抽出された担当者がいません。",
       "companySaveFailed": "企業の登録に失敗しました。",
       "stepSaveFailed": "選考の登録に失敗しました。",
+      "stepStatusSaveFailed": "選考結果の保存に失敗しました。",
+      "companyStatusSaveFailed": "企業ステータスの保存に失敗しました。",
       "stepRequiredForEvents": "予定を紐づける選考が見つかりません。選考段階を入力してください。",
       "eventSaveFailed": "予定の登録に失敗しました。",
       "contactSaveFailed": "担当者の登録に失敗しました。",
@@ -719,16 +717,13 @@
       "endTimeLabel": "終了時間",
       "urlLabel": "関連URL",
       "locationLabel": "場所",
-      "reminderLabel": "リマインダー",
-      "reminderOptions": {
-        "min15": "15分前",
-        "min30": "30分前",
-        "hour1": "1時間前",
-        "day1": "1日前"
-      },
       "assigneeLabel": "担当者",
       "assigneePlaceholder": "例: 佐藤 健一",
-      "memoLabel": "メモ"
+      "memoLabel": "メモ",
+      "holeConfirmTitle": "「{stepName}」を現在の選考として登録します。",
+      "holeConfirmDescription": "前の選考ステップ{count}件がまだ未確定です。通過済みにしますか？",
+      "holeConfirmAccept": "前のステップを通過済みにする",
+      "blockedByFailedStep": "前の選考ステップに不合格のものがあるため登録できません。企業詳細で先に確認してください。"
     },
     "drawer": {
       "description": "採用メールを分析して、企業情報・選考ステップ・予定を整理します。",

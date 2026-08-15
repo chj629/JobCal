@@ -73,7 +73,7 @@ export default function StatusDonutChart({ companies }: StatusDonutChartProps) {
         {t("analytics.statusChart.title")}
       </h2>
 
-      <div className="flex flex-1 items-center justify-between gap-8 px-4">
+      <div className="flex flex-1 items-center justify-center gap-8 px-4">
         <div className="relative h-36 w-36 shrink-0">
           <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90">
             <circle

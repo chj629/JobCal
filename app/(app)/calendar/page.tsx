@@ -6,14 +6,17 @@ import { useEvents } from "@/lib/events-context";
 import { useApplicationSteps } from "@/lib/application-steps-context";
 import { getStepDisplayName } from "@/lib/applicationSteps";
 import { useEventCompletions } from "@/lib/event-completions";
-import { EVENT_TYPES, type AppEvent, type EventType } from "@/lib/events";
+import { EVENT_TYPES, eventToFormValues, type AppEvent, type EventType } from "@/lib/events";
 import { formatDateKey, dateKeyOf, formatTimeOfDay } from "@/lib/date";
 import { useLocale, useT } from "@/lib/locale-context";
 import Badge, { type BadgeVariant } from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import LoadingState from "@/components/ui/LoadingState";
 import MaterialIcon from "@/components/ui/MaterialIcon";
 import EventDetailPopover from "@/components/calendar/EventDetailPopover";
+import CalendarAddEventFlow from "@/components/calendar/CalendarAddEventFlow";
+import EventForm from "@/components/companies/EventForm";
 import UpcomingSchedulePanel from "@/components/calendar/UpcomingSchedulePanel";
 import MiniCalendar from "@/components/calendar/MiniCalendar";
 import TodayEventsCard from "@/components/calendar/TodayEventsCard";
@@ -69,7 +72,7 @@ export default function CalendarPage() {
   const t = useT();
   const { locale } = useLocale();
   const { companies, loading: companiesLoading, error } = useCompanies();
-  const { events, loading: eventsLoading } = useEvents();
+  const { events, loading: eventsLoading, addEvent, updateEvent, deleteEvent } = useEvents();
   const { steps } = useApplicationSteps();
   // 이 페이지에서 한 번만 호출해 TodayEventsCard/CalendarWeeklyProgress/EventDetailPopover에
   // 그대로 내려준다. 각자 따로 호출하면 완료 상태가 컴포넌트별로 분리되어, 한쪽에서 체크해도
@@ -85,6 +88,9 @@ export default function CalendarPage() {
   const [viewMode, setViewMode] = useState<"month" | "week">("month");
   const [focusDate, setFocusDate] = useState(() => today);
   const [selectedEvent, setSelectedEvent] = useState<AppEvent | null>(null);
+  const [isAddEventOpen, setIsAddEventOpen] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<AppEvent | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<AppEvent | null>(null);
   // 모바일 전용(md 미만) 날짜 선택 상태. dateKey("YYYY-MM-DD") 문자열로 관리해 eventsByDate와
   // 바로 매칭한다. 초기값은 null — 첫 진입 시 선택 날짜 리스트가 UpcomingSchedulePanel의
   // "오늘의 일정"과 중복 표시되지 않도록, 사용자가 날짜를 직접 누르거나 "오늘" 버튼을
@@ -282,6 +288,11 @@ export default function CalendarPage() {
                 {t("calendar.viewToggle.week")}
               </button>
             </div>
+
+            <Button type="button" variant="primary" onClick={() => setIsAddEventOpen(true)}>
+              <MaterialIcon name="add" size={16} />
+              {t("calendar.addEvent.button")}
+            </Button>
           </div>
 
           {/* 모바일(md 미만) 전용. 항상 월간 뷰만 보여주므로 startOfMonth로 직접 이동한다
@@ -311,6 +322,15 @@ export default function CalendarPage() {
               {t("calendar.nextMonth")}
             </Button>
             <span className="ml-2 text-[16px] font-semibold text-foreground">{monthLabel}</span>
+            <Button
+              type="button"
+              variant="primary"
+              onClick={() => setIsAddEventOpen(true)}
+              className="ml-auto"
+            >
+              <MaterialIcon name="add" size={16} />
+              {t("calendar.addEvent.button")}
+            </Button>
           </div>
         </div>
 
@@ -518,8 +538,55 @@ export default function CalendarPage() {
           checked={checkedIds.has(selectedEvent.id)}
           onToggleComplete={() => toggleCompletion(selectedEvent.id)}
           onClose={() => setSelectedEvent(null)}
+          onEdit={() => {
+            setEditingEvent(selectedEvent);
+            setSelectedEvent(null);
+          }}
+          onDelete={() => {
+            setDeleteTarget(selectedEvent);
+            setSelectedEvent(null);
+          }}
         />
       )}
+
+      {isAddEventOpen && (
+        <CalendarAddEventFlow
+          companies={companies}
+          steps={steps}
+          onCancel={() => setIsAddEventOpen(false)}
+          onSubmit={async (companyId, stepId, values) => {
+            const ok = await addEvent(companyId, stepId, values);
+            if (ok) setIsAddEventOpen(false);
+          }}
+        />
+      )}
+
+      {editingEvent && (
+        <EventForm
+          title={t("companies.steps.editEventModalTitle")}
+          initialValues={eventToFormValues(editingEvent)}
+          onCancel={() => setEditingEvent(null)}
+          onSubmit={async (values) => {
+            const ok = await updateEvent(editingEvent.id, values);
+            if (ok) setEditingEvent(null);
+          }}
+        />
+      )}
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title={t("companies.events.deleteConfirm", { title: deleteTarget?.title ?? "" })}
+        description={t("common.cannotUndo")}
+        confirmLabel={t("common.delete")}
+        cancelLabel={t("common.cancel")}
+        variant="danger"
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={async () => {
+          if (!deleteTarget) return;
+          await deleteEvent(deleteTarget.id);
+          setDeleteTarget(null);
+        }}
+      />
     </div>
   );
 }

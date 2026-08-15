@@ -18,9 +18,10 @@ interface StepTimelineProps {
 // "選考詳細" 카드(SelectionDetail.tsx)에 그 전형의 상세가 표시된다.
 export default function StepTimeline({ companyId, selectedStepId, onSelect }: StepTimelineProps) {
   const t = useT();
-  const { steps, addStep } = useApplicationSteps();
+  const { steps, addStep, moveStep } = useApplicationSteps();
   const [isAdding, setIsAdding] = useState(false);
   const [newStepName, setNewStepName] = useState("");
+  const [draggedId, setDraggedId] = useState<string | null>(null);
 
   const companySteps = steps
     .filter((step) => step.companyId === companyId)
@@ -37,6 +38,27 @@ export default function StepTimeline({ companyId, selectedStepId, onSelect }: St
     setNewStepName("");
     setIsAdding(false);
     if (created) onSelect(created.id);
+  }
+
+  // HTML5 네이티브 드래그(데스크톱 전용 — 터치 기기는 draggable을 지원하지 않아 자동으로
+  // 기존 탭 선택만 남는다). 새 reorder DB 로직을 만들지 않고, 이동 거리만큼 기존
+  // moveStep(id, "up"|"down")을 순차로 반복 호출해 인접 스왑을 그대로 재사용한다 —
+  // 매 호출마다 인접 대상이 바뀌므로 반드시 await하며 병렬로 호출하지 않는다.
+  async function handleDrop(targetId: string) {
+    const sourceId = draggedId;
+    setDraggedId(null);
+    if (!sourceId || sourceId === targetId) return;
+
+    const sourceIndex = companySteps.findIndex((s) => s.id === sourceId);
+    const targetIndex = companySteps.findIndex((s) => s.id === targetId);
+    if (sourceIndex === -1 || targetIndex === -1) return;
+
+    const direction = targetIndex > sourceIndex ? "down" : "up";
+    const distance = Math.abs(targetIndex - sourceIndex);
+
+    for (let i = 0; i < distance; i++) {
+      await moveStep(sourceId, direction);
+    }
   }
 
   // 단계 이름 길이와 무관하게 원형 번호 중심 간격이 항상 균등하도록, flex 대신
@@ -59,7 +81,8 @@ export default function StepTimeline({ companyId, selectedStepId, onSelect }: St
           </div>
 
             {companySteps.map((step) => {
-            const isCompleted = step.stepStatus === "completed";
+            const isCompleted = step.stepStatus === "passed";
+            const isFailed = step.stepStatus === "failed";
             const isCurrent = currentStep?.id === step.id;
             const isSelected = selectedStepId ? step.id === selectedStepId : isCurrent;
 
@@ -67,23 +90,43 @@ export default function StepTimeline({ companyId, selectedStepId, onSelect }: St
               <button
                 key={step.id}
                 type="button"
+                draggable
+                onDragStart={(e) => {
+                  setDraggedId(step.id);
+                  e.dataTransfer.effectAllowed = "move";
+                }}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  handleDrop(step.id);
+                }}
+                onDragEnd={() => setDraggedId(null)}
                 onClick={() => onSelect(step.id)}
                 aria-pressed={isSelected}
-                className="flex min-w-0 flex-col items-center gap-1.5 bg-card px-1"
+                className={
+                  "flex min-w-0 cursor-grab flex-col items-center gap-1.5 bg-card px-1 active:cursor-grabbing " +
+                  (draggedId === step.id ? "opacity-40" : "")
+                }
               >
                 <span
                   className={
                     "flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[12px] font-[400] shadow-sm " +
                     (isCompleted
                       ? "bg-success text-white"
-                      : isCurrent
-                        ? "bg-primary-navy text-white ring-2 ring-primary-navy/20"
-                        : "border border-stitch-border bg-card text-secondary") +
-                    (isSelected && !isCompleted && !isCurrent ? " ring-2 ring-primary-navy/40" : "")
+                      : isFailed
+                        ? "bg-error text-white"
+                        : isCurrent
+                          ? "bg-primary-navy text-white ring-2 ring-primary-navy/20"
+                          : "border border-stitch-border bg-card text-secondary") +
+                    (isSelected && !isCompleted && !isFailed && !isCurrent
+                      ? " ring-2 ring-primary-navy/40"
+                      : "")
                   }
                 >
                   {isCompleted ? (
                     <MaterialIcon name="check" size={14} filled />
+                  ) : isFailed ? (
+                    <MaterialIcon name="close" size={14} filled />
                   ) : (
                     step.stepOrder
                   )}

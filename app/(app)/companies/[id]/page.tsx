@@ -1,8 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { notFound, useParams, useRouter } from "next/navigation";
-import CompanyForm from "@/components/CompanyForm";
 import StepTimeline from "@/components/companies/StepTimeline";
 import StepDetailPanel from "@/components/companies/StepDetailPanel";
 import SelectionMemo from "@/components/companies/SelectionMemo";
@@ -17,7 +16,14 @@ import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import LoadingState from "@/components/ui/LoadingState";
 import MaterialIcon from "@/components/ui/MaterialIcon";
 import { useToast } from "@/components/ui/Toast";
-import { companyToFormValues, type Company } from "@/lib/companies";
+import {
+  companyToFormValues,
+  OVERALL_STATUSES,
+  PRIORITIES,
+  type Company,
+  type OverallStatus,
+  type Priority,
+} from "@/lib/companies";
 import { useCompanies } from "@/lib/companies-context";
 import { useApplicationSteps } from "@/lib/application-steps-context";
 import { useEvents } from "@/lib/events-context";
@@ -117,52 +123,144 @@ function CompanyDetailView({ company, error, onDeleteClick }: CompanyDetailViewP
   const t = useT();
   const router = useRouter();
   const { updateCompany } = useCompanies();
-  const [isEditOpen, setIsEditOpen] = useState(false);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [nameDraft, setNameDraft] = useState("");
+  // Escape로 닫을 때 언마운트가 유발하는 blur가 confirmNameEdit을 한 번 더 부르지 않도록 막는 표시.
+  const skipNameBlurRef = useRef(false);
   const stepReconcile = useStepReconcileCheck();
+
+  function startEditName() {
+    skipNameBlurRef.current = false;
+    setNameDraft(company.name);
+    setIsEditingName(true);
+  }
+
+  async function confirmNameEdit() {
+    if (skipNameBlurRef.current) {
+      skipNameBlurRef.current = false;
+      setIsEditingName(false);
+      return;
+    }
+    if (!nameDraft.trim()) {
+      setIsEditingName(false);
+      return;
+    }
+    await updateCompany(company.id, { ...companyToFormValues(company), name: nameDraft });
+    setIsEditingName(false);
+  }
+
+  // overallStatus는 CompanyForm 제출과 동일하게 stepReconcile.guardSubmit을 거친다 —
+  // 미확정 전형이 남아있는 채로 최종 상태로 바뀌는 경우 StepReconcileDialog가 그대로 뜬다.
+  async function handleOverallStatusChange(newStatus: OverallStatus) {
+    const proceed = stepReconcile.guardSubmit(company, async (values) => {
+      await updateCompany(company.id, values);
+    });
+    proceed({ ...companyToFormValues(company), overallStatus: newStatus });
+  }
+
+  async function handlePriorityChange(newPriority: Priority) {
+    await updateCompany(company.id, { ...companyToFormValues(company), priority: newPriority });
+  }
 
   return (
     <div className="min-h-screen bg-stitch-bg min-[1600px]:min-h-full">
       <div className="mx-auto max-w-[1200px] px-6 pb-6 pt-14 font-[family-name:var(--font-hanken-grotesk)] font-[350] tracking-[-0.025em] text-stitch-ink">
         <div className="mb-8 flex flex-col justify-between gap-4 md:flex-row md:items-start">
           <div>
-            <h1 className="mb-2 text-[36px] font-[400] leading-[1.2] tracking-tight text-stitch-ink">
-              {company.name}
-            </h1>
-            <div className="flex items-center gap-2">
-              {company.overallStatus === "offer" ? (
-                <span className="rounded-full border border-success/20 bg-success/10 px-2.5 py-1 text-[11px] font-[400] text-success">
-                  {t("companies.list.status.offer")}
-                </span>
-              ) : (
-                <span className="rounded-full border border-stitch-border bg-[#f8f9ff] px-2.5 py-1 text-[11px] font-[400] text-secondary">
-                  {t(`companies.list.status.${company.overallStatus === "in_progress" ? "inProgress" : company.overallStatus}`)}
-                </span>
-              )}
-              <span
-                className={
-                  "rounded-full px-2.5 py-1 text-[11px] font-[400] " +
-                  (company.priority === "high"
-                    ? "bg-[#fef2f2] text-error"
-                    : "bg-[#f8f9ff] text-secondary")
-                }
+            {isEditingName ? (
+              <input
+                type="text"
+                autoFocus
+                value={nameDraft}
+                onChange={(e) => setNameDraft(e.target.value)}
+                onBlur={confirmNameEdit}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    e.currentTarget.blur();
+                  }
+                  if (e.key === "Escape") {
+                    skipNameBlurRef.current = true;
+                    setIsEditingName(false);
+                  }
+                }}
+                className="mb-2 w-full max-w-lg rounded-stitch-md border border-primary-navy bg-white px-2 py-0.5 text-[36px] font-[400] leading-[1.2] tracking-tight text-stitch-ink outline-none"
+              />
+            ) : (
+              <div
+                onClick={startEditName}
+                className="group mb-2 flex cursor-pointer items-center gap-2"
               >
+                <h1 className="text-[36px] font-[400] leading-[1.2] tracking-tight text-stitch-ink group-hover:underline">
+                  {company.name}
+                </h1>
+                <MaterialIcon
+                  name="edit"
+                  size={16}
+                  className="shrink-0 text-secondary opacity-70 transition-opacity group-hover:opacity-100"
+                />
+              </div>
+            )}
+            <div className="flex items-center gap-2">
+              {/* 기존 읽기 전용 배지와 같은 rounded-full/색상 규칙을 유지하되 select로
+                  바꿔 클릭 즉시 인라인으로 바꿀 수 있게 한다. */}
+              <div className="relative">
+                <select
+                  value={company.overallStatus}
+                  onChange={(e) => handleOverallStatusChange(e.target.value as OverallStatus)}
+                  className={
+                    "cursor-pointer appearance-none rounded-full border py-1 pl-2.5 pr-6 text-[11px] font-[400] outline-none " +
+                    (company.overallStatus === "offer"
+                      ? "border-success/20 bg-success/10 text-success"
+                      : "border-stitch-border bg-[#f8f9ff] text-secondary")
+                  }
+                >
+                  {OVERALL_STATUSES.map((status) => (
+                    <option key={status} value={status}>
+                      {t(
+                        `companies.list.status.${status === "in_progress" ? "inProgress" : status}`
+                      )}
+                    </option>
+                  ))}
+                </select>
+                <MaterialIcon
+                  name="expand_more"
+                  size={13}
+                  className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-current"
+                />
+              </div>
+
+              <span className="text-[11px] font-[400] text-secondary">
                 {t("companies.detail.priorityPrefix")}
-                {t(`companies.list.priority.${company.priority}`)}
               </span>
+              <div className="relative -ml-1">
+                <select
+                  value={company.priority}
+                  onChange={(e) => handlePriorityChange(e.target.value as Priority)}
+                  className={
+                    "cursor-pointer appearance-none rounded-full border py-1 pl-2.5 pr-6 text-[11px] font-[400] outline-none " +
+                    (company.priority === "high"
+                      ? "border-transparent bg-[#fef2f2] text-error"
+                      : "border-stitch-border bg-[#f8f9ff] text-secondary")
+                  }
+                >
+                  {PRIORITIES.map((priority) => (
+                    <option key={priority} value={priority}>
+                      {t(`companies.list.priority.${priority}`)}
+                    </option>
+                  ))}
+                </select>
+                <MaterialIcon
+                  name="expand_more"
+                  size={13}
+                  className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-current"
+                />
+              </div>
             </div>
           </div>
 
           <div className="flex items-center gap-2 pt-1">
-            <button
-              type="button"
-              onClick={() => setIsEditOpen(true)}
-              className="flex h-fit items-center gap-1 rounded-stitch-xl bg-primary-navy px-4 py-2 text-[12px] font-[400] text-white shadow-sm transition-all hover:opacity-90"
-            >
-              <MaterialIcon name="edit" size={16} />
-              {t("common.edit")}
-            </button>
             <button
               type="button"
               onClick={() => router.push("/companies")}
@@ -171,33 +269,14 @@ function CompanyDetailView({ company, error, onDeleteClick }: CompanyDetailViewP
             >
               <MaterialIcon name="close" size={18} />
             </button>
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => setIsMenuOpen((v) => !v)}
-                aria-label={t("companies.detail.moreMenu")}
-                className="flex h-8 w-8 items-center justify-center rounded-stitch-xl border border-stitch-border bg-card text-secondary shadow-sm transition-colors hover:bg-[#f8f9ff]"
-              >
-                <MaterialIcon name="more_vert" size={18} />
-              </button>
-              {isMenuOpen && (
-                <>
-                  <div className="fixed inset-0 z-10" onClick={() => setIsMenuOpen(false)} />
-                  <div className="absolute right-0 top-10 z-20 w-32 rounded-stitch-md border border-stitch-border bg-card py-1 text-left shadow-lg">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsMenuOpen(false);
-                        onDeleteClick();
-                      }}
-                      className="block w-full px-3 py-2 text-left text-[13px] text-error hover:bg-[#f8f9ff]"
-                    >
-                      {t("common.delete")}
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
+            <button
+              type="button"
+              onClick={onDeleteClick}
+              aria-label={t("common.delete")}
+              className="flex h-8 w-8 items-center justify-center rounded-stitch-xl border border-stitch-border bg-card text-secondary shadow-sm transition-colors hover:border-error/40 hover:text-error"
+            >
+              <MaterialIcon name="delete" size={18} />
+            </button>
           </div>
         </div>
 
@@ -214,8 +293,8 @@ function CompanyDetailView({ company, error, onDeleteClick }: CompanyDetailViewP
         />
 
         <div className="grid grid-cols-1 items-start gap-4 pb-10 lg:grid-cols-12">
-          <div className="flex flex-col gap-6 lg:col-span-8">
-            <div className="flex flex-col gap-6 rounded-stitch-xl border border-stitch-border bg-card p-6 shadow-sm">
+          <div className="contents lg:flex lg:flex-col lg:col-span-8 lg:gap-6">
+            <div className="order-1 flex flex-col gap-6 rounded-stitch-xl border border-stitch-border bg-card p-6 shadow-sm">
               <StepDetailPanel
                 companyId={company.id}
                 selectedStepId={selectedStepId}
@@ -225,7 +304,7 @@ function CompanyDetailView({ company, error, onDeleteClick }: CompanyDetailViewP
               <SelectionMemo company={company} />
             </div>
 
-            <div className="flex flex-col gap-6 rounded-stitch-xl border border-stitch-border bg-card p-6 shadow-sm">
+            <div className="order-4 flex flex-col gap-6 rounded-stitch-xl border border-stitch-border bg-card p-6 shadow-sm">
               <CompanyNotes companyId={company.id} />
               <div className="h-px bg-stitch-border" />
               <CompanyInfoCard company={company} />
@@ -236,33 +315,21 @@ function CompanyDetailView({ company, error, onDeleteClick }: CompanyDetailViewP
             </div>
           </div>
 
-          <div className="flex flex-col gap-4 lg:col-span-4">
-            <CompanySchedulePanel companyId={company.id} />
-            <NextActions companyId={company.id} />
+          <div className="contents lg:flex lg:flex-col lg:col-span-4 lg:gap-4">
+            <div className="order-2">
+              <CompanySchedulePanel companyId={company.id} />
+            </div>
+            <div className="order-3">
+              <NextActions companyId={company.id} />
+            </div>
           </div>
         </div>
-
-        {isEditOpen && (
-          <CompanyForm
-            title={t("companies.list.editCompanyModalTitle")}
-            initialValues={companyToFormValues(company)}
-            onCancel={() => setIsEditOpen(false)}
-            onSubmit={stepReconcile.guardSubmit(company, async (values) => {
-              const ok = await updateCompany(company.id, values);
-              if (ok) setIsEditOpen(false);
-            })}
-          />
-        )}
 
         {stepReconcile.reconcileState && (
           <StepReconcileDialog
             companyName={stepReconcile.reconcileState.company.name}
-            incompleteSteps={stepReconcile.reconcileState.incompleteSteps}
-            isSaving={stepReconcile.isSaving}
-            error={stepReconcile.stepError}
             onCancel={stepReconcile.cancel}
-            onSaveWithoutChanges={stepReconcile.saveWithoutStepChanges}
-            onSaveWithChanges={stepReconcile.saveWithStepChanges}
+            onConfirm={stepReconcile.confirm}
           />
         )}
       </div>

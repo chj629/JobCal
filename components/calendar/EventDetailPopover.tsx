@@ -14,6 +14,8 @@ interface EventDetailPopoverProps {
   checked: boolean;
   onToggleComplete: () => void;
   onClose: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
 }
 
 const EVENT_TYPE_LABEL_KEYS = {
@@ -32,6 +34,8 @@ export default function EventDetailPopover({
   checked,
   onToggleComplete,
   onClose,
+  onEdit,
+  onDelete,
 }: EventDetailPopoverProps) {
   const t = useT();
   const { locale } = useLocale();
@@ -115,10 +119,29 @@ export default function EventDetailPopover({
           {t("calendar.eventDetail.markComplete")}
         </label>
 
+        <div className="mt-4 flex gap-2">
+          <button
+            type="button"
+            onClick={onEdit}
+            className="flex flex-1 items-center justify-center gap-1 rounded-full border border-stitch-border px-4 py-2 text-[13px] font-[500] text-stitch-ink transition-colors hover:bg-black/[0.02]"
+          >
+            <MaterialIcon name="edit" size={14} />
+            {t("common.edit")}
+          </button>
+          <button
+            type="button"
+            onClick={onDelete}
+            className="flex flex-1 items-center justify-center gap-1 rounded-full border border-error/30 px-4 py-2 text-[13px] font-[500] text-error transition-colors hover:bg-error/5"
+          >
+            <MaterialIcon name="delete" size={14} />
+            {t("common.delete")}
+          </button>
+        </div>
+
         <button
           type="button"
           onClick={() => router.push(`/companies/${event.companyId}`)}
-          className="mt-6 w-full rounded-full bg-primary-navy px-6 py-2.5 text-[14px] font-[500] text-white transition-all hover:opacity-90"
+          className="mt-2 w-full rounded-full bg-primary-navy px-6 py-2.5 text-[14px] font-[500] text-white transition-all hover:opacity-90"
         >
           {t("calendar.viewCompanyDetail")}
         </button>

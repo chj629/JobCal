@@ -10,8 +10,10 @@ interface NextActionsContextValue {
   loading: boolean;
   error: string | null;
   refresh: () => Promise<void>;
-  addAction: (companyId: string, text: string) => Promise<boolean>;
+  addAction: (companyId: string, text: string, dueLabel?: string) => Promise<boolean>;
+  updateAction: (id: string, updates: { text?: string; dueLabel?: string }) => Promise<boolean>;
   toggleAction: (id: string, done: boolean) => Promise<boolean>;
+  deleteAction: (id: string) => Promise<boolean>;
 }
 
 const NextActionsContext = createContext<NextActionsContextValue | null>(null);
@@ -77,7 +79,7 @@ export function NextActionsProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [supabase]);
 
-  async function addAction(companyId: string, text: string) {
+  async function addAction(companyId: string, text: string, dueLabel?: string) {
     if (!userId) return false;
 
     const { data, error: insertError } = await supabase
@@ -86,6 +88,7 @@ export function NextActionsProvider({ children }: { children: ReactNode }) {
         user_id: userId,
         company_id: companyId,
         text: text.trim(),
+        due_label: dueLabel?.trim() ?? "",
       })
       .select()
       .single();
@@ -97,6 +100,46 @@ export function NextActionsProvider({ children }: { children: ReactNode }) {
 
     setError(null);
     setActions((prev) => [...prev, rowToNextAction(data as NextActionRow)]);
+    return true;
+  }
+
+  async function updateAction(id: string, updates: { text?: string; dueLabel?: string }) {
+    if (!userId) return false;
+
+    const payload: { text?: string; due_label?: string } = {};
+    if (updates.text !== undefined) payload.text = updates.text.trim();
+    if (updates.dueLabel !== undefined) payload.due_label = updates.dueLabel.trim();
+
+    const { data, error: updateError } = await supabase
+      .from("next_actions")
+      .update(payload)
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (updateError) {
+      await handleSupabaseError(updateError.message, setError);
+      return false;
+    }
+
+    setError(null);
+    const updated = rowToNextAction(data as NextActionRow);
+    setActions((prev) => prev.map((action) => (action.id === id ? updated : action)));
+    return true;
+  }
+
+  async function deleteAction(id: string) {
+    if (!userId) return false;
+
+    const { error: deleteError } = await supabase.from("next_actions").delete().eq("id", id);
+
+    if (deleteError) {
+      await handleSupabaseError(deleteError.message, setError);
+      return false;
+    }
+
+    setError(null);
+    setActions((prev) => prev.filter((action) => action.id !== id));
     return true;
   }
 
@@ -123,7 +166,7 @@ export function NextActionsProvider({ children }: { children: ReactNode }) {
 
   return (
     <NextActionsContext.Provider
-      value={{ actions, loading, error, refresh: load, addAction, toggleAction }}
+      value={{ actions, loading, error, refresh: load, addAction, updateAction, toggleAction, deleteAction }}
     >
       {children}
     </NextActionsContext.Provider>

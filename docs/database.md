@@ -64,10 +64,12 @@ Company Detail의 "企業情報" 카드에서 사용하는 자유 입력 필드�
 
 현재 전형은 `companies` 테이블에 직접 저장하지 않습니다.
 
-해당 기업의 `application_steps` 중 `step_order`가 가장 앞서면서
-`step_status`가 `completed`가 아닌 전형을 현재 전형으로 계산합니다.
+해당 기업의 `application_steps` 중 다음 순서로 계산합니다.
 
-모든 전형이 완료된 경우에는 가장 마지막 전형을 현재 전형으로 표시합니다.
+1. `step_status`가 `in_progress`인 전형이 있으면 그 전형.
+2. 없고 `failed`인 전형이 있으면 그 전형(진행이 멈춘 상태).
+3. 둘 다 없으면(전부 `passed`) `step_order`가 가장 마지막인 전형.
+4. 전형이 하나도 없으면 없음(null).
 
 ---
 
@@ -101,14 +103,18 @@ Company Detail의 "企業情報" 카드에서 사용하는 자유 입력 필드�
 
 ### step_status
 
-- `waiting`: 대기
-- `action_required`: 해야 함
-- `scheduled`: 일정 확정
-- `completed`: 완료
+- `waiting`: 대기(시스템이 캐스케이드 규칙에 따라 자동으로만 부여, 사용자가 직접 선택 불가)
+- `in_progress`: 진행 중
+- `passed`: 통과
+- `failed`: 불합격
 
-전형 종류에 따른 상태 전이 제한은 두지 않습니다.
+`waiting`을 제외한 세 가지(`in_progress`/`passed`/`failed`) 중에서만 사용자가 직접 선택할 수 있습니다.
 
-사용자가 네 가지 상태 중 하나를 자유롭게 선택할 수 있습니다.
+상태를 바꾸면 캐스케이드 규칙이 함께 적용됩니다.
+
+- 뒤(step_order가 큰) 전형은 모두 `waiting`으로 초기화됩니다.
+- `passed`로 바꾸면 방금 `waiting`이 된 전형 중 가장 앞선 것 하나가 `in_progress`로 승격됩니다.
+- 기업당 `in_progress`는 항상 0개 또는 1개입니다(다른 전형을 `in_progress`로 바꾸면 기존 `in_progress` 전형은 `waiting`으로 되돌아갑니다).
 
 ---
 

@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import MaterialIcon from "@/components/ui/MaterialIcon";
 import InlineEditField from "@/components/companies/InlineEditField";
 import { companyToFormValues, type Company } from "@/lib/companies";
@@ -16,12 +15,13 @@ interface MypageInfoCardProps {
 // docs/stitch/메인페이지 5개/jobcal_company_detail_refined_information_ia의 "マイページ情報" 카드.
 // マイページURL(mypageUrl)은 companies 컬럼, ログインID/メモ는 company_credentials 테이블에
 // 저장한다. パスワード는 "암호화 방식이 확정되기 전까지 비밀번호 저장 기능은 구현하지
-// 않을 수 있다"는 방침에 따라 이번에도 Supabase에 저장하지 않고 로컬 state로만 둔다.
+// 않을 수 있다"는 방침에 따라 UI 자체를 노출하지 않는다(저장되지 않는데 저장되는 것처럼
+// 보이는 입력창을 두지 않기 위함). company_credentials.encrypted_password 컬럼은 그대로
+// 남아있고, 저장 기능이 준비되면 이 카드에 다시 필드를 추가하면 된다.
 export default function MypageInfoCard({ company }: MypageInfoCardProps) {
   const t = useT();
   const { updateCompany } = useCompanies();
   const { credentials, saveCredential } = useCompanyCredentials();
-  const [password, setPassword] = useState("");
 
   const credential = credentials.find((c) => c.companyId === company.id);
   const credentialValues = credential ? credentialToFormValues(credential) : createEmptyCredentialFormValues();
@@ -76,19 +76,6 @@ export default function MypageInfoCard({ company }: MypageInfoCardProps) {
             <InlineEditField
               value={credentialValues.loginId}
               onSave={saveLoginId}
-              emptyLabel={t("companies.detail.companyInfo.emptyValue")}
-            />
-          </div>
-        </div>
-        <div className="flex items-center gap-4">
-          <span className="w-24 shrink-0 text-[11px] font-[400] text-secondary">
-            {t("companies.detail.mypageInfo.password")}
-          </span>
-          <div className="min-w-0 flex-1">
-            <InlineEditField
-              value={password}
-              onSave={setPassword}
-              type="password"
               emptyLabel={t("companies.detail.companyInfo.emptyValue")}
             />
           </div>

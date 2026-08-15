@@ -1,14 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useCompanies } from "@/lib/companies-context";
 import { useApplicationSteps } from "@/lib/application-steps-context";
 import { useEvents } from "@/lib/events-context";
-import { createEmptyCompanyFormValues, type Company } from "@/lib/companies";
+import type { Company } from "@/lib/companies";
 import { dateKeyOf, diffInDays, todayKey } from "@/lib/date";
 import { useT } from "@/lib/locale-context";
 import { createClient } from "@/lib/supabase/client";
-import CompanyForm from "@/components/CompanyForm";
+import CompanyCreateForm from "@/components/CompanyCreateForm";
 import LoadingState from "@/components/ui/LoadingState";
 import MaterialIcon from "@/components/ui/MaterialIcon";
 import { useToast } from "@/components/ui/Toast";
@@ -69,6 +70,7 @@ function countOfferUpdatedWithinDays(companies: Company[], today: string, days: 
 
 export default function DashboardPage() {
   const t = useT();
+  const router = useRouter();
   const { showToast } = useToast();
   const { companies, addCompany, loading: companiesLoading, error } = useCompanies();
   const { steps, loading: stepsLoading, refresh: refreshSteps } = useApplicationSteps();
@@ -212,17 +214,19 @@ export default function DashboardPage() {
         </div>
 
         {isAddOpen && (
-          <CompanyForm
+          <CompanyCreateForm
             title={t("dashboard.addCompanyModalTitle")}
             description={t("companies.list.addCompanyModalDescription")}
-            initialValues={createEmptyCompanyFormValues()}
             onCancel={() => setIsAddOpen(false)}
             onSubmit={async (values) => {
-              const ok = await addCompany(values);
-              if (ok) {
+              const created = await addCompany(values);
+              if (created) {
                 setIsAddOpen(false);
                 refreshSteps();
                 showToast(t("companies.list.addSuccessToast", { name: values.name }));
+                // 이름만 입력하고 나머지는 비어 있는 상태라, 바로 상세 화면으로 이동해
+                // 이어서 채울 수 있게 한다.
+                router.push(`/companies/${created.id}`);
               }
             }}
           />

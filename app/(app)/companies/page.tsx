@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import CompanyForm from "@/components/CompanyForm";
+import CompanyCreateForm from "@/components/CompanyCreateForm";
 import StepReconcileDialog from "@/components/companies/StepReconcileDialog";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import EmptyState from "@/components/ui/EmptyState";
@@ -11,13 +11,14 @@ import LoadingState from "@/components/ui/LoadingState";
 import MaterialIcon from "@/components/ui/MaterialIcon";
 import { useToast } from "@/components/ui/Toast";
 import {
+  companyToFormValues,
   OVERALL_STATUSES,
   PRIORITIES,
-  createEmptyCompanyFormValues,
-  companyToFormValues,
   type Company,
+  type OverallStatus,
 } from "@/lib/companies";
 import { useCompanies } from "@/lib/companies-context";
+import { useStepReconcileCheck } from "@/lib/useStepReconcileCheck";
 import { useApplicationSteps } from "@/lib/application-steps-context";
 import { DEFAULT_STEP_KEYS, getCurrentStep, getStepDisplayName } from "@/lib/applicationSteps";
 import { useEvents } from "@/lib/events-context";
@@ -28,7 +29,6 @@ import { useCompanyCredentials } from "@/lib/company-credentials-context";
 import { useNextActions } from "@/lib/next-actions-context";
 import { diffInDays, formatTimeOfDay, todayKey } from "@/lib/date";
 import { useT } from "@/lib/locale-context";
-import { useStepReconcileCheck } from "@/lib/useStepReconcileCheck";
 
 const ALL = "전체";
 const PAGE_SIZE_OPTIONS = [10, 25, 50];
@@ -80,32 +80,39 @@ export default function CompaniesPage() {
     low: t("companies.list.priority.low"),
   };
 
-  const {
-    companies,
-    addCompany,
-    updateCompany,
-    deleteCompany,
-    loading: companiesLoading,
-    error,
-  } = useCompanies();
+  const { companies, addCompany, updateCompany, deleteCompany, loading: companiesLoading, error } =
+    useCompanies();
+  const stepReconcile = useStepReconcileCheck();
   const { steps, loading: stepsLoading, refresh: refreshSteps } = useApplicationSteps();
   const { events, loading: eventsLoading, refresh: refreshEvents } = useEvents();
   const { refresh: refreshContacts } = useCompanyContacts();
   const { refresh: refreshNotes } = useCompanyNotes();
   const { refresh: refreshCredentials } = useCompanyCredentials();
   const { refresh: refreshNextActions } = useNextActions();
-  const stepReconcile = useStepReconcileCheck();
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>(ALL);
   const [priorityFilter, setPriorityFilter] = useState<string>(ALL);
   const [stepFilter, setStepFilter] = useState<string>(ALL);
   const [isAddOpen, setIsAddOpen] = useState(false);
-  const [editingCompany, setEditingCompany] = useState<Company | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Company | null>(null);
-  const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
   const [pageSize, setPageSize] = useState(PAGE_SIZE_OPTIONS[0]);
   const [currentPage, setCurrentPage] = useState(1);
+  // 저장 중인 행의 id만 담아 그 select를 잠깐 비활성화한다 — 응답이 오기 전에 같은 행에서
+  // 다시 값을 바꿔 저장이 겹치는 것을 막는다. 실패해도 로컬 companies 상태가 갱신되지
+  // 않으므로(updateCompany 참고) select는 원래 값을 그대로 보여준다(별도 롤백 불필요).
+  const [savingStatusId, setSavingStatusId] = useState<string | null>(null);
+
+  // Company Detail 헤더의 handleOverallStatusChange와 동일하게 stepReconcile.guardSubmit을
+  // 그대로 재사용한다 — 미확정 전형이 남은 채 최종 상태로 바뀌면 확인 모달이 뜬다.
+  async function handleStatusChange(company: Company, newStatus: OverallStatus) {
+    setSavingStatusId(company.id);
+    const proceed = stepReconcile.guardSubmit(company, async (values) => {
+      await updateCompany(company.id, values);
+      setSavingStatusId(null);
+    });
+    proceed({ ...companyToFormValues(company), overallStatus: newStatus });
+  }
 
   const loading = companiesLoading || stepsLoading || eventsLoading;
 
@@ -186,7 +193,6 @@ export default function CompaniesPage() {
   const hasNoCompaniesAtAll = companies.length === 0;
 
   function handleDeleteClick(company: Company) {
-    setActiveMenuId(null);
     setDeleteTarget(company);
   }
 
@@ -378,15 +384,35 @@ export default function CompaniesPage() {
                           {currentStepDisplayName}
                         </td>
                         <td className="py-3 px-2">
-                          {company.overallStatus === "offer" ? (
-                            <span className="whitespace-nowrap rounded-stitch-md border border-success/20 bg-success/10 px-2 py-0.5 text-[11px] font-[400] text-success">
-                              {statusLabels.offer}
-                            </span>
-                          ) : (
-                            <span className="whitespace-nowrap rounded-stitch-md border border-stitch-border bg-[#f8f9ff] px-2 py-0.5 text-[11px] text-secondary">
-                              {statusLabels[company.overallStatus]}
-                            </span>
-                          )}
+                          {/* Company Detail 헤더와 동일한 pill select — 우선순위는 지금처럼
+                              읽기 전용 배지로 남겨두고 상태만 목록에서 바로 고칠 수 있게 한다. */}
+                          <div className="relative inline-block">
+                            <select
+                              value={company.overallStatus}
+                              disabled={savingStatusId === company.id}
+                              onClick={(e) => e.stopPropagation()}
+                              onChange={(e) =>
+                                handleStatusChange(company, e.target.value as OverallStatus)
+                              }
+                              className={
+                                "cursor-pointer appearance-none rounded-full border py-1 pl-2.5 pr-6 text-[11px] font-[400] outline-none disabled:cursor-not-allowed disabled:opacity-60 " +
+                                (company.overallStatus === "offer"
+                                  ? "border-success/20 bg-success/10 text-success"
+                                  : "border-stitch-border bg-[#f8f9ff] text-secondary")
+                              }
+                            >
+                              {OVERALL_STATUSES.map((status) => (
+                                <option key={status} value={status}>
+                                  {statusLabels[status]}
+                                </option>
+                              ))}
+                            </select>
+                            <MaterialIcon
+                              name="expand_more"
+                              size={13}
+                              className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-current"
+                            />
+                          </div>
                         </td>
                         <td className="whitespace-nowrap py-3 px-2 text-[12px] tracking-normal text-secondary">
                           {nextEventAt ? formatNextSchedule(nextEventAt) : "-"}
@@ -406,51 +432,20 @@ export default function CompaniesPage() {
                           {formatUpdatedRelative(company.updatedAt, t)}
                         </td>
                         <td className="relative py-3 px-2 text-center">
+                          {/* 상태/우선순위/이름 모두 Company Detail에서 인라인으로 바로
+                              고칠 수 있게 되면서, 이 자리엔 그대로 남겨두는 삭제만 직접
+                              아이콘 버튼으로 둔다(⋮ 메뉴는 항목이 1개뿐이라 불필요). */}
                           <button
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
-                              setActiveMenuId((id) => (id === company.id ? null : company.id));
+                              handleDeleteClick(company);
                             }}
-                            className="flex w-full items-center justify-center text-secondary opacity-0 transition-colors hover:text-stitch-ink group-hover:opacity-100"
-                            aria-label={t("companies.list.actionsMenuLabel", { name: company.name })}
+                            className="flex w-full items-center justify-center text-secondary opacity-100 transition-colors hover:text-error md:opacity-0 md:group-hover:opacity-100"
+                            aria-label={t("companies.list.actions.delete")}
                           >
-                            <MaterialIcon name="more_vert" size={16} />
+                            <MaterialIcon name="delete" size={16} />
                           </button>
-                          {activeMenuId === company.id && (
-                            <>
-                              <div
-                                className="fixed inset-0 z-10"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setActiveMenuId(null);
-                                }}
-                              />
-                              <div className="absolute right-2 top-9 z-20 w-32 rounded-stitch-md border border-stitch-border bg-card py-1 text-left shadow-lg">
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setEditingCompany(company);
-                                    setActiveMenuId(null);
-                                  }}
-                                  className="block w-full px-3 py-2 text-left text-[13px] text-stitch-ink hover:bg-[#f8f9ff]"
-                                >
-                                  {t("companies.list.actions.edit")}
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDeleteClick(company);
-                                  }}
-                                  className="block w-full px-3 py-2 text-left text-[13px] text-error hover:bg-[#f8f9ff]"
-                                >
-                                  {t("companies.list.actions.delete")}
-                                </button>
-                              </div>
-                            </>
-                          )}
                         </td>
                       </tr>
                     ))}
@@ -555,45 +550,23 @@ export default function CompaniesPage() {
         </div>
 
         {isAddOpen && (
-          <CompanyForm
+          <CompanyCreateForm
             title={t("companies.list.addCompanyModalTitle")}
             description={t("companies.list.addCompanyModalDescription")}
-            initialValues={createEmptyCompanyFormValues()}
             onCancel={() => setIsAddOpen(false)}
             onSubmit={async (values) => {
-              const ok = await addCompany(values);
-              if (ok) {
+              const created = await addCompany(values);
+              if (created) {
                 setIsAddOpen(false);
                 // 기본 8개 전형은 DB 트리거가 생성하므로, 방금 만든 기업의 전형이
                 // 클라이언트 상태에 보이도록 한 번 더 불러온다.
                 refreshSteps();
                 showToast(t("companies.list.addSuccessToast", { name: values.name }));
+                // 이름만 입력하고 나머지는 비어 있는 상태라, 바로 상세 화면으로 이동해
+                // 이어서 채울 수 있게 한다.
+                router.push(`/companies/${created.id}`);
               }
             }}
-          />
-        )}
-
-        {editingCompany && (
-          <CompanyForm
-            title={t("companies.list.editCompanyModalTitle")}
-            initialValues={companyToFormValues(editingCompany)}
-            onCancel={() => setEditingCompany(null)}
-            onSubmit={stepReconcile.guardSubmit(editingCompany, async (values) => {
-              const ok = await updateCompany(editingCompany.id, values);
-              if (ok) setEditingCompany(null);
-            })}
-          />
-        )}
-
-        {stepReconcile.reconcileState && (
-          <StepReconcileDialog
-            companyName={stepReconcile.reconcileState.company.name}
-            incompleteSteps={stepReconcile.reconcileState.incompleteSteps}
-            isSaving={stepReconcile.isSaving}
-            error={stepReconcile.stepError}
-            onCancel={stepReconcile.cancel}
-            onSaveWithoutChanges={stepReconcile.saveWithoutStepChanges}
-            onSaveWithChanges={stepReconcile.saveWithStepChanges}
           />
         )}
 
@@ -607,6 +580,17 @@ export default function CompaniesPage() {
           onCancel={() => setDeleteTarget(null)}
           onConfirm={handleConfirmDelete}
         />
+
+        {stepReconcile.reconcileState && (
+          <StepReconcileDialog
+            companyName={stepReconcile.reconcileState.company.name}
+            onCancel={() => {
+              setSavingStatusId(null);
+              stepReconcile.cancel();
+            }}
+            onConfirm={stepReconcile.confirm}
+          />
+        )}
       </div>
     </div>
   );

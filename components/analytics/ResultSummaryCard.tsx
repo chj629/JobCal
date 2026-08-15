@@ -17,7 +17,8 @@ interface ResultSummaryCardProps {
 // docs/stitch/메인페이지 5개/jobcal_analytics_standardized_design_refresh의 "選考結果"
 // 카드. StepFunnelChart.tsx와 같은 전형명별 집계(lib/stepFunnel.ts)를 재사용해, 첫 단계
 // (エントリー 격)를 제외한 각 단계의 통과율(=passRate)과 통과/불합격 인원을 보여준다.
-// 통과 = 그 단계에 도달/통과한 기업 수, 불합격 = 직전 단계 대비 줄어든 수(= prevCount - count).
+// 통과/불합격은 그 단계의 stepStatus가 실제로 passed/failed인 건수를 그대로 센 값이고,
+// 통과율은 passedCount / (passedCount + failedCount)다(in_progress/waiting은 분모에서 제외).
 export default function ResultSummaryCard({ companies, steps }: ResultSummaryCardProps) {
   const t = useT();
   const rows = buildStepFunnelRows(companies, steps).slice(1);
@@ -47,7 +48,6 @@ export default function ResultSummaryCard({ companies, steps }: ResultSummaryCar
         >
           {rows.map((row) => {
             const displayName = getStepDisplayName({ name: row.name, stepKey: row.stepKey }, t);
-            const failedCount = Math.max(0, row.prevCount - row.count);
 
             return (
               <div key={row.name} className="mx-auto w-full max-w-[420px] space-y-1.5">
@@ -73,11 +73,11 @@ export default function ResultSummaryCard({ companies, steps }: ResultSummaryCar
                 <div className="mt-1 flex gap-3 text-[12px] text-secondary">
                   <span>
                     {t("analytics.resultSummary.passed")}:{" "}
-                    <span className="font-[400] text-stitch-ink">{row.count}</span>
+                    <span className="font-[400] text-stitch-ink">{row.passedCount}</span>
                   </span>
                   <span>
                     {t("analytics.resultSummary.failed")}:{" "}
-                    <span className="font-[400] text-stitch-ink">{failedCount}</span>
+                    <span className="font-[400] text-stitch-ink">{row.failedCount}</span>
                   </span>
                 </div>
               </div>
