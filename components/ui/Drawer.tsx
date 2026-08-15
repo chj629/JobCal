@@ -155,7 +155,10 @@ export default function Drawer({
       <div
         aria-hidden="true"
         onClick={onClose}
-        className="fixed inset-0 z-50 bg-[#0d1c2f]/5 min-[1600px]:hidden"
+        className={
+          "fixed inset-0 z-50 bg-[#0d1c2f]/5 transition-opacity duration-200 ease-out min-[1600px]:hidden " +
+          (visible ? "opacity-100" : "opacity-0")
+        }
       />
       <div
         role="dialog"

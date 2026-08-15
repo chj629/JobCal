@@ -386,32 +386,41 @@ export default function CompaniesPage() {
                         <td className="py-3 px-2">
                           {/* Company Detail 헤더와 동일한 pill select — 우선순위는 지금처럼
                               읽기 전용 배지로 남겨두고 상태만 목록에서 바로 고칠 수 있게 한다. */}
-                          <div className="relative inline-block">
-                            <select
-                              value={company.overallStatus}
-                              disabled={savingStatusId === company.id}
-                              onClick={(e) => e.stopPropagation()}
-                              onChange={(e) =>
-                                handleStatusChange(company, e.target.value as OverallStatus)
-                              }
-                              className={
-                                "cursor-pointer appearance-none rounded-full border py-1 pl-2.5 pr-6 text-[11px] font-[400] outline-none disabled:cursor-not-allowed disabled:opacity-60 " +
-                                (company.overallStatus === "offer"
-                                  ? "border-success/20 bg-success/10 text-success"
-                                  : "border-stitch-border bg-[#f8f9ff] text-secondary")
-                              }
-                            >
-                              {OVERALL_STATUSES.map((status) => (
-                                <option key={status} value={status}>
-                                  {statusLabels[status]}
-                                </option>
-                              ))}
-                            </select>
-                            <MaterialIcon
-                              name="expand_more"
-                              size={13}
-                              className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-current"
-                            />
+                          <div className="flex items-center gap-1.5">
+                            <div className="relative inline-block">
+                              <select
+                                value={company.overallStatus}
+                                disabled={savingStatusId === company.id}
+                                onClick={(e) => e.stopPropagation()}
+                                onChange={(e) =>
+                                  handleStatusChange(company, e.target.value as OverallStatus)
+                                }
+                                className={
+                                  "cursor-pointer appearance-none rounded-full border py-1 pl-2.5 pr-6 text-[11px] font-[400] outline-none disabled:cursor-not-allowed disabled:opacity-60 " +
+                                  (company.overallStatus === "offer"
+                                    ? "border-success/20 bg-success/10 text-success"
+                                    : "border-stitch-border bg-[#f8f9ff] text-secondary")
+                                }
+                              >
+                                {OVERALL_STATUSES.map((status) => (
+                                  <option key={status} value={status}>
+                                    {statusLabels[status]}
+                                  </option>
+                                ))}
+                              </select>
+                              <MaterialIcon
+                                name="expand_more"
+                                size={13}
+                                className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-current"
+                              />
+                            </div>
+                            {savingStatusId === company.id && (
+                              <MaterialIcon
+                                name="progress_activity"
+                                size={14}
+                                className="animate-spin text-secondary"
+                              />
+                            )}
                           </div>
                         </td>
                         <td className="whitespace-nowrap py-3 px-2 text-[12px] tracking-normal text-secondary">

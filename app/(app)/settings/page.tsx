@@ -6,6 +6,7 @@ import { translate, useLocale, useT } from "@/lib/locale-context";
 import type { Locale } from "@/lib/i18n/messages";
 import { createClient } from "@/lib/supabase/client";
 import MaterialIcon from "@/components/ui/MaterialIcon";
+import LoadingState from "@/components/ui/LoadingState";
 import { useToast } from "@/components/ui/Toast";
 
 const MIN_PASSWORD_LENGTH = 6;
@@ -195,9 +196,7 @@ export default function SettingsPage() {
               </p>
 
               {loading ? (
-                <p className="text-[13px] text-[var(--color-settings-secondary)]">
-                  {t("common.loading")}
-                </p>
+                <LoadingState>{t("common.loading")}</LoadingState>
               ) : (
                 // docs/stitch/설정페이지/jobcal_settings_profile_sophisticated_refresh 기준.
                 // 공용 Input/Button은 rounded-lg + 파랑 계열이라 이 화면의 rounded-full 필(pill) +
@@ -251,8 +250,11 @@ export default function SettingsPage() {
                       disabled={
                         isSaving || !displayName.trim() || displayName.trim() === initialName
                       }
-                      className="rounded-full bg-[#e2dffe] px-6 py-3 text-[13px] font-medium text-[#1a192f] shadow-sm transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="inline-flex items-center justify-center gap-1.5 rounded-full bg-[#e2dffe] px-6 py-3 text-[13px] font-medium text-[#1a192f] shadow-sm transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                     >
+                      {isSaving && (
+                        <MaterialIcon name="progress_activity" size={14} className="animate-spin" />
+                      )}
                       {isSaving ? t("common.loading") : t("common.save")}
                     </button>
                   </div>
@@ -370,8 +372,11 @@ export default function SettingsPage() {
                     <button
                       type="submit"
                       disabled={isChangingPassword}
-                      className="rounded-full bg-[#e2dffe] px-6 py-3 text-[13px] font-medium text-[#1a192f] shadow-sm transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="inline-flex items-center justify-center gap-1.5 rounded-full bg-[#e2dffe] px-6 py-3 text-[13px] font-medium text-[#1a192f] shadow-sm transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                     >
+                      {isChangingPassword && (
+                        <MaterialIcon name="progress_activity" size={14} className="animate-spin" />
+                      )}
                       {isChangingPassword ? t("common.loading") : t("settings.account.submit")}
                     </button>
                   </div>

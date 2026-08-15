@@ -1,12 +1,16 @@
 "use client";
 
-import { useEffect, useId, type ReactNode } from "react";
+import { useEffect, useId, useState, type ReactNode } from "react";
 import { useT } from "@/lib/locale-context";
 import MaterialIcon from "@/components/ui/MaterialIcon";
 
 export interface ModalProps {
   open?: boolean;
   onClose: () => void;
+  // 닫힘 fade-out이 끝나 실제로 unmount된 시점에만 호출된다(open을 false로 넘기는 곳이
+  // 애니메이션이 끝난 뒤에만 실제 정리 작업을 하고 싶을 때 쓴다). 생략하면 아무 일도
+  // 일어나지 않는다 — 기존처럼 open을 안 넘기는 호출부는 이 콜백도 필요 없다.
+  onClosed?: () => void;
   title?: string;
   // 시안(企業を追加)의 제목 아래 보조 설명 한 줄. 선택적이라 안 넘기면 기존처럼 제목만 보인다.
   description?: string;
@@ -31,6 +35,7 @@ const SIZE_CLASS: Record<NonNullable<ModalProps["size"]>, string> = {
 export default function Modal({
   open = true,
   onClose,
+  onClosed,
   title,
   description,
   children,
@@ -41,22 +46,52 @@ export default function Modal({
   const t = useT();
   const titleId = useId();
 
+  // components/ui/Drawer.tsx, components/ui/ConfirmDialog.tsx와 동일한 mount/visible 패턴.
+  const [mounted, setMounted] = useState(open);
+  const [visible, setVisible] = useState(false);
+  const [prevOpen, setPrevOpen] = useState(open);
+  if (open !== prevOpen) {
+    setPrevOpen(open);
+    if (open) {
+      setMounted(true);
+    } else {
+      setVisible(false);
+    }
+  }
+
+  useEffect(() => {
+    if (!open || !mounted) return;
+    const raf = requestAnimationFrame(() => setVisible(true));
+    return () => cancelAnimationFrame(raf);
+  }, [open, mounted]);
+
   // ESC로 닫기. backdrop 클릭 닫기는 아래 배경 div의 onClick(카드 자체는 stopPropagation)으로 처리한다.
   useEffect(() => {
-    if (!open) return;
+    if (!mounted) return;
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") onClose();
     }
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [open, onClose]);
+  }, [mounted, onClose]);
 
-  if (!open) return null;
+  function handleBackdropTransitionEnd() {
+    if (!open) {
+      setMounted(false);
+      onClosed?.();
+    }
+  }
+
+  if (!mounted) return null;
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      className={
+        "fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 transition-opacity duration-150 ease-out " +
+        (visible ? "opacity-100" : "opacity-0")
+      }
       onClick={onClose}
+      onTransitionEnd={handleBackdropTransitionEnd}
     >
       <div
         role="dialog"
@@ -64,7 +99,9 @@ export default function Modal({
         aria-labelledby={title ? titleId : undefined}
         onClick={(event) => event.stopPropagation()}
         className={
-          "flex max-h-[90vh] w-full flex-col overflow-hidden rounded-2xl border border-stitch-border bg-white shadow-lg " +
+          "flex max-h-[90vh] w-full flex-col overflow-hidden rounded-2xl border border-stitch-border bg-white shadow-lg transition-[opacity,transform] duration-150 ease-out " +
+          (visible ? "opacity-100 scale-100" : "opacity-0 scale-[0.97]") +
+          " " +
           SIZE_CLASS[size] +
           (className ? " " + className : "")
         }

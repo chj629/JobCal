@@ -52,7 +52,7 @@ export default function Header({ aiDrawerOpen, onOpenAiDrawer }: HeaderProps) {
   const initials = profile ? getInitials(profile.primaryLine) : "";
 
   return (
-    <header className="flex h-16 shrink-0 items-center border-b border-stitch-border bg-card font-[family-name:var(--font-hanken-grotesk)] tracking-[-0.025em]">
+    <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center border-b border-stitch-border bg-card font-[family-name:var(--font-hanken-grotesk)] tracking-[-0.025em]">
       <div className="flex h-full w-full items-center px-6">
         <div className="flex-1">
           {/* docs/stitch: 모바일(<md)에서만 보이는 메뉴 버튼. Stitch에도 열린 상태(드로어)

@@ -21,6 +21,7 @@ interface ApplicationStepsContextValue {
   renameStep: (id: string, name: string) => Promise<boolean>;
   updateStepStatus: (id: string, status: StepStatus) => Promise<boolean>;
   moveStep: (id: string, direction: "up" | "down") => Promise<boolean>;
+  reorderSteps: (companyId: string, orderedIds: string[]) => Promise<boolean>;
 }
 
 const ApplicationStepsContext = createContext<ApplicationStepsContextValue | null>(null);
@@ -373,6 +374,48 @@ export function ApplicationStepsProvider({ children }: { children: ReactNode }) 
     return true;
   }
 
+  // StepTimeline의 드래그 정렬 전용. moveStep은 인접 1칸 스왑마다 SELECT 2번 + UPDATE 2번을
+  // 매번 다시 조회해가며 순차로 반복하므로, 드래그로 여러 칸을 옮기면 그 체인이 이동 거리만큼
+  // 그대로 늘어나 체감 지연이 커진다(원인 조사 완료). 이 함수는 드래그 한 번(onDragEnd)에 한
+  // 번만 호출되고 — moveStep처럼 같은 실행 흐름 안에서 연달아 여러 번 불릴 일이 없어 staleness
+  // 위험이 없다 — orderedIds가 이미 최종 순서를 전부 담고 있으므로 재조회 없이 그 순서 그대로
+  // step_order를 1..N으로 병렬(Promise.all) 업데이트한다.
+  // 낙관적 업데이트 + 실패 시 rollback도 이 함수가 전담한다: 호출 즉시 로컬 state를 최종
+  // 순서로 반영해 드롭 순간 화면이 바로 정착하게 하고, 실패하면 호출 시점 스냅샷으로 되돌린다.
+  async function reorderSteps(companyId: string, orderedIds: string[]) {
+    if (!userId) return false;
+
+    const previousSteps = steps;
+    const orderMap = new Map(orderedIds.map((id, index) => [id, index + 1]));
+
+    setSteps((prev) =>
+      prev.map((s) => {
+        const nextOrder = orderMap.get(s.id);
+        return nextOrder === undefined ? s : { ...s, stepOrder: nextOrder };
+      })
+    );
+
+    const results = await Promise.all(
+      orderedIds.map((id, index) =>
+        supabase
+          .from("application_steps")
+          .update({ step_order: index + 1 })
+          .eq("id", id)
+          .eq("company_id", companyId)
+      )
+    );
+
+    const failed = results.find((result) => result.error);
+    if (failed?.error) {
+      setSteps(previousSteps);
+      await handleSupabaseError(failed.error.message, setError);
+      return false;
+    }
+
+    setError(null);
+    return true;
+  }
+
   return (
     <ApplicationStepsContext.Provider
       value={{
@@ -385,6 +428,7 @@ export function ApplicationStepsProvider({ children }: { children: ReactNode }) 
         renameStep,
         updateStepStatus,
         moveStep,
+        reorderSteps,
       }}
     >
       {children}

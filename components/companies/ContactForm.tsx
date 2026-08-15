@@ -4,6 +4,7 @@ import { useState, type FormEvent, type InputHTMLAttributes, type ReactNode, typ
 import type { ContactFormValues } from "@/lib/companyContacts";
 import { useT } from "@/lib/locale-context";
 import Modal from "@/components/ui/Modal";
+import MaterialIcon from "@/components/ui/MaterialIcon";
 
 interface ContactFormProps {
   title: string;
@@ -56,6 +57,13 @@ export default function ContactForm({ title, initialValues, onCancel, onSubmit }
   // 저장 요청이 진행 중일 때 버튼을 비활성화해 더블클릭으로 같은 요청이 중복 실행되는
   // 것을 막는다. onSubmit이 끝나면(성공/실패 상관없이) 다시 눌러볼 수 있게 되돌린다.
   const [isSaving, setIsSaving] = useState(false);
+  // Modal이 fade-out 애니메이션을 끝까지 재생한 뒤에만 실제 onCancel(부모의 unmount)을
+  // 부르기 위한 로컬 상태. 배경/ESC/X/취소 버튼 모두 이 함수 하나로 닫기를 요청하고,
+  // 실제 정리는 Modal의 onClosed에서 한 번만 일어난다.
+  const [closing, setClosing] = useState(false);
+  function requestClose() {
+    setClosing(true);
+  }
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -74,13 +82,15 @@ export default function ContactForm({ title, initialValues, onCancel, onSubmit }
 
   return (
     <Modal
+      open={!closing}
+      onClosed={onCancel}
       title={title}
-      onClose={onCancel}
+      onClose={requestClose}
       footer={
         <>
           <button
             type="button"
-            onClick={onCancel}
+            onClick={requestClose}
             className="rounded-full px-6 py-2.5 text-[14px] font-[500] text-primary-navy transition-colors hover:bg-black/[0.02]"
           >
             {t("common.cancel")}
@@ -89,8 +99,9 @@ export default function ContactForm({ title, initialValues, onCancel, onSubmit }
             type="submit"
             form="contact-form"
             disabled={isSaving}
-            className="rounded-full bg-primary-navy px-8 py-2.5 text-[14px] font-[500] text-white transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex items-center justify-center gap-1.5 rounded-full bg-primary-navy px-8 py-2.5 text-[14px] font-[500] text-white transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
           >
+            {isSaving && <MaterialIcon name="progress_activity" size={16} className="animate-spin" />}
             {isSaving ? t("common.loading") : t("common.save")}
           </button>
         </>

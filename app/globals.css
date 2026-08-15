@@ -138,3 +138,24 @@ body {
 .stitch-scrollbar-hidden::-webkit-scrollbar {
   display: none; /* Chrome/Safari/Edge Chromium */
 }
+
+/* 애니메이션 개선 3단계: prefers-reduced-motion 접근성 대응. Modal/Drawer/ConfirmDialog/
+   Toast/hover 등 프로젝트 전역의 transition/animation duration을 거의 즉시 수준으로
+   줄인다. hover/press 자체(상태 변화)는 duration만 0에 가까워질 뿐 그대로 동작한다.
+   progress_activity(components/ui/MaterialIcon.tsx)의 animate-spin은 로딩 여부를 알리는
+   정보 전달용이라 별도로 원래 속도(1s linear infinite, Tailwind 기본값)를 유지한다. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .animate-spin {
+    animation-duration: 1s !important;
+    animation-iteration-count: infinite !important;
+  }
+}

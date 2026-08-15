@@ -116,7 +116,11 @@ export default function LoginPage() {
                 disabled={isLoading}
                 className="flex w-full items-center justify-center gap-3 rounded-full border border-neutral-300 bg-white px-6 py-3.5 text-[15px] font-[400] text-neutral-900 transition-all duration-200 hover:bg-[#f3f4f6] disabled:cursor-not-allowed disabled:opacity-60"
               >
-                <GoogleIcon />
+                {isLoading ? (
+                  <MaterialIcon name="progress_activity" size={18} className="animate-spin" />
+                ) : (
+                  <GoogleIcon />
+                )}
                 <span>{isLoading ? t("auth.login.googleLoading") : t("auth.login.google")}</span>
               </button>
 
@@ -170,8 +174,11 @@ export default function LoginPage() {
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="mt-4 h-[52px] w-full rounded-full bg-primary-navy px-6 text-[15px] font-[400] text-white shadow-sm transition-colors hover:bg-[#152c6e] disabled:cursor-not-allowed disabled:opacity-60"
+                  className="mt-4 flex h-[52px] w-full items-center justify-center gap-2 rounded-full bg-primary-navy px-6 text-[15px] font-[400] text-white shadow-sm transition-colors hover:bg-[#152c6e] disabled:cursor-not-allowed disabled:opacity-60"
                 >
+                  {isLoading && (
+                    <MaterialIcon name="progress_activity" size={18} className="animate-spin" />
+                  )}
                   {isLoading ? t("auth.login.submitLoading") : t("auth.login.submit")}
                 </button>
               </form>

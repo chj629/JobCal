@@ -510,8 +510,9 @@ export default function EmailAnalysisReview({
         type="button"
         onClick={handleRegister}
         disabled={saving}
-        className="flex-[2] rounded-full bg-primary-navy py-4 text-[14px] font-[500] text-white transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+        className="flex-[2] inline-flex items-center justify-center gap-1.5 rounded-full bg-primary-navy py-4 text-[14px] font-[500] text-white transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
       >
+        {saving && <MaterialIcon name="progress_activity" size={16} className="animate-spin" />}
         {saving ? t("aiEmail.review.submitting") : t("aiEmail.review.submit")}
       </button>
     </>

@@ -37,16 +37,41 @@ export default function ConfirmDialog({
   const busy = isLoading || isSubmitting;
   const isDanger = variant === "danger";
 
+  // components/ui/Drawer.tsx와 동일한 mount/visible 패턴. 이 컴포넌트는 대부분의 사용처에서
+  // 항상 마운트된 채 open prop만 토글되므로(예: <ConfirmDialog open={!!deleteTarget} .../>),
+  // open이 false가 돼도 즉시 사라지지 않고 fade-out이 끝난 뒤에야 실제로 렌더를 멈춘다.
+  const [mounted, setMounted] = useState(open);
+  const [visible, setVisible] = useState(false);
+  const [prevOpen, setPrevOpen] = useState(open);
+  if (open !== prevOpen) {
+    setPrevOpen(open);
+    if (open) {
+      setMounted(true);
+    } else {
+      setVisible(false);
+    }
+  }
+
   useEffect(() => {
-    if (!open) return;
+    if (!open || !mounted) return;
+    const raf = requestAnimationFrame(() => setVisible(true));
+    return () => cancelAnimationFrame(raf);
+  }, [open, mounted]);
+
+  useEffect(() => {
+    if (!mounted) return;
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") onCancel();
     }
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [open, onCancel]);
+  }, [mounted, onCancel]);
 
-  if (!open) return null;
+  function handleBackdropTransitionEnd() {
+    if (!open) setMounted(false);
+  }
+
+  if (!mounted) return null;
 
   async function handleConfirm() {
     if (busy) return;
@@ -60,14 +85,21 @@ export default function ConfirmDialog({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 p-4"
+      className={
+        "fixed inset-0 z-50 flex items-center justify-center bg-black/20 p-4 transition-opacity duration-150 ease-out " +
+        (visible ? "opacity-100" : "opacity-0")
+      }
       onClick={onCancel}
+      onTransitionEnd={handleBackdropTransitionEnd}
     >
       <div
         role="alertdialog"
         aria-modal="true"
         onClick={(event) => event.stopPropagation()}
-        className="relative w-full max-w-[440px] overflow-hidden rounded-[24px] border border-stitch-border bg-white shadow-sm"
+        className={
+          "relative w-full max-w-[440px] overflow-hidden rounded-[24px] border border-stitch-border bg-white shadow-sm transition-[opacity,transform] duration-150 ease-out " +
+          (visible ? "opacity-100 scale-100" : "opacity-0 scale-[0.97]")
+        }
       >
         <button
           type="button"
@@ -116,10 +148,11 @@ export default function ConfirmDialog({
               onClick={handleConfirm}
               disabled={busy}
               className={
-                "min-w-[100px] rounded-full px-6 py-2.5 text-[14px] font-[500] text-white transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60 " +
+                "inline-flex min-w-[100px] items-center justify-center gap-1.5 rounded-full px-6 py-2.5 text-[14px] font-[500] text-white transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60 " +
                 (isDanger ? "bg-error" : "bg-primary-navy")
               }
             >
+              {busy && <MaterialIcon name="progress_activity" size={16} className="animate-spin" />}
               {confirmLabel}
             </button>
           </div>
