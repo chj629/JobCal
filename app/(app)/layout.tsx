@@ -16,8 +16,13 @@ import { ToastProvider } from "@/components/ui/Toast";
 
 export default function AppLayout({
   children,
+  modal,
 }: Readonly<{
   children: React.ReactNode;
+  // app/(app)/@modal 병렬 슬롯. /companies/[id]로의 소프트 내비게이션을 이 레이아웃
+  // 아래(모든 페이지 공통) 어디서든 가로채 풀스크린 모달로 띄우기 위한 것으로, 일치하는
+  // 라우트가 없으면 app/(app)/@modal/default.tsx가 null을 렌더링해 평소엔 아무 영향이 없다.
+  modal: React.ReactNode;
 }>) {
   const [aiDrawerOpen, setAiDrawerOpen] = useState(false);
   // aiDrawerOpen은 X 클릭 즉시 false가 되어 Drawer의 닫힘 애니메이션을 시작시켜야 한다.
@@ -70,6 +75,11 @@ export default function AppLayout({
                         >
                           {children}
                         </main>
+                        {/* app/(app)/@modal 슬롯. CompanyDetailModal 자신이 fixed 포지셔닝으로
+                            <main> 영역만 덮으므로(Header/Sidebar 회피) 여기 위치 자체는
+                            시각적으로 무관하다 — children과 형제로 두어 목록/대시보드 등
+                            아래 페이지가 언마운트되지 않게 하는 것이 핵심이다. */}
+                        {modal}
                       </div>
                       {/* min-[1600px] 이상에서 Drawer.tsx가 이 자리를 static flex item으로 차지해
                           main을 자연스럽게 밀어낸다(push). 그 미만에서는 Drawer 내부에서
