@@ -22,35 +22,14 @@ export interface DrawerProps {
   className?: string;
 }
 
-// 7_homeAION.png(대시보드+Drawer 합성 시안) 실측 기준으로 좁힌 값. sm(640px) 미만에서는
-// 화면 밖으로 잘리지 않도록 w-full, 그 이상에서는 프리셋 폭을 쓴다. AI Drawer 전용 폭이
-// 아니라 범용 프리셋이라 이름은 md/lg로 둔다.
-// sm: 구간을 max-[1599px]로 push 모드 미만까지만 한정한다 — Tailwind가 컴파일된 CSS에서
-// 이름 있는 브레이크포인트(sm)를 임의 브레이크포인트(min-[1600px])보다 항상 뒤에 배치해,
-// 범위를 겹치게 두면 1600px 이상에서도 sm:w-[460px]가 min-[1600px]:w-0을 이겨버려
-// 닫힘 애니메이션이 아예 시작되지 않는 문제가 있었다(width가 안 바뀌니 transitionend도 발생 X).
-// docs/stitch/AI Drawer/*의 w-[440px] 실측(스크린샷 550px ÷ 1.25 스케일)에 맞춰
-// lg를 460px→440px로 조정했다. Drawer는 현재 AiMailDrawer.tsx(width="lg")만 쓰므로
-// 다른 화면에 영향 없다.
+// sm(640px) 미만은 overlay(화면 전체를 덮는 w-full), 그 이상은 오른쪽에 고정폭으로 뜬다.
+// 두 구간 모두 position:fixed + translate-x 슬라이드로 동일하게 동작한다 — sm 이상에서도
+// main을 밀어내지 않는다(공간이 부족하면 main이 자체적으로 가로 스크롤된다, app/(app)/layout.tsx
+// 참고). docs/stitch/AI Drawer/*의 w-[440px] 실측(스크린샷 550px ÷ 1.25 스케일)을 그대로 쓴다.
+// Drawer는 현재 AiMailDrawer.tsx(width="lg")만 쓰므로 다른 화면에 영향 없다.
 const WIDTH_CLASS: Record<NonNullable<DrawerProps["width"]>, string> = {
-  md: "w-full sm:max-[1599px]:w-[380px]",
-  lg: "w-full sm:max-[1599px]:w-[440px]",
-};
-
-// min-[1600px](push 모드) 전용 목표 폭. overlay 폭(WIDTH_CLASS)과 같은 값이지만, 슬라이드가
-// transform이 아니라 width 자체를 0에서 이 값으로 키우는 방식이라 별도 클래스로 둔다.
-const PUSH_WIDTH_CLASS: Record<NonNullable<DrawerProps["width"]>, string> = {
-  md: "min-[1600px]:w-[380px]",
-  lg: "min-[1600px]:w-[440px]",
-};
-
-// push 모드에서 바깥 panel만 0→440px로 애니메이션되게 하고, 헤더 행(제목+X 버튼)과 내부
-// 콘텐츠는 둘 다 처음부터 완성된 폭을 유지하도록 최소폭을 강제한다(panel의 overflow-hidden이
-// 점진적으로 드러내는 창 역할). 헤더에도 적용해야 X 버튼이 폭 애니메이션 중 제목과 겹치며
-// 위치가 흔들리지 않는다.
-const PUSH_MIN_WIDTH_CLASS: Record<NonNullable<DrawerProps["width"]>, string> = {
-  md: "min-[1600px]:min-w-[380px]",
-  lg: "min-[1600px]:min-w-[440px]",
+  md: "w-full sm:w-[380px]",
+  lg: "w-full sm:w-[440px]",
 };
 
 // docs/stitch/AI Drawer/*: 흰 배경 + 왼쪽으로 퍼지는 부드러운 그림자(shadow-[-16px...])만
@@ -69,9 +48,9 @@ export default function Drawer({
   const titleId = useId();
   const [mounted, setMounted] = useState(open);
   const [visible, setVisible] = useState(false);
-  // 1600px 이상(push 모드)에서는 body scroll을 잠그지 않기 위한 판단값. 서버 렌더에는
-  // window가 없으므로 false로 시작하고, 마운트 이후에만 matchMedia로 실제 값을 반영한다.
-  const [isPushMode, setIsPushMode] = useState(false);
+  // 640px(sm) 이상(오른쪽 고정폭 모드)에서는 body scroll을 잠그지 않기 위한 판단값. 서버
+  // 렌더에는 window가 없으므로 false로 시작하고, 마운트 이후에만 matchMedia로 실제 값을 반영한다.
+  const [isWideMode, setIsWideMode] = useState(false);
 
   // open prop 변경을 렌더 중에 감지해 즉시 반영한다(app/(app)/companies/page.tsx의
   // filterKey 비교와 동일한 패턴). effect 안에서 동기적으로 setState하지 않기 위함이다.
@@ -94,25 +73,25 @@ export default function Drawer({
     return () => cancelAnimationFrame(raf);
   }, [open, mounted]);
 
-  // 뷰포트가 1600px 경계를 넘나들 때도 body scroll 잠금 여부가 즉시 따라오도록 실시간으로
-  // 구독한다(리사이즈 중 push↔overlay 전환 시 상태가 잘못 남지 않게).
+  // 뷰포트가 640px 경계를 넘나들 때도 body scroll 잠금 여부가 즉시 따라오도록 실시간으로
+  // 구독한다(리사이즈 중 overlay↔고정폭 전환 시 상태가 잘못 남지 않게).
   useEffect(() => {
-    const mediaQuery = window.matchMedia("(min-width: 1600px)");
+    const mediaQuery = window.matchMedia("(min-width: 640px)");
     // lib/locale-context.tsx의 localStorage 초기값 반영과 동일한 이유로, effect 본문에서
     // 곧바로 setState하지 않고 마이크로태스크로 한 틱 미룬다(react-hooks/set-state-in-effect 회피).
-    queueMicrotask(() => setIsPushMode(mediaQuery.matches));
+    queueMicrotask(() => setIsWideMode(mediaQuery.matches));
 
     function handleChange(event: MediaQueryListEvent) {
-      setIsPushMode(event.matches);
+      setIsWideMode(event.matches);
     }
 
     mediaQuery.addEventListener("change", handleChange);
     return () => mediaQuery.removeEventListener("change", handleChange);
   }, []);
 
-  // ESC 닫기는 push/overlay 모드와 무관하게 패널이 화면에 실제로 붙어 있는 동안(닫히는
-  // 애니메이션 포함) 항상 유지한다. body scroll lock만 overlay 모드(1600px 미만)에서만
-  // 적용한다 — push 모드는 메인 콘텐츠가 그대로 보이므로 페이지 스크롤을 막을 이유가 없다.
+  // ESC 닫기는 폭 모드와 무관하게 패널이 화면에 실제로 붙어 있는 동안(닫히는 애니메이션
+  // 포함) 항상 유지한다. body scroll lock만 모바일 overlay 모드(640px 미만)에서만 적용한다
+  // — 640px 이상은 메인 콘텐츠가 그대로 보이고 조작 가능해야 하므로 페이지 스크롤을 막지 않는다.
   useEffect(() => {
     if (!mounted) return;
 
@@ -121,7 +100,7 @@ export default function Drawer({
     }
     document.addEventListener("keydown", handleKeyDown);
 
-    if (isPushMode) {
+    if (isWideMode) {
       return () => {
         document.removeEventListener("keydown", handleKeyDown);
       };
@@ -134,7 +113,7 @@ export default function Drawer({
       document.body.style.overflow = previousOverflow;
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [mounted, isPushMode, onClose]);
+  }, [mounted, isWideMode, onClose]);
 
   function handlePanelTransitionEnd() {
     if (!open) {
@@ -150,13 +129,13 @@ export default function Drawer({
       {/* docs/stitch/AI Drawer/*는 screen.png 4장 모두 Drawer가 열리면 배경을 옅게
           딤 처리한다(픽셀 실측: 대부분 #0d1c2f 5% 오버레이). 예전 참고 시안(7_homeAION.png,
           딤 없음)은 최신 배치로 대체됐다. */}
-      {/* min-[1600px] 이상은 AppLayout이 push 방식으로 붙이므로(main 옆 static flex item),
-          바깥을 덮는 배경 클릭 닫기 영역이 메인 콘텐츠 클릭까지 가로채지 않도록 숨긴다. */}
+      {/* sm(640px) 이상은 main이 그대로 보이고 조작 가능해야 하므로, 바깥을 덮는 배경 클릭
+          닫기 영역을 숨긴다(main 클릭까지 가로채지 않도록). */}
       <div
         aria-hidden="true"
         onClick={onClose}
         className={
-          "fixed inset-0 z-50 bg-[#0d1c2f]/5 transition-opacity duration-200 ease-out min-[1600px]:hidden " +
+          "fixed inset-0 z-50 bg-[#0d1c2f]/5 transition-opacity duration-200 ease-out sm:hidden " +
           (visible ? "opacity-100" : "opacity-0")
         }
       />
@@ -166,33 +145,24 @@ export default function Drawer({
         aria-labelledby={title ? titleId : undefined}
         onTransitionEnd={handlePanelTransitionEnd}
         className={
-          // overlay 모드(1600px 미만)는 height를 별도로 지정하지 않는다 — position:fixed +
-          // inset-y-0(top:0;bottom:0)만으로 이미 뷰포트 높이가 유일하게 결정되므로, 예전처럼
-          // h-full(height:100%)을 같이 주면 top/height/bottom이 모두 non-auto가 되어
-          // 브라우저가 'bottom'을 무시하고 재계산하는 overconstrained 케이스가 된다(스펙상
-          // 결과값 자체는 같지만, footer/버튼이 화면 아래에서 잘리는 문제를 조사할 때 이
-          // 모호함부터 없애기 위해 height 선언을 아예 제거했다).
-          "fixed inset-y-0 right-0 z-50 flex flex-col overflow-hidden bg-white shadow-[-16px_0_48px_rgba(0,0,0,0.05)] transition-transform duration-200 ease-out min-[1600px]:transition-[width] " +
-          // push 모드(1600px 이상)에서는 position이 static이 되어 inset-y-0이 더 이상 적용되지
-          // 않으므로, 이때만 h-screen(100vh)으로 명시적으로 높이를 준다. 슬롯 밖으로 translate하지
-          // 않도록 transform도 고정하고, 대신 width를 0↔440px로 애니메이션해 뷰포트를 벗어나는
-          // 오버플로우 자체가 생기지 않게 한다.
-          "min-[1600px]:static min-[1600px]:inset-auto min-[1600px]:z-auto min-[1600px]:h-screen min-[1600px]:min-w-0 min-[1600px]:shrink-0 min-[1600px]:translate-x-0 " +
+          // position:fixed + inset-y-0(top:0;bottom:0)만으로 뷰포트 높이가 결정된다 — 예전처럼
+          // h-full(height:100%)을 같이 주면 top/height/bottom이 모두 non-auto가 되어 브라우저가
+          // 'bottom'을 무시하고 재계산하는 overconstrained 케이스가 된다(스펙상 결과값은 같지만
+          // 이 모호함을 아예 없애기 위해 height 선언을 두지 않는다). sm(640px) 이상에서도 항상
+          // fixed로 두어 main을 밀어내지 않는다 — main이 좁아지지 않고, 부족한 공간은
+          // app/(app)/layout.tsx의 <main overflow-x-auto>가 가로 스크롤로 흡수한다.
+          "fixed inset-y-0 right-0 z-50 flex flex-col overflow-hidden bg-white shadow-[-16px_0_48px_rgba(0,0,0,0.05)] transition-transform duration-200 ease-out " +
           WIDTH_CLASS[width] +
           " " +
-          (visible
-            ? "translate-x-0 " + PUSH_WIDTH_CLASS[width]
-            : "translate-x-full min-[1600px]:w-0") +
+          (visible ? "translate-x-0" : "translate-x-full") +
           (className ? " " + className : "")
         }
       >
         <div
           className={
-            // h-16(64px): app 공통 Header(components/Header.tsx)와 동일한 높이. Drawer가
-            // push 모드로 열리면 둘 다 뷰포트 y=0에서 시작하는 형제 flex 열이라, 높이를
-            // 맞추면 두 헤더의 border-b가 정확히 같은 y좌표에 놓인다.
-            "flex h-16 shrink-0 items-center justify-between border-b border-stitch-border px-10 font-[family-name:var(--font-hanken-grotesk)] tracking-[-0.025em] " +
-            PUSH_MIN_WIDTH_CLASS[width]
+            // h-16(64px): app 공통 Header(components/Header.tsx)와 동일한 높이 — sm(640px)
+            // 이상에서 Drawer가 뷰포트 y=0에서 시작해 두 헤더의 border-b가 같은 y좌표에 놓인다.
+            "flex h-16 shrink-0 items-center justify-between border-b border-stitch-border px-10 font-[family-name:var(--font-hanken-grotesk)] tracking-[-0.025em]"
           }
         >
           {title ? (
@@ -213,10 +183,7 @@ export default function Drawer({
         </div>
 
         <div
-          className={
-            "min-h-0 flex-1 overflow-y-auto px-10 py-10 font-[family-name:var(--font-hanken-grotesk)] font-[350] tracking-[-0.025em] text-stitch-ink " +
-            PUSH_MIN_WIDTH_CLASS[width]
-          }
+          className="min-h-0 flex-1 overflow-y-auto px-10 py-10 font-[family-name:var(--font-hanken-grotesk)] font-[350] tracking-[-0.025em] text-stitch-ink"
         >
           {children}
         </div>
@@ -233,11 +200,7 @@ export default function Drawer({
             content와 이어진 것처럼 pt-8 + pb-12(시안의 content pb-12와 동일)만 적용해
             시안과 동일한 자연스러운 여백으로 재현한다. */}
         {footer && (
-          <div
-            className={"shrink-0 bg-white px-10 pt-8 pb-12 " + PUSH_MIN_WIDTH_CLASS[width]}
-          >
-            {footer}
-          </div>
+          <div className="shrink-0 bg-white px-10 pt-8 pb-12">{footer}</div>
         )}
       </div>
     </>

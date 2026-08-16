@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type ReactNode, type TransitionEvent } from "react";
+import { useAiDrawerMounted } from "@/lib/ai-drawer-context";
 
 export interface CompanyDetailModalProps {
   open: boolean;
@@ -25,6 +26,9 @@ export default function CompanyDetailModal({
   onClosed,
   children,
 }: CompanyDetailModalProps) {
+  // AI Drawer(components/ui/Drawer.tsx, sm/640px 이상에서도 항상 fixed)가 열려 있으면
+  // 내부 스크롤 영역에 가로 스크롤 스펜서를 붙인다 — 아래 className 주석 참고.
+  const aiDrawerMounted = useAiDrawerMounted();
   // components/ui/Modal.tsx, components/ui/Drawer.tsx와 동일한 mount/visible 패턴.
   const [mounted, setMounted] = useState(open);
   const [visible, setVisible] = useState(false);
@@ -81,7 +85,9 @@ export default function CompanyDetailModal({
     // 채운다. z-40: Header(z-30)보다는 위, 기존 Modal/ConfirmDialog/Drawer(z-50)보다는
     // 아래에 둬 상세 내부에서 여는 EventForm과 AI Drawer가 항상 이 위에 뜨게 한다. dim/여백/
     // rounded/shadow 없이 bg-card로 main 영역을 그대로 채워 라우팅만 모달이고 시각적으로는
-    // 일반 페이지처럼 보이게 한다 — 열기/닫기는 opacity만 fade한다.
+    // 일반 페이지처럼 보이게 한다 — 열기/닫기는 opacity만 fade한다. right-0을 항상 유지한다
+    // (AI Drawer가 열려도 줄어들지 않음) — Drawer는 sm 이상에서도 항상 fixed 오버레이라
+    // (components/ui/Drawer.tsx) 이 레이어를 밀어내지 않는다.
     <div
       role="dialog"
       aria-modal="true"
@@ -91,7 +97,19 @@ export default function CompanyDetailModal({
       }
       onTransitionEnd={handleTransitionEnd}
     >
-      <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>
+      {/* relative + overflow-x-auto: main(app/(app)/layout.tsx)과 동일한 가로 스크롤 스펜서
+          기법. Company Detail 내부 카드/grid 크기를 압축하지 않고, AI Drawer가 덮는 오른쪽
+          440px 영역은 가로 스크롤로 접근한다. */}
+      <div className="relative min-h-0 flex-1 overflow-y-auto overflow-x-auto">
+        {children}
+        {aiDrawerMounted && (
+          <div
+            aria-hidden="true"
+            className="absolute top-0 hidden h-px w-px sm:block"
+            style={{ left: "calc(100% + 439px)" }}
+          />
+        )}
+      </div>
     </div>
   );
 }

@@ -13,6 +13,7 @@ import { CompanyContactsProvider } from "@/lib/company-contacts-context";
 import { CompanyCredentialsProvider } from "@/lib/company-credentials-context";
 import { NextActionsProvider } from "@/lib/next-actions-context";
 import { ToastProvider } from "@/components/ui/Toast";
+import { AiDrawerMountedProvider } from "@/lib/ai-drawer-context";
 
 export default function AppLayout({
   children,
@@ -53,37 +54,53 @@ export default function AppLayout({
               <CompanyCredentialsProvider>
                 <NextActionsProvider>
                   <ToastProvider>
-                    <div className="flex min-h-screen min-[1600px]:h-screen min-[1600px]:overflow-hidden">
+                    <div className="flex min-h-screen sm:h-screen sm:overflow-hidden">
                       <Sidebar />
-                      <div className="flex min-w-0 flex-1 flex-col min-[1600px]:min-h-0">
+                      <div className="flex min-w-0 flex-1 flex-col sm:min-h-0">
                         <Header
                           aiDrawerOpen={aiDrawerMounted}
                           onOpenAiDrawer={handleOpenAiDrawer}
                         />
                         {/* @container/main: Calendar/Analytics의 2단 그리드가 뷰포트가 아니라
-                            main의 실제 폭을 기준으로 전환되도록 컨테이너 쿼리 기준점을 둔다.
-                            AI Drawer가 push 모드로 열려 main이 좁아지면 뷰포트가 1600px 이상이어도
-                            자동으로 1단을 유지하고, Drawer를 닫아 main이 다시 넓어지면 별도 상태
-                            없이 곧바로 2단으로 복귀한다. */}
-                        {/* 1600px 이상에서는 <main>이 자체 세로 스크롤을 갖는다(Sidebar | Main(scroll) |
-                            AI Drawer 구조). 그 미만은 지금처럼 body가 스크롤 컨테이너로 남는다. */}
+                            main의 실제 폭을 기준으로 전환되는 컨테이너 쿼리 기준점 — AI Drawer는
+                            항상 fixed 오버레이라(아래 AiMailDrawer 주석 참고) main 폭 자체는
+                            건드리지 않으므로, Drawer가 열려도 이 컨테이너 쿼리 결과는 바뀌지 않는다. */}
+                        {/* sm(640px) 이상에서는 <main>이 자체 세로 스크롤을 갖는다(Sidebar | Main(scroll)).
+                            모바일(640px 미만)은 지금처럼 body가 스크롤 컨테이너로 남는다.
+                            overflow-x-auto + relative: AI Drawer(440px, 항상 fixed)가 열려 있는 동안
+                            main 오른쪽 끝에 보이지 않는 스펜서(아래 aiDrawerMounted 분기)를 붙여 main의
+                            스크롤 가능 폭만 440px 늘린다 — 페이지 자체의 grid/max-width/card 크기는
+                            전혀 줄이지 않고(Drawer가 그 위를 덮을 뿐), 가려진 오른쪽 영역은 main을
+                            가로 스크롤해서 그대로 볼 수 있다. relative는 그 스펜서(absolute)의 기준점. */}
                         <main
                           className={
-                            "min-w-0 flex-1 pb-16 md:pb-0 @container/main min-[1600px]:min-h-0 min-[1600px]:overflow-y-auto" +
+                            "relative min-w-0 flex-1 pb-16 md:pb-0 @container/main sm:min-h-0 sm:overflow-y-auto sm:overflow-x-auto" +
                             (isStitchRoute ? " stitch-scrollbar-hidden" : "")
                           }
                         >
                           {children}
+                          {/* aiDrawerMounted일 때만 렌더 — 1x1px, 화면에 보이지 않지만 absolute 위치가
+                              main의 오른쪽 끝보다 440px 밖이라 main의 scrollWidth를 그만큼 늘린다. */}
+                          {aiDrawerMounted && (
+                            <div
+                              aria-hidden="true"
+                              className="absolute top-0 hidden h-px w-px sm:block"
+                              style={{ left: "calc(100% + 439px)" }}
+                            />
+                          )}
                         </main>
                         {/* app/(app)/@modal 슬롯. CompanyDetailModal 자신이 fixed 포지셔닝으로
                             <main> 영역만 덮으므로(Header/Sidebar 회피) 여기 위치 자체는
                             시각적으로 무관하다 — children과 형제로 두어 목록/대시보드 등
-                            아래 페이지가 언마운트되지 않게 하는 것이 핵심이다. */}
-                        {modal}
+                            아래 페이지가 언마운트되지 않게 하는 것이 핵심이다. AiDrawerMountedProvider:
+                            @modal은 parallel route라 이 레이아웃의 직접 자식이 아니어서 prop으로
+                            aiDrawerMounted를 내려줄 수 없어 context로 전달한다 — AI Drawer가 열려
+                            있는 동안 CompanyDetailModal도 main과 동일한 가로 스크롤 스펜서 기법을
+                            쓰기 위함(components/companies/CompanyDetailModal.tsx 참고). */}
+                        <AiDrawerMountedProvider value={aiDrawerMounted}>{modal}</AiDrawerMountedProvider>
                       </div>
-                      {/* min-[1600px] 이상에서 Drawer.tsx가 이 자리를 static flex item으로 차지해
-                          main을 자연스럽게 밀어낸다(push). 그 미만에서는 Drawer 내부에서
-                          fixed 오버레이로 그대로 렌더링되어 여기 위치는 시각적으로 무관하다. */}
+                      {/* Drawer.tsx는 항상 position:fixed라(sm 이상에서도) 이 자리가 실제 flex
+                          레이아웃에 관여하지 않는다 — 렌더 위치 자체는 시각적으로 무관하다. */}
                       <AiMailDrawer
                         open={aiDrawerOpen}
                         onClose={() => setAiDrawerOpen(false)}
