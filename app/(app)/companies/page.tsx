@@ -12,6 +12,7 @@ import MaterialIcon from "@/components/ui/MaterialIcon";
 import { useToast } from "@/components/ui/Toast";
 import {
   companyToFormValues,
+  OVERALL_STATUS_BADGE_CLASS,
   OVERALL_STATUSES,
   PRIORITIES,
   type Company,
@@ -397,9 +398,7 @@ export default function CompaniesPage() {
                                 }
                                 className={
                                   "cursor-pointer appearance-none rounded-full border py-1 pl-2.5 pr-6 text-[11px] font-[400] outline-none disabled:cursor-not-allowed disabled:opacity-60 " +
-                                  (company.overallStatus === "offer"
-                                    ? "border-success/20 bg-success/10 text-success"
-                                    : "border-stitch-border bg-[#f8f9ff] text-secondary")
+                                  OVERALL_STATUS_BADGE_CLASS[company.overallStatus]
                                 }
                               >
                                 {OVERALL_STATUSES.map((status) => (

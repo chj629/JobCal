@@ -69,10 +69,16 @@ export default function Header({ aiDrawerOpen, onOpenAiDrawer }: HeaderProps) {
 
         <div className="ml-auto flex items-center gap-3">
           {!aiDrawerOpen && (
+            // 핵심 기능인데도 다른 보조 버튼과 같은 옅은 outline 스타일이라 눈에 띄지
+            // 않던 문제를 고쳤다. app/(app)/companies/page.tsx·dashboard/page.tsx의
+            // primary CTA(bg-primary-navy + text-white + shadow-sm)와 같은 톤으로
+            // filled 버튼으로 바꾸되, hover는 그 CTA들의 hover:opacity-90 대신 로그인/
+            // 랜딩 CTA가 쓰는 hover:bg-[#152c6e](같은 navy 계열의 더 어두운 값)를 써서
+            // 밝아지지 않고 실제로 살짝 진해지게 한다.
             <button
               type="button"
               onClick={onOpenAiDrawer}
-              className="flex items-center gap-1.5 rounded-full border border-stitch-border bg-background px-3 py-1.5 text-[11px] font-[400] text-secondary transition-all hover:bg-black/[0.02] hover:text-stitch-ink"
+              className="flex items-center gap-1.5 rounded-full bg-primary-navy px-3 py-1.5 text-[11px] font-[400] text-white shadow-sm transition-colors hover:bg-[#152c6e]"
             >
               <MaterialIcon name="auto_awesome" size={14} />
               {t("common.appName")} AI

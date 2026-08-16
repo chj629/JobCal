@@ -22,6 +22,20 @@ export const OVERALL_STATUS_LABELS: Record<OverallStatus, string> = {
   cancelled: "지원 취소",
 };
 
+// app/(app)/companies/page.tsx(목록)와 components/companies/CompanyDetailScreen.tsx(상세)가
+// 상태 배지에 그대로 이어붙이는 색상 클래스. 두 곳이 항상 같은 규칙을 쓰도록 여기 하나로만
+// 둔다 — 기존 "내정만 success, 나머지는 전부 동일한 회색" 규칙이 진행중/불합격/지원취소를
+// 시각적으로 구분하지 못해, 상태별로 의미가 통하는 색으로 나눴다(진행중=navy, 내정·입사=success,
+// 불합격=error, 지원취소=neutral gray). 배지 자체의 옅은 pill 스타일(rounded-full border
+// {색}/20 bg-{색}/10 text-{색})과 크기/padding은 기존 내정 배지 그대로 유지한다.
+export const OVERALL_STATUS_BADGE_CLASS: Record<OverallStatus, string> = {
+  in_progress: "border-primary-navy/20 bg-primary-navy/10 text-primary-navy",
+  offer: "border-success/20 bg-success/10 text-success",
+  joined: "border-success/20 bg-success/10 text-success",
+  rejected: "border-error/20 bg-error/10 text-error",
+  cancelled: "border-stitch-border bg-[#f8f9ff] text-secondary",
+};
+
 // docs/database.md의 companies.priority와 1:1로 대응하는 영문 slug.
 export type Priority = "high" | "medium" | "low";
 

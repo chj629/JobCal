@@ -127,7 +127,11 @@ export default function ConfirmDialog({
             <p
               className={
                 "text-[13px] leading-relaxed " +
-                (isDanger ? "font-[500] text-error" : "text-secondary")
+                // text-error(#ef4444)는 흰 배경 대비 약 3.8:1로 13px 텍스트에는 WCAG AA(4.5:1)에
+                // 못 미친다. 버튼(bg-error)이나 다른 화면의 error 사용처는 그대로 두고, 이 삭제
+                // 확인 설명문만 같은 red 계열에서 더 진한 값(#dc2626, 대비 약 4.8:1)을 직접 써서
+                // AA를 통과시킨다 — --color-error 전역 토큰은 바꾸지 않는다.
+                (isDanger ? "font-[500] text-[#dc2626]" : "text-secondary")
               }
             >
               {description}

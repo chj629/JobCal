@@ -107,11 +107,16 @@ export default function CompanySchedulePanel({ companyId }: CompanySchedulePanel
                   (index === 0 ? "border-primary-navy" : "border-stitch-border")
                 }
               >
-                <div className="flex items-center justify-between gap-1">
-                  <p className="truncate text-[13px] font-[400] leading-tight text-stitch-ink">
+                <div className="relative flex items-center gap-1">
+                  <p className="min-w-0 flex-1 truncate text-[13px] font-[400] leading-tight text-stitch-ink">
                     {event.title}
                   </p>
-                  <div className="flex shrink-0 gap-1 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100">
+                  {/* md 이상에서는 이 버튼들이 opacity-0으로 평소엔 안 보이는데도 flex 자식으로
+                      계속 자리(약 60px)를 차지해 title의 truncate 가용폭을 불필요하게 줄이고
+                      있었다. md 이상에서만 absolute로 빼서 평소엔 title이 행 전체 폭을 쓰고,
+                      hover 시에만 원래 위치(우측 끝, 세로 중앙)에 겹쳐 나타나게 한다. 모바일은
+                      기존처럼 항상 보이는 in-flow 배치를 그대로 유지한다. */}
+                  <div className="flex shrink-0 gap-1 opacity-100 transition-opacity md:absolute md:top-1/2 md:right-0 md:-translate-y-1/2 md:opacity-0 md:group-hover:opacity-100">
                     <button
                       type="button"
                       onClick={() => setEventFormState({ event })}

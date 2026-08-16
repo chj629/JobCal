@@ -197,7 +197,7 @@ export default function CalendarWeekGrid({
                         {company?.name ?? ""}
                       </span>
                       <span className="mt-0.5 truncate text-[11px] leading-tight opacity-80">{stepName}</span>
-                      <span className="mt-auto truncate text-[10px] leading-tight opacity-60">{timeLabel}</span>
+                      <span className="mt-auto truncate text-[10px] leading-tight opacity-90">{timeLabel}</span>
                     </button>
                   </div>
                 );

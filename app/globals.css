@@ -7,7 +7,14 @@
   --color-border: #e5e7eb;
   --color-secondary: #6b7280;
   --color-primary: #2563eb;
-  --color-success: #10b981;
+  /* 원래 #10b981(emerald-500)은 흰/옅은 배경 위 텍스트 대비가 약 2.5:1로 WCAG AA(4.5:1)에
+     크게 못 미쳐 배지/아이콘/숫자 등 작은 텍스트에서 잘 안 보였다. 동일 색상군의 더 어두운
+     emerald-700(#047857, 대비 약 5.5:1)로 교체 — success를 텍스트 색으로 직접 쓰는 모든
+     곳(Badge, 상태 배지, Dashboard/Analytics 숫자, AI Drawer 완료 아이콘 등)에 일괄
+     적용된다. components/analytics/StatusDonutChart.tsx의 도넛 범례 색만 이 토큰을 쓰지
+     않고 screen.png 실측 hex(#10b981)를 그대로 하드코딩해 두어 영향받지 않는다(텍스트가
+     아닌 장식용 점이라 대비 문제가 없고, 디자인 레퍼런스 값을 그대로 유지한다). */
+  --color-success: #047857;
   --color-warning: #f59e0b;
   --color-error: #ef4444;
   --color-offer: #2563eb;
@@ -51,8 +58,19 @@
      둔다. /settings 화면에서만 쓴다. border는 두 배치 모두 동일한 #e9e8ea라 기존
      --color-stitch-border를 그대로 재사용한다. */
   --color-settings-bg: #fdfcfe;
-  --color-settings-ink: #3c315b;
-  --color-settings-secondary: #86848d;
+  /* 원래 #3c315b는 자체 luminance는 밝은 편이라(대비는 AA를 넉넉히 통과해도) Dashboard/
+     Companies가 제목·활성 탭·입력값에 쓰는 --color-stitch-ink(#0d1c2f, 거의 검정에 가까운
+     네이비)보다 눈에 띄게 옅어 보여, Settings 페이지 전체가 다른 화면보다 흐릿한 인상을
+     줬다. 새 보라 톤을 만드는 대신 이미 다른 화면 전체가 쓰는 --color-stitch-ink를 그대로
+     재사용해 제목/탭/섹션 제목/입력값(=이 페이지의 "주요 텍스트")을 앱 전체와 같은 톤으로
+     맞춘다. */
+  --color-settings-ink: var(--color-stitch-ink);
+  /* 원래 #86848d는 흰 배경 대비 약 3.7:1로 WCAG AA(4.5:1) 미달이라 탭/라벨/설명문이
+     잘 안 보였다. 앱 전역에서 이미 AA를 통과하는 --color-secondary(#6b7280, 대비 약
+     4.8:1)와 같은 값으로 맞춰 최소한으로만 어둡게 조정했다 — settings 전용 폰트/레이아웃은
+     그대로 두고 색상만 교체. 라벨/설명문/비활성 탭/placeholder(이 페이지의 "보조 텍스트")는
+     Dashboard/Companies의 --color-secondary와 동일한 이 값을 그대로 유지한다. */
+  --color-settings-secondary: #6b7280;
 
   /* 44_designtoken.png: Colors - Brand states / Semantic */
   --color-primary-hover: #1d4ed8;
