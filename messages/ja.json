@@ -282,9 +282,10 @@
       "deleteSection": {
         "title": "アカウント削除",
         "description": "アカウントと登録されているデータを削除します。",
-        "button": "アカウントを削除"
-      },
-      "deleteNotAvailable": "この機能は現在ご利用いただけません。"
+        "button": "アカウントを削除",
+        "confirmTitle": "本当にアカウントを削除しますか？",
+        "error": "アカウントの削除に失敗しました。"
+      }
     },
     "language": "言語",
     "japanese": "日本語",

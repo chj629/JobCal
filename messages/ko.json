@@ -282,9 +282,10 @@
       "deleteSection": {
         "title": "계정 삭제",
         "description": "계정과 등록된 데이터를 삭제합니다.",
-        "button": "계정 삭제"
-      },
-      "deleteNotAvailable": "현재 이용할 수 없는 기능입니다."
+        "button": "계정 삭제",
+        "confirmTitle": "정말로 계정을 삭제하시겠습니까?",
+        "error": "계정 삭제에 실패했습니다."
+      }
     },
     "language": "언어",
     "japanese": "日本語",

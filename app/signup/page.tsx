@@ -169,6 +169,20 @@ export default function SignupPage() {
       return;
     }
 
+    // 이 프로젝트처럼 Confirm email이 켜진 상태에서 이미 가입(확인 완료)된 이메일로
+    // signUp()을 다시 호출하면 Supabase는 에러를 던지지 않고 "obfuscated/fake user" 객체를
+    // 돌려준다 — 사용자 열거를 막기 위한 Supabase 자체 설계다(공식 SDK 문서: "an
+    // obfuscated/fake user object is returned"). 그래서 위 mapSignUpError(error.message
+    // 기반)만으로는 이 경우를 못 잡는다. 신규 가입과 구분할 수 있는 유일한 공식 신호는
+    // identities 배열뿐이다 — 신규 가입은 방금 만든 identity 1개를 포함하고, 이미 가입된
+    // 이메일(이메일/비밀번호로 가입했든 Google로만 가입했든 동일)은 identities가 빈
+    // 배열로 온다. DB를 별도로 조회하지 않고 이 signUp() 응답 자체의 신호만으로 판별한다.
+    if (data.user && data.user.identities?.length === 0) {
+      setErrorMessage(t("auth.errors.alreadyRegistered"));
+      setIsLoading(false);
+      return;
+    }
+
     setConfirmationSent(true);
     setIsLoading(false);
   }

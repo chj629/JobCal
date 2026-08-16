@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import { Globe, Lock, User, type LucideIcon } from "lucide-react";
 import { translate, useLocale, useT } from "@/lib/locale-context";
 import type { Locale } from "@/lib/i18n/messages";
 import { createClient } from "@/lib/supabase/client";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import MaterialIcon from "@/components/ui/MaterialIcon";
 import LoadingState from "@/components/ui/LoadingState";
 import { useToast } from "@/components/ui/Toast";
@@ -31,6 +33,7 @@ const LANGUAGE_OPTIONS: Array<{ value: Locale; labelKey: string }> = [
 export default function SettingsPage() {
   const { locale, setLocale } = useLocale();
   const t = useT();
+  const router = useRouter();
   const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState<SettingsTab>("profile");
 
@@ -48,6 +51,8 @@ export default function SettingsPage() {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
 
   // docs/stitch/설정페이지/jobcal_settings_language_sophisticated_refresh는 드롭다운에서
   // 고른 값을 "変更を保存"를 눌러야 실제로 반영하는 구조다(기존 버튼 2개를 즉시 전환하던
@@ -143,10 +148,35 @@ export default function SettingsPage() {
   }
 
   // docs/stitch/설정페이지/jobcal_settings_account_sophisticated_refresh의 "アカウント削除"
-  // 버튼. 계정 삭제를 실제로 수행하는 백엔드 로직이 없어(기존 로직 재사용 범위 밖) 아직은
-  // UI만 두고, 클릭하면 아직 지원하지 않는 기능임을 알린다.
+  // 버튼. 클릭하면 바로 지우지 않고 components/ui/ConfirmDialog(danger variant)로 최종
+  // 확인을 먼저 받는다 — 다른 삭제 흐름(CompanySchedulePanel 등)과 동일한 패턴.
   function handleDeleteAccountClick() {
-    showToast(t("settings.account.deleteNotAvailable"), "error");
+    setIsDeleteConfirmOpen(true);
+  }
+
+  // 실제 삭제는 app/api/account/delete가 서버에서 현재 세션 사용자만 골라
+  // auth.admin.deleteUser로 처리한다(company_id/user_id 등을 클라이언트가 넘기지 않음).
+  // companies 등 사용자 관련 테이블은 전부 auth.users(id)를 ON DELETE CASCADE로 참조하므로
+  // (supabase/migrations 참고) 이 호출 하나로 나머지 데이터가 DB에서 함께 삭제된다 — 프론트에서
+  // 테이블을 하나씩 지우지 않는다. 중복 요청 방지는 ConfirmDialog가 자체 isSubmitting으로
+  // 이미 처리한다(busy일 때 onConfirm을 다시 호출하지 않음).
+  async function handleConfirmDeleteAccount() {
+    try {
+      const response = await fetch("/api/account/delete", { method: "POST" });
+      if (!response.ok) {
+        showToast(t("settings.account.deleteSection.error"), "error");
+        return;
+      }
+
+      // auth.users 행은 이미 서버에서 삭제됐지만, 브라우저에 남아있는 세션 쿠키/토큰은
+      // 별도로 정리해야 한다.
+      const supabase = createClient();
+      await supabase.auth.signOut();
+      router.push("/login");
+      router.refresh();
+    } catch {
+      showToast(t("settings.account.deleteSection.error"), "error");
+    }
   }
 
   function handleSaveLanguage() {
@@ -457,6 +487,17 @@ export default function SettingsPage() {
           )}
         </div>
       </div>
+
+      <ConfirmDialog
+        open={isDeleteConfirmOpen}
+        title={t("settings.account.deleteSection.confirmTitle")}
+        description={t("common.cannotUndo")}
+        confirmLabel={t("common.delete")}
+        cancelLabel={t("common.cancel")}
+        variant="danger"
+        onCancel={() => setIsDeleteConfirmOpen(false)}
+        onConfirm={handleConfirmDeleteAccount}
+      />
     </div>
   );
 }
