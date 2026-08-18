@@ -1,8 +1,8 @@
 import LandingNav from "@/components/landing/LandingNav";
 import LandingHero from "@/components/landing/LandingHero";
-import LandingFeatures from "@/components/landing/LandingFeatures";
-import LandingAiHighlight from "@/components/landing/LandingAiHighlight";
-import LandingShowcase from "@/components/landing/LandingShowcase";
+import LandingDashboardShowcase from "@/components/landing/LandingDashboardShowcase";
+import LandingCalendarShowcase from "@/components/landing/LandingCalendarShowcase";
+import LandingCompaniesShowcase from "@/components/landing/LandingCompaniesShowcase";
 import LandingCtaBanner from "@/components/landing/LandingCtaBanner";
 import LandingFooter from "@/components/landing/LandingFooter";
 
@@ -15,9 +15,9 @@ export default function LandingPage() {
     <div className="min-h-screen bg-white font-[350] font-[family-name:var(--font-hanken-grotesk)] tracking-[-0.025em] text-neutral-900">
       <LandingNav />
       <LandingHero />
-      <LandingFeatures />
-      <LandingAiHighlight />
-      <LandingShowcase />
+      <LandingDashboardShowcase />
+      <LandingCalendarShowcase />
+      <LandingCompaniesShowcase />
       <LandingCtaBanner />
       <LandingFooter />
     </div>

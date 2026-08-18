@@ -1,3 +1,6 @@
+import { translate } from "@/lib/locale-context";
+import type { Locale } from "@/lib/i18n/messages";
+
 // docs/database.md: application_steps.step_status
 export type StepStatus = "waiting" | "in_progress" | "passed" | "failed";
 
@@ -81,6 +84,35 @@ export function getStepDisplayName(
     return t(`applicationSteps.default.${step.stepKey}`);
   }
   return step.name;
+}
+
+// matchDefaultStepKey 비교용: 공백을 전부 지우고 라틴 문자만 대문자로 통일해, 표기 변형
+// (예: "WEBテスト" vs "Web テスト" vs "Webテスト")을 같은 문자열로 취급한다. 한글/가나는
+// 대소문자 개념이 없어 영향받지 않는다.
+function normalizeStepText(text: string): string {
+  return text.replace(/\s+/g, "").toUpperCase();
+}
+
+const LOCALES_TO_CHECK: Locale[] = ["ko", "ja"];
+
+// AI 메일 분석이 반환한 stepName처럼 어떤 언어로 올지 알 수 없는 문자열이, 8개 기본 전형
+// (DEFAULT_STEP_KEYS) 중 어느 것과 의미상 같은지 판정한다. messages/ko.json·ja.json에 이미
+// 있는 canonical 번역 문자열만 비교 대상으로 쓰고(현재 UI locale과 무관하게 ko/ja 둘 다
+// 확인), "Webテスト"만 하드코딩하는 식의 임시방편 대신 8개 키 전부를 같은 방식으로 다룬다.
+// 사용자가 직접 만든 커스텀 전형(step_key가 없는 전형)은 이 함수의 대상이 아니다 — 이 함수는
+// 항상 null을 돌려주고, 호출하는 쪽(컴포넌트)이 기존 이름 그대로 별도 전형을 만들거나 매칭한다.
+export function matchDefaultStepKey(candidateText: string): DefaultStepKey | null {
+  const normalized = normalizeStepText(candidateText);
+  if (!normalized) return null;
+
+  for (const key of DEFAULT_STEP_KEYS) {
+    const isMatch = LOCALES_TO_CHECK.some(
+      (locale) =>
+        normalizeStepText(translate(locale, `applicationSteps.default.${key}`)) === normalized
+    );
+    if (isMatch) return key;
+  }
+  return null;
 }
 
 // application-steps-context.tsx의 updateStepStatus가 캐스케이드(뒤 단계 waiting 정리 + 다음

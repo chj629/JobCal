@@ -17,7 +17,12 @@ import {
   type OverallStatus,
   type Priority,
 } from "@/lib/companies";
-import { DEFAULT_STEP_KEYS, getStepDisplayName, type StepStatus } from "@/lib/applicationSteps";
+import {
+  DEFAULT_STEP_KEYS,
+  getStepDisplayName,
+  matchDefaultStepKey,
+  type StepStatus,
+} from "@/lib/applicationSteps";
 import {
   EVENT_TYPES,
   createEmptyEventFormValues,
@@ -380,14 +385,19 @@ export default function EmailAnalysisReview({
     const trimmedStepName = stepName.trim();
 
     if (trimmedStepName) {
-      // 원본 name과의 완전 일치(예: AI가 추출한 기본 전형 한국어 원문, 사용자 커스텀 전형)를
-      // 우선 확인하고, 기본 전형(stepKey 존재)이면 현재 locale 번역 문자열과도 비교한다.
-      // stepName 입력값이 어떤 언어로 들어와도(추천 pill 클릭/직접 입력 모두) 같은 기본
-      // 전형이면 새로 만들지 않고 항상 같은 행을 재사용하게 하기 위함이다.
-      const matched = candidateSteps.find(
-        (step) =>
-          step.name === trimmedStepName ||
-          (step.stepKey && getStepDisplayName(step, t) === trimmedStepName)
+      // 먼저 stepName이 8개 기본 전형(step_key) 중 하나와 의미상 같은지 판정한다(ko/ja 번역,
+      // 대소문자·공백 변형까지 흡수 — matchDefaultStepKey 참고). 매칭되면 현재 UI locale이나
+      // 이 기업의 전형이 어떤 name으로 저장돼 있는지와 무관하게 stepKey만으로 기존 전형을
+      // 찾는다 — 이메일이 어느 언어로 와도(AI가 어느 언어로 stepName을 반환해도) 같은 기본
+      // 전형이면 항상 같은 행을 재사용하고 새로 만들지 않는다.
+      // 기본 전형이 아니면(=사용자가 직접 만든 커스텀 전형) 기존 그대로 정확한 문자열 일치만
+      // 확인한다 — 서로 다른 커스텀 전형을 임의로 합치지 않기 위함이다.
+      const canonicalStepKey = matchDefaultStepKey(trimmedStepName);
+      const matched = candidateSteps.find((step) =>
+        canonicalStepKey
+          ? step.stepKey === canonicalStepKey
+          : step.name === trimmedStepName ||
+            (step.stepKey && getStepDisplayName(step, t) === trimmedStepName)
       );
       if (matched) {
         stepId = matched.id;

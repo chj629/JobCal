@@ -10,6 +10,15 @@ export const runtime = "nodejs";
 
 const MAX_EMAIL_LENGTH = 8000;
 const DEFAULT_MODEL = "gpt-4.1-mini";
+// OpenAI 비용 남용 방지: 로그인 사용자 1명이 하루에 호출할 수 있는 최대 횟수.
+// supabase/migrations/0016_create_ai_analysis_usage.sql의 increment_ai_analysis_usage()가
+// 이 한도와 무관하게 항상 카운트만 원자적으로 올려주고, 실제 "초과 시 차단" 판정은 여기
+// route.ts가 반환된 횟수를 보고 수행한다.
+const DAILY_ANALYSIS_LIMIT = 20;
+// 기존 JSON schema(companyName/stepName/resultOption/events/contacts/memo) 결과가
+// 충분히 들어가는 수준의 출력 토큰 상한. 프롬프트/모델/응답 구조는 그대로 두고 비용
+// 상한선만 둔다.
+const MAX_OUTPUT_TOKENS = 1200;
 
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -49,6 +58,28 @@ export async function POST(request: Request) {
     );
   }
 
+  // OpenAI 호출 전 마지막 관문: 하루 호출 횟수 제한. increment_ai_analysis_usage()는 항상
+  // auth.uid()(=이 요청의 user.id와 동일, RLS로 보장)로만 판정해 클라이언트가 다른 사용자의
+  // 카운트를 조작할 수 없고, 이 판정 자체도 서버(Route Handler)에서만 이뤄진다 — 클라이언트가
+  // 우회할 방법이 없다.
+  const usageDate = new Date().toISOString().slice(0, 10);
+  const { data: usageCount, error: usageError } = await supabase.rpc(
+    "increment_ai_analysis_usage",
+    { p_usage_date: usageDate }
+  );
+
+  if (usageError) {
+    console.error("[analyze-email] 사용량 확인 실패:", usageError.message);
+    return NextResponse.json({ error: "사용량 확인에 실패했습니다." }, { status: 500 });
+  }
+
+  if (typeof usageCount === "number" && usageCount > DAILY_ANALYSIS_LIMIT) {
+    return NextResponse.json(
+      { error: "일일 AI 분석 사용 한도를 초과했습니다." },
+      { status: 429 }
+    );
+  }
+
   const nowIso = new Date().toISOString();
   const { system, user: userPrompt } = buildEmailAnalysisPrompt(emailText.trim(), nowIso);
 
@@ -62,6 +93,7 @@ export async function POST(request: Request) {
       },
       body: JSON.stringify({
         model: process.env.OPENAI_MODEL || DEFAULT_MODEL,
+        max_tokens: MAX_OUTPUT_TOKENS,
         messages: [
           { role: "system", content: system },
           { role: "user", content: userPrompt },

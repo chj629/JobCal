@@ -35,46 +35,91 @@
   },
   "landing": {
     "nav": {
-      "features": "기능",
-      "ai": "JobCal AI",
       "login": "로그인",
       "getStarted": "무료로 시작하기"
     },
     "hero": {
-      "description": "일정, 기업, 전형, 메일. 복잡한 취업 준비 정보를 JobCal 하나로 완벽하게 관리하세요.",
+      "eyebrow": "JobCal AI",
+      "titleLine1": "취업 메일을,",
+      "titleLine2": "더 이상 정리하지 않아도 됩니다.",
+      "subline": "메일을 붙여넣기만 하면, 기업・전형・일정을 JobCal AI가 정리합니다.",
       "getStarted": "무료로 시작하기",
-      "login": "로그인"
+      "login": "로그인",
+      "mailSubject": "제목: [1차 면접 안내]",
+      "demo": {
+        "inboxTag": "받은편지함",
+        "senderEmail": "recruit@sample-inc.jp",
+        "recipientTo": "받는사람: 나",
+        "reply": "답장",
+        "replyAll": "전체 답장",
+        "forward": "전달",
+        "receivedAt": "10:24",
+        "recipientLine": "야마다 타로 님",
+        "greetingLine": "안녕하세요.",
+        "senderLine": "{company} 채용 담당자입니다.",
+        "thanksLine": "이번 저희 회사 채용 전형에 참여해 주셔서 감사합니다.",
+        "bodyLine": "다음 일정으로 {step}을 진행하고자 합니다.",
+        "datetimeLine": "일시: 2026년 8월 20일 14:00",
+        "formatLine": "형식: 온라인",
+        "meetUrlLine": "Google Meet URL은 면접 전날까지 안내드리겠습니다.",
+        "prepLine": "당일 이력서를 준비해 주시기 바랍니다.",
+        "deadlineLine": "일정 변경을 원하시는 경우 8월 18일까지 본 메일로 회신해 주세요.",
+        "closingLine": "계속해서 잘 부탁드립니다.",
+        "analyzing": "AI가 메일을 분석하고 있습니다",
+        "complete": "JobCal에 등록 완료",
+        "companyName": "주식회사 JobCal",
+        "fieldCompany": "기업명",
+        "fieldStep": "전형",
+        "fieldDateTime": "일시",
+        "stepMail": "메일 입력",
+        "stepAnalyze": "AI 분석",
+        "stepExtract": "정보 추출",
+        "stepComplete": "등록 완료",
+        "stepMailDesc": "기업에서 온 안내 메일을 붙여넣습니다",
+        "stepAnalyzeDesc": "AI가 메일 내용을 읽고\n필요한 정보를 분석합니다",
+        "stepExtractDesc": "중요한 정보를 자동으로 정리해\n보기 쉽게 표시합니다",
+        "stepCompleteDesc": "캘린더나 기업 목록에\n자동으로 등록됩니다",
+        "workflowEyebrow": "메일만 붙여넣으세요. 나머지는 AI가 정리합니다.",
+        "workflowTitle": "메일부터 등록까지, AI가 자동으로 지원합니다",
+        "memoNote": "온라인 면접입니다. Google Meet URL은 전날까지 안내드릴 예정입니다. 이력서를 준비해 주세요. 일정 변경 시 8월 18일까지 회신해 주세요."
+      }
     },
-    "features": {
-      "title": "JobCal로 할 수 있는 것",
-      "subtitle": "취업 준비에 필요한 모든 것을, 한곳에서.",
-      "item1Title": "기업·전형 관리",
-      "item1Description": "기업별 전형 단계를 한눈에 확인하고 관리할 수 있습니다.",
-      "item2Title": "캘린더",
-      "item2Description": "면접과 마감 일정을 한눈에 확인할 수 있습니다.",
-      "item3Title": "JobCal AI",
-      "item3Description": "전형 메일을 AI가 자동으로 정리합니다.",
-      "item4Title": "취업 현황 시각화",
-      "item4Description": "전형 진행 상황을 그래프로 분석할 수 있습니다."
-    },
-    "aiHighlight": {
-      "title": "AI가 취업 준비 속도를 높여줍니다",
-      "description": "취업 메일을 복사해서 붙여넣기만 하면, 기업 정보・전형 단계・일정을 AI가 자동으로 정리합니다. 번거로운 수동 입력을 최소화합니다.",
-      "cta": "JobCal AI 사용해보기",
-      "mockTitle": "메일로 기업 추가",
-      "mockInfoLabel": "AI가 다음 정보를 추출합니다",
-      "mockField1": "기업명",
-      "mockField2": "전형 단계",
-      "mockField3": "일시",
-      "mockPlaceholder": "여기에 메일 내용을 붙여넣어 주세요..."
+    "scene": {
+      "step": "1차 면접",
+      "dateTime": "2026년 8월 20일 14:00"
     },
     "showcase": {
-      "title": "세련된 워크스페이스",
-      "description": "직관적이고 군더더기 없는 디자인이 커리어 관리를 지원합니다.",
-      "item1Label": "대시보드",
-      "item2Label": "AI 어시스턴트"
+      "dashboard": {
+        "title": "취업 준비의 모든 것을, 하나로.",
+        "description": "기업, 전형, 면접, 마감일.\n흩어지기 쉬운 취업 정보를 JobCal에서 한번에 관리하세요."
+      },
+      "calendar": {
+        "titleLine1": "다음 일정을,",
+        "titleLine2": "놓치지 않게.",
+        "description": "면접, 설명회, 서류 마감일.\n등록한 일정을 캘린더에서 한번에 확인하세요."
+      },
+      "companies": {
+        "titleLine1": "늘어나는 기업도,",
+        "titleLine2": "헷갈리지 않게 관리.",
+        "description": "전형 현황도, 다음 일정도.\n지원한 기업을 한눈에 확인하세요."
+      },
+      "mock": {
+        "company1": "미래상사 주식회사",
+        "company2": "글로벌테크 주식회사",
+        "company3": "선라이즈물류 주식회사",
+        "company4": "넥스트상사 주식회사",
+        "company5": "하지메 제작소",
+        "eventInterview1": "1차 면접",
+        "eventEsDeadline": "ES 제출 마감",
+        "eventInterview2": "2차 면접",
+        "eventBriefing": "회사 설명회",
+        "eventDocDeadline": "서류 제출 마감",
+        "eventResult": "전형 결과 발표"
+      }
     },
     "finalCta": {
+      "title": "취업 관리를, 더 심플하게.",
+      "description": "번거로운 정리는 JobCal에게 맡기고, 전형에 집중하세요.",
       "getStarted": "무료로 시작하기"
     },
     "footer": {
@@ -635,6 +680,7 @@
       "submit": "AI로 분석",
       "submitting": "분석 중...",
       "analyzeFailed": "분석에 실패했습니다.",
+      "dailyLimitReached": "오늘의 AI 분석 사용 한도에 도달했습니다. 내일 다시 이용해주세요.",
       "networkError": "분석 요청 중 오류가 발생했습니다.",
       "emptyTitle": "메일을 붙여넣어 주세요",
       "emptyDescription": "채용 메일에서 아래 정보를 추출합니다.",

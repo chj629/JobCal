@@ -35,46 +35,91 @@
   },
   "landing": {
     "nav": {
-      "features": "機能",
-      "ai": "JobCal AI",
       "login": "ログイン",
       "getStarted": "無料で始める"
     },
     "hero": {
-      "description": "予定、企業、選考、メール。複雑な就活情報をJobCalひとつで完璧に管理。",
+      "eyebrow": "JobCal AI",
+      "titleLine1": "就活メールを、",
+      "titleLine2": "もう整理しなくていい。",
+      "subline": "メールを貼るだけで、企業・選考・予定をJobCal AIがまとめます。",
       "getStarted": "無料で始める",
-      "login": "ログイン"
+      "login": "ログイン",
+      "mailSubject": "件名：【一次面接のご案内】",
+      "demo": {
+        "inboxTag": "受信トレイ",
+        "senderEmail": "recruit@sample-inc.jp",
+        "recipientTo": "宛先：自分",
+        "reply": "返信",
+        "replyAll": "全員に返信",
+        "forward": "転送",
+        "receivedAt": "10:24",
+        "recipientLine": "山田太郎様",
+        "greetingLine": "こんにちは。",
+        "senderLine": "{company}　採用担当です。",
+        "thanksLine": "この度は弊社の選考にご参加いただき、ありがとうございます。",
+        "bodyLine": "次回、{step}を下記日程で実施いたします。",
+        "datetimeLine": "日時：2026年8月20日 14:00",
+        "formatLine": "形式：オンライン",
+        "meetUrlLine": "Google MeetのURLは面接前日までにご案内いたします。",
+        "prepLine": "当日は履歴書をご準備のうえご参加ください。",
+        "deadlineLine": "日程の変更をご希望の場合は、8月18日までに本メールへご返信ください。",
+        "closingLine": "引き続きよろしくお願いいたします。",
+        "analyzing": "AIがメールを分析しています",
+        "complete": "JobCalに登録完了",
+        "companyName": "株式会社JobCal",
+        "fieldCompany": "企業名",
+        "fieldStep": "選考",
+        "fieldDateTime": "日時",
+        "stepMail": "メール入力",
+        "stepAnalyze": "AI分析",
+        "stepExtract": "情報抽出",
+        "stepComplete": "登録完了",
+        "stepMailDesc": "企業からの案内メールを貼り付けます",
+        "stepAnalyzeDesc": "AIがメールの内容を読み取り\n必要な情報を分析します",
+        "stepExtractDesc": "重要な情報を自動で整理し\n見やすく表示します",
+        "stepCompleteDesc": "カレンダーや企業一覧に\n自動で登録されます",
+        "workflowEyebrow": "メールを貼るだけ。あとはAIが整理します。",
+        "workflowTitle": "メールから登録まで、AIが自動でサポート",
+        "memoNote": "オンライン面接。Google MeetのURLは前日までにご案内予定。履歴書をご準備ください。日程変更の場合は8月18日までにご返信ください。"
+      }
     },
-    "features": {
-      "title": "JobCalでできること",
-      "subtitle": "就活に必要なすべてを、ひとつの場所で。",
-      "item1Title": "企業・選考管理",
-      "item1Description": "企業ごとの選考ステップを可視化し、管理できます。",
-      "item2Title": "カレンダー",
-      "item2Description": "面接や締切の予定をひと目で確認できます。",
-      "item3Title": "JobCal AI",
-      "item3Description": "選考メールをAIが自動で整理します。",
-      "item4Title": "就活状況の可視化",
-      "item4Description": "選考の進捗をグラフで分析できます。"
-    },
-    "aiHighlight": {
-      "title": "AIがあなたの就活を加速させる",
-      "description": "就活メールをコピー＆ペーストするだけで、企業情報、選考ステップ、日程をAIが自動で整理。煩雑な手入力を最小限に抑えます。",
-      "cta": "JobCal AI を試す",
-      "mockTitle": "メールから企業追加",
-      "mockInfoLabel": "AIが以下の情報を抽出します",
-      "mockField1": "企業名",
-      "mockField2": "選考ステップ",
-      "mockField3": "日時",
-      "mockPlaceholder": "ここにメールの内容をペーストしてください..."
+    "scene": {
+      "step": "一次面接",
+      "dateTime": "2026年8月20日 14:00"
     },
     "showcase": {
-      "title": "洗練されたワークスペース",
-      "description": "直感的で無駄のないデザインが、あなたのキャリア形成をサポートします。",
-      "item1Label": "ダッシュボード",
-      "item2Label": "AIアシスタント"
+      "dashboard": {
+        "title": "就活のすべてを、ひとつに。",
+        "description": "企業、選考、面接、締切。\nバラバラになりがちな就活情報を、JobCalでまとめて管理。"
+      },
+      "calendar": {
+        "titleLine1": "次の予定を、",
+        "titleLine2": "見逃さない。",
+        "description": "面接、説明会、ES締切。\n登録した予定をカレンダーでまとめて確認。"
+      },
+      "companies": {
+        "titleLine1": "増えていく企業も、",
+        "titleLine2": "迷わず管理。",
+        "description": "選考状況も、次の予定も。\n応募した企業をひと目で確認。"
+      },
+      "mock": {
+        "company1": "みらい商事株式会社",
+        "company2": "グローバルテック株式会社",
+        "company3": "サンライズ物流株式会社",
+        "company4": "ネクスト商事株式会社",
+        "company5": "はじめ製作所",
+        "eventInterview1": "一次面接",
+        "eventEsDeadline": "ES提出締切",
+        "eventInterview2": "二次面接",
+        "eventBriefing": "会社説明会",
+        "eventDocDeadline": "書類提出締切",
+        "eventResult": "選考結果発表"
+      }
     },
     "finalCta": {
+      "title": "就活管理を、もっとシンプルに。",
+      "description": "面倒な整理はJobCalに任せて、選考に集中しよう。",
       "getStarted": "無料で始める"
     },
     "footer": {
@@ -635,6 +680,7 @@
       "submit": "AIで分析",
       "submitting": "分析中...",
       "analyzeFailed": "分析に失敗しました。",
+      "dailyLimitReached": "本日のAI分析利用上限に達しました。明日また利用してください。",
       "networkError": "分析リクエスト中にエラーが発生しました。",
       "emptyTitle": "メールを貼り付けてください",
       "emptyDescription": "採用メールから以下の情報を抽出します。",

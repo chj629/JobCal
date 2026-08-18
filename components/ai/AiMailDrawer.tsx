@@ -57,7 +57,12 @@ export function useEmailAnalysisFlow() {
         if (process.env.NODE_ENV === "development") {
           console.error("[new-from-email] 분석 요청 실패:", json.error);
         }
-        setAnalyzeError(t("aiEmail.paste.analyzeFailed"));
+        // 429(일일 사용 한도 초과)만 기존 일반 오류 문구와 구분해 별도 안내를 보여준다.
+        setAnalyzeError(
+          response.status === 429
+            ? t("aiEmail.paste.dailyLimitReached")
+            : t("aiEmail.paste.analyzeFailed")
+        );
         setAnalyzing(false);
         return;
       }
