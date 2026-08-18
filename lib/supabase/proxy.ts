@@ -1,11 +1,26 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const PUBLIC_PATH_PREFIXES = ["/login", "/signup", "/auth", "/forgot-password", "/update-password"];
+// 배포 전 최종 체크 2차: "공개 경로 allowlist, 그 외 전부 보호"였던 이전 구조는 존재하지
+// 않는 URL(오타·끊긴 링크 등)도 전부 /login으로 307 리다이렉트해버려 app/not-found.tsx가
+// 비로그인 방문자에게는 절대 보이지 않았다(존재하지 않는 URL이 404 대신 307을 반환하는
+// 버그를 실제로 재현·확인함). 실제로 로그인이 필요한 화면은 (app) 라우트 그룹의 5개
+// 페이지와, 그 화면에서만 호출되는 API 2개뿐이라 목록을 뒤집어 "보호 경로 allowlist"로
+// 바꿨다 — 여기 없는 경로(존재하지 않는 URL 포함)는 이제 미들웨어를 그대로 통과해
+// Next.js 자체 라우팅(404는 app/not-found.tsx)으로 넘어간다. 기존에 보호되던 5페이지+API
+// 2개의 로그인 요구 동작은 그대로 유지된다.
+const PROTECTED_PATH_PREFIXES = [
+  "/dashboard",
+  "/companies",
+  "/calendar",
+  "/analytics",
+  "/settings",
+  "/api/ai/analyze-email",
+  "/api/account/delete",
+];
 
-// "/"는 접두사(startsWith)로 검사하면 모든 경로가 걸리므로 정확히 일치할 때만 공개 경로로 취급한다.
-function isPublicPath(pathname: string) {
-  return pathname === "/" || PUBLIC_PATH_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+function isProtectedPath(pathname: string) {
+  return PROTECTED_PATH_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 }
 
 // 세션 토큰 갱신 + 로그인 여부에 따른 접근 제어를 함께 수행한다.
@@ -43,7 +58,7 @@ export async function updateSession(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname;
 
-  if (!user && !isPublicPath(pathname)) {
+  if (!user && isProtectedPath(pathname)) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);

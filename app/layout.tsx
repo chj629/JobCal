@@ -23,6 +23,7 @@ const dmSans = DM_Sans({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://jobcal.app"),
   title: "JobCal",
   description: "就職活動の企業・選考・日程をまとめて管理できるJobCal",
 };
