@@ -2,24 +2,20 @@
 
 ## 테이블 목록
 
-1. `profiles`
-2. `companies`
-3. `application_steps`
-4. `events`
-5. `company_contacts`
-6. `company_credentials`
-7. `company_notes`
-8. `next_actions`
+1. `companies`
+2. `application_steps`
+3. `events`
+4. `company_contacts`
+5. `company_credentials`
+6. `company_notes`
+7. `next_actions`
+8. `task_completions`(레거시, 아래 설명 참고)
+9. `event_completions`
+10. `ai_analysis_usage`
 
----
-
-## profiles
-
-- id
-- email
-- display_name
-- created_at
-- updated_at
+별도 `profiles` 테이블은 없습니다. 이메일/표시 이름(display_name)은 Supabase Auth의
+`user_metadata`에 저장됩니다(`app/signup/page.tsx`의 `signUp({ options: { data: {
+display_name } } })`, `app/(app)/settings/page.tsx`의 `updateUser`).
 
 ---
 
@@ -33,6 +29,7 @@
 - overall_status
 - priority
 - website_url
+- mypage_url
 - selection_memo
 - location
 - industry
@@ -267,6 +264,49 @@ Company Detail "次のアクション" 카드의 자유 형식 할일 목록을 
 - updated_at
 
 `due_label`은 현재 UI에서 표시/입력하지 않는 필드로, 항상 빈 문자열입니다.
+
+---
+
+## task_completions (레거시)
+
+Dashboard "오늘 해야 할 일"의 과거 체크 상태 저장 테이블(기업+날짜 단위)입니다.
+`event_completions`(이벤트 단위)로 대체되어 더 이상 새로 쓰이지 않지만, 과거 체크 기록을
+새 이벤트에 신뢰성 있게 매핑할 방법이 없어 테이블 자체는 삭제하지 않고 남아 있습니다.
+
+- id
+- user_id
+- company_id
+- schedule_date
+- created_at
+
+---
+
+## event_completions
+
+Dashboard "오늘 해야 할 일"의 현재 체크 상태 저장 테이블(이벤트 단위)입니다.
+
+- id
+- user_id
+- event_id
+- created_at
+
+---
+
+## ai_analysis_usage
+
+`/api/ai/analyze-email`(AI 메일 분석)의 사용자별 일일 호출 횟수를 기록해 OpenAI 비용
+남용을 방지합니다. 이메일 원문은 저장하지 않고 호출 횟수만 저장합니다.
+
+- id
+- user_id
+- usage_date
+- call_count
+- created_at
+- updated_at
+
+`increment_ai_analysis_usage(p_usage_date)` 함수(SECURITY DEFINER)가 `auth.uid()` 기준으로만
+원자적으로 카운트를 증가시키며, Route Handler가 반환된 횟수를 보고 일일 한도 초과 여부를
+판정합니다.
 
 ---
 

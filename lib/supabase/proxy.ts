@@ -9,6 +9,8 @@ import { NextResponse, type NextRequest } from "next/server";
 // 바꿨다 — 여기 없는 경로(존재하지 않는 URL 포함)는 이제 미들웨어를 그대로 통과해
 // Next.js 자체 라우팅(404는 app/not-found.tsx)으로 넘어간다. 기존에 보호되던 5페이지+API
 // 2개의 로그인 요구 동작은 그대로 유지된다.
+// 유지보수 메모: 새로운 로그인 전용 page/API를 추가하면 반드시 이 목록에도 추가해야
+// 한다 — 여기 없는 경로는 비로그인 사용자도 그대로 통과한다(공개 경로 취급).
 const PROTECTED_PATH_PREFIXES = [
   "/dashboard",
   "/companies",
@@ -28,9 +30,22 @@ export async function updateSession(request: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabasePublishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
-  // .env.local이 아직 없는 상태(이번 단계 범위)에서도 기존 페이지가 정상 동작해야 하므로,
-  // 환경변수가 설정되기 전까지는 세션 갱신을 건너뛰고 요청을 그대로 통과시킨다.
   if (!supabaseUrl || !supabasePublishableKey) {
+    const pathname = request.nextUrl.pathname;
+
+    // production에서 이 값들이 비어 있으면 세션 확인 자체가 불가능하므로, 보호 경로는
+    // "확인 불가 = 거부"로 fail-closed 처리한다(로그인 여부를 판단할 수 없다고 해서
+    // 통과시키지 않는다). 값이나 어떤 env 변수가 비었는지는 로그에 남기지 않는다.
+    if (process.env.NODE_ENV === "production" && isProtectedPath(pathname)) {
+      console.error("[auth] Supabase 환경변수 누락으로 보호 경로 접근을 차단했습니다.");
+      const url = request.nextUrl.clone();
+      url.pathname = "/login";
+      return NextResponse.redirect(url);
+    }
+
+    // .env.local이 아직 없는 로컬 개발 환경에서도 기존 페이지가 정상 동작해야 하므로,
+    // development에서는(그리고 production의 공개 경로는) 세션 갱신을 건너뛰고 요청을
+    // 그대로 통과시킨다.
     return NextResponse.next({ request });
   }
 

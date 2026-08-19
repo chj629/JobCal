@@ -22,10 +22,31 @@ const dmSans = DM_Sans({
   subsets: ["latin"],
 });
 
+// OGイメージ資産(ブランド画像)がまだ存在しないため、openGraph.images/twitter.imagesは
+// 意図的に設定しない — 存在しないファイルパスを登録しない。
+const SITE_TITLE = "JobCal";
+const SITE_DESCRIPTION = "就職活動の企業・選考・日程をまとめて管理できるJobCal";
+
 export const metadata: Metadata = {
   metadataBase: new URL("https://jobcal.app"),
-  title: "JobCal",
-  description: "就職活動の企業・選考・日程をまとめて管理できるJobCal",
+  title: SITE_TITLE,
+  description: SITE_DESCRIPTION,
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    url: "/",
+    siteName: SITE_TITLE,
+    locale: "ja_JP",
+    type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+  },
 };
 
 export default function RootLayout({
