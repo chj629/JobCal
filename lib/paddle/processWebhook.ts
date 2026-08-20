@@ -49,19 +49,7 @@ async function upsertSubscription(data: SubscriptionCreatedNotification | Subscr
 
   // paddle_subscriptions.paddle_customer_id가 paddle_customers.paddle_customer_id를
   // FK로 참조하므로, customers를 먼저 upsert해야 한다.
-  const { error: customerError } = await admin
-    .from("paddle_customers")
-    .upsert({ user_id: userId, paddle_customer_id: data.customerId }, { onConflict: "user_id" });
-
-  if (customerError) {
-    if (isMissingUser(customerError)) {
-      // user_id가 이미 삭제된 계정(auth.users에 없음) — 예: 계정 삭제 직후 도착한
-      // 뒤늦은 웹훅. 정상적인 레이스이지 오류가 아니므로 재시도를 유발하지 않는다.
-      console.warn(`[paddle webhook] 존재하지 않는 user_id, 무시: ${userId}`);
-      return;
-    }
-    throw customerError;
-  }
+  if (!(await upsertCustomer(admin, userId, data.customerId))) return;
 
   const { error: subscriptionError } = await admin.from("paddle_subscriptions").upsert(
     {
@@ -113,6 +101,12 @@ async function upsertTransaction(data: TransactionNotification) {
 
   const admin = createAdminClient();
 
+  // transaction.completed가 subscription.created보다 먼저 도착하는 이벤트 순서 역전이
+  // 실제로 관측되어(라이브 결제 1건에서 재시도 2회 발생) paddle_customers가 아직 없을 수
+  // 있다 — upsertSubscription과 동일한 idempotent upsert를 여기서도 먼저 실행해 선행
+  // 조건을 스스로 만족시킨다. 이미 존재하면 단순 upsert라 안전하게 그대로 통과한다.
+  if (!(await upsertCustomer(admin, userId, data.customerId))) return;
+
   // paddle_transaction_id(PK) 기준 upsert이므로 같은 이벤트가 여러 번 재전송되어도
   // 행이 하나로 수렴한다(idempotent). grand_total은 Paddle이 보낸 원본 최소 통화 단위
   // 문자열을 그대로 저장한다 — number/float로 변환하지 않는다(부동소수점 오차 방지).
@@ -136,12 +130,33 @@ async function upsertTransaction(data: TransactionNotification) {
       console.warn(`[paddle webhook] 존재하지 않는 user_id, 무시: ${userId}`);
       return;
     }
-    // paddle_transactions_paddle_customer_id_fkey 위반(예: subscription.created가 아직
-    // 도착하지 않아 paddle_customers 행이 없는 이벤트 순서 역전)은 의도적으로 그대로
-    // throw한다 — Paddle이 재시도하면 그 사이 customer 행이 생겨 자연히 해소된다
-    // (upsertSubscription의 같은 종류 FK 위반과 동일한 기존 설계 원칙).
     throw error;
   }
+}
+
+// paddle_customers를 idempotent하게 upsert한다. upsertSubscription/upsertTransaction
+// 두 경로가 이 함수 하나를 공유한다 — customer upsert 로직이 두 곳에 따로 구현되어
+// 어긋나는 일을 막는다. user_id가 이미 삭제된 계정이면(정상 레이스) false를 반환해
+// 호출부가 조용히 종료하게 하고, 그 외 에러는 그대로 throw한다.
+async function upsertCustomer(
+  admin: ReturnType<typeof createAdminClient>,
+  userId: string,
+  customerId: string
+): Promise<boolean> {
+  const { error } = await admin
+    .from("paddle_customers")
+    .upsert({ user_id: userId, paddle_customer_id: customerId }, { onConflict: "user_id" });
+
+  if (error) {
+    if (isMissingUser(error)) {
+      // user_id가 이미 삭제된 계정(auth.users에 없음) — 예: 계정 삭제 직후 도착한
+      // 뒤늦은 웹훅. 정상적인 레이스이지 오류가 아니므로 재시도를 유발하지 않는다.
+      console.warn(`[paddle webhook] 존재하지 않는 user_id, 무시: ${userId}`);
+      return false;
+    }
+    throw error;
+  }
+  return true;
 }
 
 // auth.users(id)를 참조하는 FK(paddle_customers_user_id_fkey, paddle_subscriptions_user_id_fkey)
