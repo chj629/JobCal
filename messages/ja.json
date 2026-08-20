@@ -375,7 +375,8 @@
     "analytics": "分析",
     "settings": "設定",
     "logout": "ログアウト",
-    "tagline": "就活を、もっとスマートに。"
+    "tagline": "就活を、もっとスマートに。",
+    "proBadge": "PRO"
   },
   "header": {
     "notifications": "通知",

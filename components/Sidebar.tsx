@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useT } from "@/lib/locale-context";
 import MaterialIcon from "@/components/ui/MaterialIcon";
+import { useCurrentPlan } from "@/lib/paddle/useCurrentPlan";
 
 // data-icon 값은 docs/stitch/메인페이지 5개/*/code.html의 SideNavBar와 1:1로 대응한다.
 const NAV_ITEMS = [
@@ -25,14 +26,24 @@ function isActiveHref(pathname: string, href: string) {
 export default function Sidebar() {
   const pathname = usePathname();
   const t = useT();
+  // getUserPlan(lib/paddle/getUserPlan.ts)을 그대로 재사용하는 기존 훅 — 여기서 새로
+  // Pro 판정을 만들지 않는다. plan === null(조회 전)/"free"에서는 배지를 그리지 않는다.
+  const { plan } = useCurrentPlan();
 
   return (
     <>
       <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-stitch-border bg-primary-navy py-8 font-[family-name:var(--font-hanken-grotesk)] tracking-[-0.025em] md:flex">
         <div className="px-6 pb-8 pt-0.5">
-          <h1 className="text-[28px] font-[700] leading-none tracking-tight text-white">
-            {t("common.appName")}
-          </h1>
+          <div className="flex items-center gap-1.5">
+            <h1 className="text-[28px] font-[700] leading-none tracking-tight text-white">
+              {t("common.appName")}
+            </h1>
+            {plan === "pro" && (
+              <span className="rounded-full bg-warning/20 px-1.5 py-0.5 text-[10px] font-bold leading-none tracking-wide text-warning">
+                {t("sidebar.proBadge")}
+              </span>
+            )}
+          </div>
           <p className="mt-1 text-[11px] tracking-normal text-white/70">{t("sidebar.tagline")}</p>
         </div>
 

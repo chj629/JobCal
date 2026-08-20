@@ -82,7 +82,11 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if (user && (pathname.startsWith("/login") || pathname.startsWith("/signup"))) {
+  // 루트("/")도 로그인 상태면 랜딩페이지를 거치지 않고 곧장 /dashboard로 보낸다.
+  // login/signup과 동일한 이유(이미 로그인된 사용자에게 보일 필요 없는 화면)라 같은
+  // 분기에 합쳤다 — app/page.tsx(랜딩) 자체는 건드리지 않고, 서버 미들웨어 단계에서
+  // 리다이렉트하므로 클라이언트에 랜딩이 잠깐 그려졌다 넘어가는 flash가 없다.
+  if (user && (pathname === "/" || pathname.startsWith("/login") || pathname.startsWith("/signup"))) {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";
     return NextResponse.redirect(url);
