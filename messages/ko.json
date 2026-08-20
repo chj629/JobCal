@@ -344,7 +344,9 @@
       "priceNote": "매월 자동 갱신되는 월간 구독입니다. 무료 체험은 제공되지 않습니다.",
       "aiLimit": "AI 메일 분석: 1일 50회까지",
       "notice": "매월 자동 갱신 ・ 언제든지 해지 가능",
-      "cta": "Pro로 시작하기"
+      "cta": "Pro로 시작하기",
+      "currentPlanNotice": "현재 Pro를 이용 중입니다.",
+      "manageInSettings": "설정에서 관리하기"
     },
     "features": {
       "sectionTitle": "공통 기능 (Free / Pro 동일)",
@@ -546,6 +548,9 @@
         "title": "결제 내역",
         "empty": "결제 내역이 아직 없습니다.",
         "statusCompleted": "결제 완료",
+        "statusRefunded": "환불 완료",
+        "statusPartiallyRefunded": "부분 환불",
+        "statusRefundPending": "환불 처리 중",
         "receiptNote": "영수증은 위 '구독 관리'를 통해 Paddle Customer Portal에서 확인·다운로드할 수 있습니다."
       }
     },

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useLocale, useT } from "@/lib/locale-context";
 import { createClient } from "@/lib/supabase/client";
 import { usePaddleCheckout } from "@/lib/paddle/usePaddleCheckout";
+import { useCurrentPlan } from "@/lib/paddle/useCurrentPlan";
 import { ToastProvider } from "@/components/ui/Toast";
 import LandingNav from "@/components/landing/LandingNav";
 import LandingFooter from "@/components/landing/LandingFooter";
@@ -61,6 +62,9 @@ function PricingPageContent() {
   const autoOpenedRef = useRef(false);
 
   const { isReady, isCheckoutBusy, openCheckout } = usePaddleCheckout({ userId, email, locale });
+  // 이미 Pro인 사용자가 여기서 다시 Checkout을 열어 활성 구독이 2개(이중 청구)가 되는
+  // 것을 막기 위해 현재 플랜을 조회한다. Pro 권한 판정(getUserPlan) 자체는 바꾸지 않는다.
+  const { plan, refetch: refetchPlan } = useCurrentPlan();
 
   useEffect(() => {
     const supabase = createClient();
@@ -84,25 +88,35 @@ function PricingPageContent() {
     }
   }, []);
 
-  // 로그인 사용자 정보(userId)와 Paddle SDK(isReady)가 모두 준비된 뒤에만, 그리고
-  // autoOpenedRef로 딱 한 번만 Checkout을 연다. authChecked=true인데 userId가 없으면
-  // (비로그인 상태에서 checkout=pro만 남아 있는 경우) 영원히 열지 않는다 — 비로그인
-  // 상태에서 Paddle Checkout을 여는 경로를 만들지 않기 위함.
+  // 로그인 사용자 정보(userId)와 Paddle SDK(isReady), 현재 플랜(plan)이 모두 준비된
+  // 뒤에만, 그리고 autoOpenedRef로 딱 한 번만 Checkout을 연다. authChecked=true인데
+  // userId가 없으면(비로그인 상태에서 checkout=pro만 남아 있는 경우) 영원히 열지 않는다.
+  // plan === "pro"면(이미 Pro인 사용자가 checkout=pro URL로 돌아온 경우) 자동으로도
+  // 절대 열지 않는다 — 이중 구독 방지.
   useEffect(() => {
     if (!pendingAutoCheckout || autoOpenedRef.current) return;
-    if (!authChecked || !userId || !isReady) return;
+    if (!authChecked || !userId || !isReady || plan === null) return;
+    if (plan === "pro") {
+      autoOpenedRef.current = true;
+      return;
+    }
 
     autoOpenedRef.current = true;
     openCheckout();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pendingAutoCheckout, authChecked, userId, isReady]);
+  }, [pendingAutoCheckout, authChecked, userId, isReady, plan]);
 
-  function handleProCtaClick() {
-    if (userId) {
-      openCheckout();
+  async function handleProCtaClick() {
+    if (!userId) {
+      router.push("/login?next=/pricing&checkout=pro");
       return;
     }
-    router.push("/login?next=/pricing&checkout=pro");
+    // 클라이언트에 캐시된 plan state만 믿지 않고, Checkout을 열기 직전 한 번 더 최신
+    // 값을 확인한다 — 다른 탭에서 방금 결제를 마쳤거나 최초 조회가 아직 끝나지 않은
+    // 사이 클릭한 경우에도 이미 Pro라면 Checkout을 열지 않는다.
+    const latestPlan = await refetchPlan();
+    if (latestPlan === "pro") return;
+    openCheckout();
   }
 
   // 비로그인 상태에서는 클릭이 로그인 페이지 이동일 뿐이라 Paddle 준비 여부와 무관하게
@@ -186,17 +200,32 @@ function PricingPageContent() {
 
             <p className="mt-6 text-[12px] text-neutral-400">{t("pricing.pro.notice")}</p>
 
-            <button
-              type="button"
-              onClick={handleProCtaClick}
-              disabled={proDisabled}
-              className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-stitch-2xl bg-primary-navy px-6 py-3 text-[14px] font-[400] text-white shadow-[0_2px_10px_rgba(30,58,138,0.15)] transition-colors hover:bg-[#152c6e] disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {proBusy && (
-                <MaterialIcon name="progress_activity" size={14} className="animate-spin" />
-              )}
-              {proBusy ? t("settings.plan.upgrading") : t("pricing.pro.cta")}
-            </button>
+            {plan === "pro" ? (
+              <>
+                <p className="mt-4 text-[13px] font-[500] text-primary-navy">
+                  {t("pricing.pro.currentPlanNotice")}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => router.push("/settings")}
+                  className="mt-2 w-full rounded-stitch-2xl border border-neutral-200 bg-white px-6 py-3 text-[14px] font-[400] text-neutral-900 transition-colors hover:border-neutral-300 hover:bg-neutral-50"
+                >
+                  {t("pricing.pro.manageInSettings")}
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={handleProCtaClick}
+                disabled={proDisabled}
+                className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-stitch-2xl bg-primary-navy px-6 py-3 text-[14px] font-[400] text-white shadow-[0_2px_10px_rgba(30,58,138,0.15)] transition-colors hover:bg-[#152c6e] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {proBusy && (
+                  <MaterialIcon name="progress_activity" size={14} className="animate-spin" />
+                )}
+                {proBusy ? t("settings.plan.upgrading") : t("pricing.pro.cta")}
+              </button>
+            )}
           </div>
         </div>
 

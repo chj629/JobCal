@@ -344,7 +344,9 @@
       "priceNote": "毎月自動更新の月額サブスクリプションです。無料トライアルはありません。",
       "aiLimit": "AIメール分析：1日50回まで",
       "notice": "毎月自動更新 ・ いつでも解約可能",
-      "cta": "Proで始める"
+      "cta": "Proで始める",
+      "currentPlanNotice": "現在Proをご利用中です。",
+      "manageInSettings": "設定で管理する"
     },
     "features": {
       "sectionTitle": "共通機能（Free / Pro 共通）",
@@ -546,6 +548,9 @@
         "title": "支払い履歴",
         "empty": "支払い履歴はまだありません。",
         "statusCompleted": "支払い済み",
+        "statusRefunded": "返金済み",
+        "statusPartiallyRefunded": "一部返金",
+        "statusRefundPending": "返金処理中",
         "receiptNote": "領収書は上記の「サブスクリプション管理」からPaddle Customer Portalでご確認・ダウンロードいただけます。"
       }
     },

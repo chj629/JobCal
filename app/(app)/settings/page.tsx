@@ -13,6 +13,7 @@ import {
 } from "@/lib/paddle/getUserSubscriptionSummary";
 import {
   getUserTransactionHistory,
+  type RefundStatus,
   type UserTransaction,
 } from "@/lib/paddle/getUserTransactionHistory";
 import { usePaddleCheckout } from "@/lib/paddle/usePaddleCheckout";
@@ -36,6 +37,16 @@ function formatTransactionAmount(grandTotal: string, currencyCode: string, local
   const amount = Number(grandTotal) / 10 ** fractionDigits;
   return formatter.format(amount);
 }
+
+// getUserTransactionHistory가 계산한 RefundStatus를 그대로 문구 키에 매핑한다 — 상태
+// 계산 로직 자체는 이 파일에 두지 않는다(paddle_adjustments 근거 계산은
+// lib/paddle/getUserTransactionHistory.ts에서 이미 끝난 값만 받는다).
+const REFUND_STATUS_LABEL_KEYS: Record<RefundStatus, string> = {
+  none: "settings.plan.history.statusCompleted",
+  refunded: "settings.plan.history.statusRefunded",
+  partially_refunded: "settings.plan.history.statusPartiallyRefunded",
+  pending: "settings.plan.history.statusRefundPending",
+};
 
 // docs/stitch/설정페이지/jobcal_settings_profile_sophisticated_refresh에는 메일 필드가
 // 왜 비활성인지 설명하는 문구가 없다. 기본 화면에서는 숨기고 필요해지면 true로 되돌린다.
@@ -690,7 +701,7 @@ export default function SettingsPage() {
                           )}
                         </p>
                         <p className="text-[12px] text-[var(--color-settings-secondary)]">
-                          {t("settings.plan.history.statusCompleted")}
+                          {t(REFUND_STATUS_LABEL_KEYS[transaction.refundStatus])}
                         </p>
                       </div>
                     </div>

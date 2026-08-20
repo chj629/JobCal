@@ -1,5 +1,6 @@
 import {
   EventName,
+  type AdjustmentNotification,
   type EventEntity,
   type SubscriptionCreatedNotification,
   type SubscriptionNotification,
@@ -9,13 +10,15 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 const FOREIGN_KEY_VIOLATION = "23503";
 
-// subscription.created/updated/canceled + transaction.completed 4개 이벤트만 처리한다.
-// 그 외 이벤트는 구독 설정을 하지 않았다면 애초에 안 오지만, 혹시 오더라도 no-op으로
-// 무시한다 — 모르는 이벤트라고 에러를 던지면 Paddle이 불필요하게 재시도한다.
+// subscription.created/updated/canceled + transaction.completed + adjustment.created/updated
+// 6개 이벤트만 처리한다. 그 외 이벤트는 구독 설정을 하지 않았다면 애초에 안 오지만, 혹시
+// 오더라도 no-op으로 무시한다 — 모르는 이벤트라고 에러를 던지면 Paddle이 불필요하게
+// 재시도한다.
 //
-// transaction.completed(upsertTransaction)는 paddle_subscriptions를 절대 건드리지 않는
-// 완전히 별도 경로다 — Pro 권한 판정(lib/paddle/getUserPlan.ts)은 여전히
-// paddle_subscriptions만 읽으며, paddle_transactions는 결제 이력 표시 전용 부가 테이블이다.
+// transaction.completed(upsertTransaction)/adjustment.*(upsertAdjustment)는
+// paddle_subscriptions를 절대 건드리지 않는 완전히 별도 경로다 — Pro 권한 판정
+// (lib/paddle/getUserPlan.ts)은 여전히 paddle_subscriptions만 읽으며,
+// paddle_transactions/paddle_adjustments는 결제 이력·환불 상태 표시 전용 부가 테이블이다.
 export async function processPaddleEvent(event: EventEntity) {
   switch (event.eventType) {
     case EventName.SubscriptionCreated:
@@ -24,6 +27,9 @@ export async function processPaddleEvent(event: EventEntity) {
       return upsertSubscription(event.data);
     case EventName.TransactionCompleted:
       return upsertTransaction(event.data);
+    case EventName.AdjustmentCreated:
+    case EventName.AdjustmentUpdated:
+      return upsertAdjustment(event.data);
     default:
       return;
   }
@@ -134,6 +140,74 @@ async function upsertTransaction(data: TransactionNotification) {
   }
 }
 
+// upsertTransaction과 완전히 분리된 별도 함수 — paddle_subscriptions/Pro 판정에는 전혀
+// 관여하지 않고 오직 paddle_adjustments(Settings > Plan의 환불 상태 표시용)만 쓴다.
+async function upsertAdjustment(data: AdjustmentNotification) {
+  // credit/chargeback 등 환불이 아닌 조정은 이번 기능 범위 밖이다 — 안전하게 무시한다.
+  // 모르는 이벤트라고 에러를 던지면 Paddle이 불필요하게 재시도한다.
+  if (data.action !== "refund") {
+    return;
+  }
+
+  const admin = createAdminClient();
+
+  // AdjustmentNotification에는 customData가 없다 — 체크아웃 시점의 customData는
+  // transaction/subscription에만 실리고, adjustment는 결제 이후에 파생되는 이벤트라
+  // 실리지 않는다. 대신 transactionId로 이미 저장된 paddle_transactions 행에서
+  // user_id를 그대로 가져온다.
+  const { data: transactionRow, error: transactionError } = await admin
+    .from("paddle_transactions")
+    .select("user_id")
+    .eq("paddle_transaction_id", data.transactionId)
+    .maybeSingle();
+
+  if (transactionError) {
+    throw transactionError;
+  }
+
+  if (!transactionRow) {
+    // transaction.completed가 아직 처리되기 전에 adjustment가 먼저 도착한 이벤트 순서
+    // 역전 — 조용히 200으로 삼키지 않고 에러를 던져 Paddle이 재시도하게 한다. 그 사이
+    // transaction.completed가 처리되면 재시도 시 정상적으로 연결된다.
+    throw new Error(
+      `[paddle webhook] paddle_transactions에서 transaction ${data.transactionId}을 찾을 수 없음 — 재시도 유도`
+    );
+  }
+
+  const userId = transactionRow.user_id;
+
+  // paddle_adjustment_id(PK) 기준 upsert이므로 adjustment.created/updated가 여러 번
+  // 재전송되거나 상태가 바뀌어도(pending_approval -> approved 등) 항상 행 1개로
+  // 수렴한다(idempotent). total은 Paddle 원본 최소 통화 단위 문자열을 그대로 저장한다 —
+  // number/float로 변환하지 않는다(부동소수점 오차 방지).
+  const { error } = await admin.from("paddle_adjustments").upsert(
+    {
+      paddle_adjustment_id: data.id,
+      paddle_transaction_id: data.transactionId,
+      user_id: userId,
+      action: data.action,
+      adjustment_type: data.type,
+      status: data.status,
+      currency_code: data.totals.currencyCode,
+      total: data.totals.total,
+      reason: data.reason,
+      created_at: data.createdAt,
+      updated_at: data.updatedAt,
+    },
+    { onConflict: "paddle_adjustment_id" }
+  );
+
+  if (error) {
+    if (isMissingUser(error)) {
+      // user_id가 이미 삭제된 계정 — upsertSubscription/upsertTransaction과 동일한
+      // 정상 레이스 케이스.
+      console.warn(`[paddle webhook] 존재하지 않는 user_id, 무시: ${userId}`);
+      return;
+    }
+    throw error;
+  }
+}
+
 // paddle_customers를 idempotent하게 upsert한다. upsertSubscription/upsertTransaction
 // 두 경로가 이 함수 하나를 공유한다 — customer upsert 로직이 두 곳에 따로 구현되어
 // 어긋나는 일을 막는다. user_id가 이미 삭제된 계정이면(정상 레이스) false를 반환해
@@ -171,6 +245,7 @@ const USER_ID_FK_CONSTRAINTS = new Set([
   "paddle_customers_user_id_fkey",
   "paddle_subscriptions_user_id_fkey",
   "paddle_transactions_user_id_fkey",
+  "paddle_adjustments_user_id_fkey",
 ]);
 
 function isMissingUser(error: { code?: string; message?: string }) {
