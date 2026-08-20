@@ -276,6 +276,9 @@
       "addressValue": "ご請求をいただいた場合には、遅滞なく開示いたします。",
       "phoneLabel": "電話番号",
       "phoneValue": "ご請求をいただいた場合には、遅滞なく開示いたします。",
+      "disclosureContactLabel": "開示請求・お問い合わせ",
+      "disclosureContactLinkText": "お問い合わせフォーム",
+      "disclosureContactSuffix": "よりご請求ください。",
       "disclosureNote": "上記の開示をご希望の場合は、お問い合わせページよりご請求ください。ご請求いただいた内容を確認のうえ、遅滞なく電子メール等の方法によりご案内いたします。",
       "priceLabel": "販売価格",
       "priceValue": "Proプラン：月額780円（消費税込み）。Freeプランは無料でご利用いただけます。",
@@ -538,7 +541,13 @@
       "upgrading": "処理中...",
       "checkoutCompleted": "お支払いが完了しました。反映まで少し時間がかかる場合があります。",
       "checkoutError": "お支払い処理中に問題が発生しました。もう一度お試しください。",
-      "notConfigured": "決済機能はまだ設定されていません。"
+      "notConfigured": "決済機能はまだ設定されていません。",
+      "history": {
+        "title": "支払い履歴",
+        "empty": "支払い履歴はまだありません。",
+        "statusCompleted": "支払い済み",
+        "receiptNote": "領収書は上記の「サブスクリプション管理」からPaddle Customer Portalでご確認・ダウンロードいただけます。"
+      }
     },
     "language": "言語",
     "japanese": "日本語",

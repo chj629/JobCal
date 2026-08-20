@@ -22,6 +22,7 @@ const DISCLOSURE_ITEM_KEYS = [
   "operatorName",
   "address",
   "phone",
+  "disclosureContact",
   "price",
   "additionalFee",
   "paymentMethod",
@@ -53,13 +54,24 @@ export default function TokushohoPage() {
                 {t(`legal.tokushoho.${key}Label`)}
               </dt>
               <dd className="text-[14px] leading-[1.7] text-neutral-600">
-                {t(`legal.tokushoho.${key}Value`)}
-                {key === "refund" && (
+                {key === "disclosureContact" ? (
                   <>
-                    {" "}
-                    <Link href="/refund-policy" className="underline hover:text-neutral-900">
-                      {t("legal.tokushoho.refundPolicyPageLinkText")}
+                    <Link href="/contact" className="underline hover:text-neutral-900">
+                      {t("legal.tokushoho.disclosureContactLinkText")}
                     </Link>
+                    {t("legal.tokushoho.disclosureContactSuffix")}
+                  </>
+                ) : (
+                  <>
+                    {t(`legal.tokushoho.${key}Value`)}
+                    {key === "refund" && (
+                      <>
+                        {" "}
+                        <Link href="/refund-policy" className="underline hover:text-neutral-900">
+                          {t("legal.tokushoho.refundPolicyPageLinkText")}
+                        </Link>
+                      </>
+                    )}
                   </>
                 )}
               </dd>

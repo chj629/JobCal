@@ -11,6 +11,10 @@ import {
   getUserSubscriptionSummary,
   type UserSubscriptionSummary,
 } from "@/lib/paddle/getUserSubscriptionSummary";
+import {
+  getUserTransactionHistory,
+  type UserTransaction,
+} from "@/lib/paddle/getUserTransactionHistory";
 import { usePaddleCheckout } from "@/lib/paddle/usePaddleCheckout";
 import { dateKeyOf } from "@/lib/date";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
@@ -20,6 +24,18 @@ import Badge from "@/components/ui/Badge";
 import { useToast } from "@/components/ui/Toast";
 
 const MIN_PASSWORD_LENGTH = 6;
+
+// paddle_transactions.grand_total은 Paddle 원본 최소 통화 단위 문자열(예: JPY는 "780")을
+// 그대로 저장한 값이다 — 화면에 표시할 때만 통화별 소수 자릿수(JPY=0, USD=2 등)를
+// Intl.NumberFormat에서 읽어와 나눈다. 통화 코드를 하드코딩한 표를 따로 두지 않는다.
+function formatTransactionAmount(grandTotal: string, currencyCode: string, localeCode: string): string {
+  const formatter = new Intl.NumberFormat(localeCode, { style: "currency", currency: currencyCode });
+  // resolvedOptions().maximumFractionDigits는 통화 형식이 있는 한 항상 채워지지만 타입상
+  // optional이라, ISO 4217 기본값(2)으로 안전하게 fallback한다.
+  const fractionDigits = formatter.resolvedOptions().maximumFractionDigits ?? 2;
+  const amount = Number(grandTotal) / 10 ** fractionDigits;
+  return formatter.format(amount);
+}
 
 // docs/stitch/설정페이지/jobcal_settings_profile_sophisticated_refresh에는 메일 필드가
 // 왜 비활성인지 설명하는 문구가 없다. 기본 화면에서는 숨기고 필요해지면 true로 되돌린다.
@@ -41,6 +57,8 @@ const LANGUAGE_OPTIONS: Array<{ value: Locale; labelKey: string }> = [
 
 export default function SettingsPage() {
   const { locale, setLocale } = useLocale();
+  // app/(app)/calendar/page.tsx와 동일한 매핑 — 결제 이력 날짜/금액 표시(Intl API)에 쓴다.
+  const localeCode = locale === "ja" ? "ja-JP" : "ko-KR";
   const t = useT();
   const router = useRouter();
   const { showToast } = useToast();
@@ -69,6 +87,10 @@ export default function SettingsPage() {
   // 직접 "pro"로 바꾸거나 상태를 조작하는 경로는 없다.
   const [subscription, setSubscription] = useState<UserSubscriptionSummary | null>(null);
   const [isPortalLoading, setIsPortalLoading] = useState(false);
+  // null = 아직 조회 전(로딩). paddle_transactions(webhook의 transaction.completed가
+  // 채우는 결제 이력 전용 테이블)만 읽는다 — Pro 판정(subscription 상태)에는 전혀
+  // 관여하지 않는다.
+  const [transactions, setTransactions] = useState<UserTransaction[] | null>(null);
 
   // docs/stitch/설정페이지/jobcal_settings_language_sophisticated_refresh는 드롭다운에서
   // 고른 값을 "変更を保存"를 눌러야 실제로 반영하는 구조다(기존 버튼 2개를 즉시 전환하던
@@ -97,6 +119,11 @@ export default function SettingsPage() {
   useEffect(() => {
     const supabase = createClient();
     getUserSubscriptionSummary(supabase).then(setSubscription);
+  }, []);
+
+  useEffect(() => {
+    const supabase = createClient();
+    getUserTransactionHistory(supabase).then(setTransactions);
   }, []);
 
   // Paddle Customer Portal 세션 발급. 서버(app/api/paddle/portal)가 현재 로그인 세션의
@@ -489,6 +516,7 @@ export default function SettingsPage() {
           )}
 
           {activeTab === "plan" && (
+            <>
             <section>
               <h2 className="mb-1 text-[16px] font-medium text-[var(--color-settings-ink)]">
                 {t("settings.plan.title")}
@@ -617,6 +645,67 @@ export default function SettingsPage() {
                 </div>
               )}
             </section>
+
+            {/* transaction.completed webhook이 채우는 paddle_transactions 전용 표시 —
+                subscription 카드(위)와 완전히 독립된 섹션이다. Pro 판정에는 관여하지 않고
+                순수하게 결제 이력을 보여주기만 한다. */}
+            <section className="mt-10">
+              <h2 className="mb-1 text-[16px] font-medium text-[var(--color-settings-ink)]">
+                {t("settings.plan.history.title")}
+              </h2>
+
+              {transactions === null ? (
+                <LoadingState>{t("common.loading")}</LoadingState>
+              ) : transactions.length === 0 ? (
+                <p className="text-[13px] text-[var(--color-settings-secondary)]">
+                  {t("settings.plan.history.empty")}
+                </p>
+              ) : (
+                <div className="max-w-md divide-y divide-neutral-100 rounded-2xl border border-neutral-300 bg-white">
+                  {transactions.map((transaction) => (
+                    <div
+                      key={transaction.id}
+                      className="flex items-center justify-between gap-3 px-6 py-4"
+                    >
+                      <div>
+                        <p className="text-[13px] font-medium text-[var(--color-settings-ink)]">
+                          {transaction.billedAt
+                            ? new Intl.DateTimeFormat(localeCode, {
+                                year: "numeric",
+                                month: "2-digit",
+                                day: "2-digit",
+                              }).format(new Date(transaction.billedAt))
+                            : "—"}
+                        </p>
+                        <p className="text-[12px] text-[var(--color-settings-secondary)]">
+                          {t("settings.plan.proName")}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[13px] font-medium text-[var(--color-settings-ink)]">
+                          {formatTransactionAmount(
+                            transaction.grandTotal,
+                            transaction.currencyCode,
+                            localeCode
+                          )}
+                        </p>
+                        <p className="text-[12px] text-[var(--color-settings-secondary)]">
+                          {t("settings.plan.history.statusCompleted")}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* 영수증/인보이스 PDF는 JobCal이 직접 만들지 않는다 — 기존 "サブスクリプション
+                  管理" 버튼(위 섹션, Paddle Customer Portal로 이동)에서 Paddle이 제공하는
+                  다운로드 기능을 그대로 이용하도록 안내만 한다. 새 API/버튼을 추가하지 않는다. */}
+              <p className="mt-3 text-[12px] leading-[1.6] text-[var(--color-settings-secondary)]">
+                {t("settings.plan.history.receiptNote")}
+              </p>
+            </section>
+            </>
           )}
 
           {activeTab === "language" && (
