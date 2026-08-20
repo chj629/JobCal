@@ -1,9 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useT } from "@/lib/locale-context";
 import LegalPageShell, { LegalSection } from "@/components/legal/LegalPageShell";
 
-const LAST_UPDATED = "2026-08-19";
+const LAST_UPDATED = "2026-08-20";
 
 // Paddle 유료 구독(Pro) 도입에 맞춰 기존 "무료 MVP" 전제 문구를 제거하고, Free/Pro
 // 플랜 구조 + 유료 플랜/결제(4) + 해지·환불(5) 섹션을 새로 추가했다(총 13 -> 15개
@@ -52,6 +53,13 @@ export default function TermsPage() {
           <li>{t("legal.terms.section5Body2")}</li>
           <li>{t("legal.terms.section5Body3")}</li>
           <li>{t("legal.terms.section5Body4")}</li>
+          <li>
+            {t("legal.terms.section5Body5Prefix")}{" "}
+            <Link href="/refund-policy" className="underline hover:text-neutral-900">
+              {t("legal.terms.section5Body5LinkText")}
+            </Link>
+            {t("legal.terms.section5Body5Suffix")}
+          </li>
         </ul>
       </LegalSection>
 

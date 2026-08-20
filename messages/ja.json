@@ -125,6 +125,7 @@
     "footer": {
       "privacy": "プライバシーポリシー",
       "terms": "利用規約",
+      "refundPolicy": "返金ポリシー",
       "contact": "お問い合わせ",
       "tokushoho": "特定商取引法に基づく表記",
       "copyright": "© {year} JobCal. All rights reserved."
@@ -192,6 +193,9 @@
       "section5Body2": "解約は、現在のお支払い期間の終了時点で効力が生じます。それまでの間は、引き続きProプランの機能をご利用いただけます。日割りでの返金は行われません。",
       "section5Body3": "返金の可否・条件については、決済代行事業者Paddle.comの返金ポリシー、および利用者に適用される消費者保護に関する法令に従います。本サービスとして一律に返金不可とするものではありません。",
       "section5Body4": "本サービスのアカウントを削除された場合、有効なProプランのご契約は直ちに解約され、以降のお支払いは発生しません。",
+      "section5Body5Prefix": "解約と返金は別の手続きです。詳細は",
+      "section5Body5LinkText": "返金ポリシー",
+      "section5Body5Suffix": "のページをご確認ください。",
       "section6Title": "6. AI機能について",
       "section6Body1": "AIメール解析機能が抽出する情報（企業名・選考ステップ・予定・担当者情報・メモ等）は参考情報であり、正確性を保証するものではありません。",
       "section6Body2": "特に選考結果や面接日時などの重要な予定・選考情報については、必ず利用者ご自身が元のメールと照らし合わせてご確認ください。",
@@ -295,7 +299,27 @@
       "contactValue": "本表記に関するご質問、開示請求等は、お問い合わせページよりご連絡ください。",
       "relatedLinksTitle": "関連リンク",
       "paddleRefundPolicyLinkText": "Paddle Refund Policy（返金ポリシー）",
-      "paddleBuyerTermsLinkText": "Paddle Buyer Terms（購入者向け利用規約）"
+      "paddleBuyerTermsLinkText": "Paddle Buyer Terms（購入者向け利用規約）",
+      "refundPolicyPageLinkText": "（返金ポリシーページを見る）"
+    },
+    "refundPolicy": {
+      "title": "返金ポリシー",
+      "intro": "本ページは、JobCal Pro（有料プラン）のお支払いおよび返金の取り扱いについて説明するものです。利用規約・特定商取引法に基づく表記もあわせてご確認ください。",
+      "providerTitle": "決済代行事業者について",
+      "providerBody": "本サービスの有料プラン（Pro）のご注文手続き、お支払い、返金対応は、オンライン販売代理店であるPaddle.comを通じて行われます。Paddle.comは、本サービスに関するすべてのご注文のMerchant of Record（販売者）です。",
+      "refundTitle": "返金について",
+      "refundBody1": "返金の可否および条件は、決済代行事業者Paddle.comの返金ポリシー、および、お客様に適用される消費者保護に関する法令に従います。本サービスとして一律に返金不可と定めるものではありません。",
+      "refundBody2": "返金に関するお問い合わせ・お手続きは、Paddleの購入者サポートをご利用いただけます。具体的な返金の条件・期間等は、下記のPaddle Refund Policyをご確認ください。",
+      "cancellationTitle": "解約について",
+      "cancellationBody1": "Proプランの解約は、設定画面からPaddle Customer Portal（お支払い管理ページ）にアクセスし、いつでも行うことができます。",
+      "cancellationBody2": "解約は、現在のお支払い期間の終了時点で効力が生じます。それまでの間は、引き続きProプランの機能をご利用いただけます。解約後は、それ以降の自動更新・次回のご請求は発生しません。",
+      "cancellationNote": "解約と返金は別の手続きです。解約はいつでも上記のPaddle Customer Portalから行えますが、既にお支払い済みの金額の返金可否は、本ページの「返金について」の基準に従います。",
+      "accountDeletionTitle": "アカウント削除時の取り扱い",
+      "accountDeletionBody": "本サービスのアカウントを削除された場合、有効なProプランのご契約は直ちに解約され、以降のお支払いは発生しません。",
+      "relatedLinksTitle": "関連リンク",
+      "contactTitle": "お問い合わせ",
+      "contactBody": "返金・解約に関するご質問は、お問い合わせページよりご連絡ください。",
+      "contactLinkText": "お問い合わせページへ"
     }
   },
   "sidebar": {
@@ -467,6 +491,7 @@
       "noticeCancelDetail": "解約は現在のお支払い期間の終了時点で適用されます。それまではPro機能を引き続きご利用いただけます。",
       "agreementNotice": "購入を進めると、利用規約および返金ポリシーに同意したものとみなされます。",
       "termsLinkText": "利用規約",
+      "refundPolicyLinkText": "返金ポリシー",
       "tokushohoLinkText": "特定商取引法に基づく表記",
       "upgradeButton": "Proにアップグレード",
       "upgrading": "処理中...",

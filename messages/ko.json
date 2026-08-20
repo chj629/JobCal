@@ -125,6 +125,7 @@
     "footer": {
       "privacy": "개인정보처리방침",
       "terms": "이용약관",
+      "refundPolicy": "환불정책",
       "contact": "문의하기",
       "tokushoho": "특정상거래법에 따른 표시",
       "copyright": "© {year} JobCal. All rights reserved."
@@ -192,6 +193,9 @@
       "section5Body2": "해지는 현재 결제 기간이 끝나는 시점에 효력이 발생합니다. 그때까지는 계속해서 Pro 플랜 기능을 이용할 수 있습니다. 일할 계산에 의한 환불은 이루어지지 않습니다.",
       "section5Body3": "환불 가능 여부와 조건은 결제대행사 Paddle.com의 환불 정책, 그리고 이용자에게 적용되는 소비자 보호 관련 법령에 따릅니다. 본 서비스가 일률적으로 환불 불가를 정하는 것은 아닙니다.",
       "section5Body4": "본 서비스의 계정을 삭제하는 경우, 유효한 Pro 플랜 구독은 즉시 해지되며 이후 결제는 발생하지 않습니다.",
+      "section5Body5Prefix": "해지와 환불은 별개의 절차입니다. 자세한 내용은",
+      "section5Body5LinkText": "환불정책",
+      "section5Body5Suffix": "페이지를 확인해 주세요.",
       "section6Title": "6. AI 기능에 대하여",
       "section6Body1": "AI 메일 분석 기능이 추출하는 정보(기업명·전형 단계·일정·담당자 정보·메모 등)는 참고용 정보이며 정확성을 보장하지 않습니다.",
       "section6Body2": "특히 전형 결과나 면접 일시 등 중요한 일정·전형 정보는 반드시 이용자 본인이 원본 메일과 대조하여 확인해야 합니다.",
@@ -295,7 +299,27 @@
       "contactValue": "이 표시 사항에 관한 질문, 정보 공개 요청 등은 문의하기 페이지를 통해 연락해 주세요.",
       "relatedLinksTitle": "관련 링크",
       "paddleRefundPolicyLinkText": "Paddle 환불 정책(Refund Policy)",
-      "paddleBuyerTermsLinkText": "Paddle 구매자 이용약관(Buyer Terms)"
+      "paddleBuyerTermsLinkText": "Paddle 구매자 이용약관(Buyer Terms)",
+      "refundPolicyPageLinkText": "(환불정책 페이지 보기)"
+    },
+    "refundPolicy": {
+      "title": "환불정책",
+      "intro": "이 페이지는 JobCal Pro(유료 플랜)의 결제 및 환불 처리 방식을 설명합니다. 이용약관, 특정상거래법에 따른 표시도 함께 확인해 주세요.",
+      "providerTitle": "결제대행사에 대하여",
+      "providerBody": "본 서비스의 유료 플랜(Pro) 주문 절차, 결제, 환불 처리는 온라인 판매 대리점인 Paddle.com을 통해 이루어집니다. Paddle.com은 본 서비스에 관한 모든 주문의 Merchant of Record(판매자)입니다.",
+      "refundTitle": "환불에 대하여",
+      "refundBody1": "환불 가능 여부와 조건은 결제대행사 Paddle.com의 환불 정책, 그리고 이용자에게 적용되는 소비자 보호 관련 법령에 따릅니다. 본 서비스가 일률적으로 환불 불가를 정하는 것은 아닙니다.",
+      "refundBody2": "환불 관련 문의 및 절차는 Paddle의 구매자 지원을 이용하실 수 있습니다. 구체적인 환불 조건·기간 등은 아래 Paddle 환불 정책을 확인해 주세요.",
+      "cancellationTitle": "해지에 대하여",
+      "cancellationBody1": "Pro 플랜의 해지는 설정 화면에서 Paddle Customer Portal(결제 관리 페이지)에 접속해 언제든 진행할 수 있습니다.",
+      "cancellationBody2": "해지는 현재 결제 기간이 끝나는 시점에 효력이 발생합니다. 그때까지는 계속해서 Pro 플랜 기능을 이용할 수 있습니다. 해지 이후에는 자동 갱신 및 다음 결제가 발생하지 않습니다.",
+      "cancellationNote": "해지와 환불은 별개의 절차입니다. 해지는 위 Paddle Customer Portal에서 언제든 가능하지만, 이미 결제한 금액의 환불 가능 여부는 이 페이지의 '환불에 대하여' 기준을 따릅니다.",
+      "accountDeletionTitle": "계정 삭제 시 처리",
+      "accountDeletionBody": "본 서비스의 계정을 삭제하시면, 유효한 Pro 플랜 구독은 즉시 해지되며 이후 결제는 발생하지 않습니다.",
+      "relatedLinksTitle": "관련 링크",
+      "contactTitle": "문의처",
+      "contactBody": "환불·해지 관련 질문은 문의하기 페이지를 통해 연락해 주세요.",
+      "contactLinkText": "문의하기 페이지로"
     }
   },
   "sidebar": {
@@ -467,6 +491,7 @@
       "noticeCancelDetail": "해지는 현재 결제 기간이 끝나는 시점에 적용됩니다. 그때까지는 Pro 기능을 계속 이용하실 수 있습니다.",
       "agreementNotice": "구매를 진행하면 이용약관 및 환불정책에 동의하는 것으로 간주됩니다.",
       "termsLinkText": "이용약관",
+      "refundPolicyLinkText": "환불정책",
       "tokushohoLinkText": "특정상거래법에 따른 표시",
       "upgradeButton": "Pro로 업그레이드",
       "upgrading": "처리 중...",

@@ -1,9 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useT } from "@/lib/locale-context";
 import LegalPageShell, { LegalSection } from "@/components/legal/LegalPageShell";
 
-const LAST_UPDATED = "2026-08-19";
+const LAST_UPDATED = "2026-08-20";
 
 // Paddle 공식 정책 페이지. 페이지 내에서 구체적인 반환/환불 일수 등을 직접 적지 않고
 // 이 링크로 연결하는 이유는, Paddle의 환불 정책이 판매자(JobCal)가 임의로 바꿀 수 없는
@@ -53,6 +54,14 @@ export default function TokushohoPage() {
               </dt>
               <dd className="text-[14px] leading-[1.7] text-neutral-600">
                 {t(`legal.tokushoho.${key}Value`)}
+                {key === "refund" && (
+                  <>
+                    {" "}
+                    <Link href="/refund-policy" className="underline hover:text-neutral-900">
+                      {t("legal.tokushoho.refundPolicyPageLinkText")}
+                    </Link>
+                  </>
+                )}
               </dd>
             </div>
           ))}

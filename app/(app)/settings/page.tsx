@@ -21,11 +21,6 @@ import { useToast } from "@/components/ui/Toast";
 
 const MIN_PASSWORD_LENGTH = 6;
 
-// Paddle 공식 환불 정책 페이지. JobCal 자체 문서에 구체적인 환불 일수를 고정 기재하지
-// 않고(판매자가 임의로 바꿀 수 없는 Paddle 정책이라 이 링크로만 안내) 항상 최신 정책을
-// 그대로 보여준다.
-const PADDLE_REFUND_POLICY_URL = "https://www.paddle.com/legal/refund-policy";
-
 // docs/stitch/설정페이지/jobcal_settings_profile_sophisticated_refresh에는 메일 필드가
 // 왜 비활성인지 설명하는 문구가 없다. 기본 화면에서는 숨기고 필요해지면 true로 되돌린다.
 const SHOW_EMAIL_HINT = false;
@@ -659,7 +654,10 @@ export default function SettingsPage() {
                       만 요구할 뿐, 별도 체크박스 UI를 명시적으로 요구하지 않는다(배너·링크
                       방식도 허용됨을 확인). 동의 안내는 가장 옅은 muted 텍스트로, 그 아래
                       실제 링크 3개는 밑줄 + 잉크 색으로 대비를 줘서 "읽는 문장"과 "누를 수
-                      있는 링크"가 시각적으로 분리되게 한다. */}
+                      있는 링크"가 시각적으로 분리되게 한다. 세 번째 링크는 Paddle 공식
+                      환불정책 외부 링크가 아니라 JobCal 자체 /refund-policy 페이지로
+                      바꿨다 — 그 페이지 안에서 다시 Paddle 공식 환불정책/구매자 약관으로
+                      연결되므로, 여기서 두 링크를 동시에 노출해 혼란을 주지 않는다. */}
                   <p className="mt-3 text-[10px] leading-[1.5] text-[var(--color-settings-secondary)]">
                     {t("settings.plan.agreementNotice")}
                   </p>
@@ -672,20 +670,18 @@ export default function SettingsPage() {
                     </Link>
                     <span className="text-[var(--color-settings-secondary)]">・</span>
                     <Link
+                      href="/refund-policy"
+                      className="text-[var(--color-settings-ink)] underline underline-offset-2 hover:opacity-70"
+                    >
+                      {t("settings.plan.refundPolicyLinkText")}
+                    </Link>
+                    <span className="text-[var(--color-settings-secondary)]">・</span>
+                    <Link
                       href="/tokushoho"
                       className="text-[var(--color-settings-ink)] underline underline-offset-2 hover:opacity-70"
                     >
                       {t("settings.plan.tokushohoLinkText")}
                     </Link>
-                    <span className="text-[var(--color-settings-secondary)]">・</span>
-                    <a
-                      href={PADDLE_REFUND_POLICY_URL}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-[var(--color-settings-ink)] underline underline-offset-2 hover:opacity-70"
-                    >
-                      {t("legal.tokushoho.paddleRefundPolicyLinkText")}
-                    </a>
                   </div>
                 </div>
               )}

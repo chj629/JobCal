@@ -11,5 +11,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${baseUrl}/terms`, changeFrequency: "yearly", priority: 0.3 },
     { url: `${baseUrl}/contact`, changeFrequency: "yearly", priority: 0.3 },
     { url: `${baseUrl}/tokushoho`, changeFrequency: "yearly", priority: 0.3 },
+    { url: `${baseUrl}/refund-policy`, changeFrequency: "yearly", priority: 0.3 },
   ];
 }

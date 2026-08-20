@@ -17,7 +17,7 @@ export default function LandingFooter() {
           {t("common.appName")}
         </span>
 
-        <nav className="flex gap-8 text-[13px]">
+        <nav className="flex flex-wrap justify-center gap-x-8 gap-y-2 text-[13px]">
           <Link
             href="/privacy"
             className="font-[400] text-neutral-500 transition-colors hover:text-neutral-900"
@@ -31,16 +31,22 @@ export default function LandingFooter() {
             {t("landing.footer.terms")}
           </Link>
           <Link
-            href="/contact"
+            href="/refund-policy"
             className="font-[400] text-neutral-500 transition-colors hover:text-neutral-900"
           >
-            {t("landing.footer.contact")}
+            {t("landing.footer.refundPolicy")}
           </Link>
           <Link
             href="/tokushoho"
             className="font-[400] text-neutral-500 transition-colors hover:text-neutral-900"
           >
             {t("landing.footer.tokushoho")}
+          </Link>
+          <Link
+            href="/contact"
+            className="font-[400] text-neutral-500 transition-colors hover:text-neutral-900"
+          >
+            {t("landing.footer.contact")}
           </Link>
         </nav>
 
