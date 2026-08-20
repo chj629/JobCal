@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useT } from "@/lib/locale-context";
 import SiteHeader from "@/components/ui/SiteHeader";
 
@@ -27,6 +28,12 @@ export default function LandingNav() {
   return (
     <SiteHeader compactOnMobile>
       <div className="flex items-center gap-2 sm:gap-5">
+        <Link
+          href="/pricing"
+          className="whitespace-nowrap text-[12px] font-[400] text-neutral-900 transition-colors hover:text-primary-navy sm:text-[13px]"
+        >
+          {t("landing.nav.pricing")}
+        </Link>
         <button
           type="button"
           onClick={() => router.push("/login")}

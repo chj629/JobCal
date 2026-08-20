@@ -19,6 +19,12 @@ export default function LandingFooter() {
 
         <nav className="flex flex-wrap justify-center gap-x-8 gap-y-2 text-[13px]">
           <Link
+            href="/pricing"
+            className="font-[400] text-neutral-500 transition-colors hover:text-neutral-900"
+          >
+            {t("landing.footer.pricing")}
+          </Link>
+          <Link
             href="/privacy"
             className="font-[400] text-neutral-500 transition-colors hover:text-neutral-900"
           >

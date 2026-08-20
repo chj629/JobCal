@@ -35,6 +35,7 @@
   },
   "landing": {
     "nav": {
+      "pricing": "요금제",
       "login": "로그인",
       "getStarted": "무료로 시작하기"
     },
@@ -123,6 +124,7 @@
       "getStarted": "무료로 시작하기"
     },
     "footer": {
+      "pricing": "요금제",
       "privacy": "개인정보처리방침",
       "terms": "이용약관",
       "refundPolicy": "환불정책",
@@ -321,6 +323,45 @@
       "contactBody": "환불·해지 관련 질문은 문의하기 페이지를 통해 연락해 주세요.",
       "contactLinkText": "문의하기 페이지로"
     }
+  },
+  "pricing": {
+    "title": "요금제",
+    "description": "무료 Free 플랜으로 시작하고, 필요할 때 언제든지 Pro로 업그레이드할 수 있습니다.",
+    "free": {
+      "name": "Free",
+      "price": "¥0",
+      "priceNote": "무료로 이용할 수 있습니다",
+      "aiLimit": "AI 메일 분석: 1일 3회까지",
+      "cta": "무료로 시작하기"
+    },
+    "pro": {
+      "name": "JobCal Pro",
+      "price": "¥780",
+      "priceUnit": "/ 월（세금 포함）",
+      "priceNote": "매월 자동 갱신되는 월간 구독입니다. 무료 체험은 제공되지 않습니다.",
+      "aiLimit": "AI 메일 분석: 1일 50회까지",
+      "notice": "매월 자동 갱신 ・ 언제든지 해지 가능",
+      "cta": "Pro로 시작하기"
+    },
+    "features": {
+      "sectionTitle": "공통 기능 (Free / Pro 동일)",
+      "companyManagement": "지원 기업 등록・조회・수정・삭제",
+      "companySearch": "기업 검색・정렬・우선순위 설정",
+      "selectionSteps": "전형 단계・진행 상태 관리",
+      "schedule": "일정・결과 발표 예정일 관리",
+      "dashboard": "대시보드",
+      "calendar": "캘린더",
+      "analytics": "분석",
+      "mypage": "마이페이지 정보 관리",
+      "contactsAndMemo": "담당자 정보・메모 관리",
+      "responsive": "PC・모바일 반응형 지원"
+    },
+    "aiSectionTitle": "AI 메일 분석 (Free / Pro 차이)",
+    "linksTitle": "관련 페이지",
+    "termsLinkText": "이용약관",
+    "privacyLinkText": "개인정보처리방침",
+    "refundPolicyLinkText": "환불 정책",
+    "tokushohoLinkText": "特定商取引法に基づく表記"
   },
   "sidebar": {
     "dashboard": "홈",

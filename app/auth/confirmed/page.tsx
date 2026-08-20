@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useT } from "@/lib/locale-context";
+import { resolveNextPath } from "@/lib/auth/nextPath";
 import AuthHeader from "@/components/auth/AuthHeader";
 import AuthHeroPanel from "@/components/auth/AuthHeroPanel";
 import MaterialIcon from "@/components/ui/MaterialIcon";
@@ -17,6 +18,18 @@ export default function AuthConfirmedPage() {
   const router = useRouter();
   const t = useT();
   const [isLoading, setIsLoading] = useState(false);
+  // app/auth/confirm/route.ts가 next(이미 서버에서 resolveNextPath로 검증됨)를
+  // ?next=...로 넘겨준다. 여기서도(클라이언트에서 직접 이 URL을 열 수도 있으므로)
+  // resolveNextPath로 다시 한번 검증한 뒤에만 신뢰한다 — 검증에 실패하면 빈 문자열이라
+  // 기존과 동일하게 순수 "/login"으로만 이동한다.
+  const [loginTarget, setLoginTarget] = useState("/login");
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const next = resolveNextPath(params.get("next"), "");
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setLoginTarget(next ? `/login?next=${encodeURIComponent(next)}` : "/login");
+  }, []);
 
   async function handleGoToLogin() {
     setIsLoading(true);
@@ -36,7 +49,7 @@ export default function AuthConfirmedPage() {
     }
 
     // 뒤로가기로 이 페이지에 다시 돌아오지 않도록 push 대신 replace를 사용한다.
-    router.replace("/login");
+    router.replace(loginTarget);
     router.refresh();
   }
 

@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useT } from "@/lib/locale-context";
+import { buildCheckoutNext, resolvePostAuthRedirect } from "@/lib/auth/nextPath";
 import AuthHeader from "@/components/auth/AuthHeader";
 import MaterialIcon from "@/components/ui/MaterialIcon";
 
@@ -98,19 +99,46 @@ export default function SignupPage() {
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [confirmationSent, setConfirmationSent] = useState(false);
+  // /pricing?checkout=pro에서 비로그인 상태로 Pro CTA를 눌러 여기로 왔을 때, 가입 즉시
+  // 세션이 발급되는 경우(이메일 확인이 꺼져 있거나 Google 가입) 돌아갈 경로. next/checkout이
+  // 없거나 안전하지 않으면 기존과 동일하게 "/dashboard"로 남는다 — 결제 의도가 없는 일반
+  // 회원가입은 동작이 전혀 바뀌지 않는다.
+  const [redirectTarget, setRedirectTarget] = useState("/dashboard");
+  // 이미 계정이 있어 "ログイン" 링크로 /login으로 넘어가는 사용자도 결제 의도를 잃지
+  // 않도록, 지금 이 /signup URL의 next/checkout을 하나의 next 값으로 합쳐 그대로 넘긴다.
+  // 의도가 없거나 안전하지 않으면 기존과 동일하게 그냥 "/login"으로 남는다.
+  const [loginHref, setLoginHref] = useState("/login");
+
+  // app/login/page.tsx와 동일한 이유로 마운트 후에만 쿼리를 읽는다(정적 프리렌더와의
+  // hydration 일치).
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const checkoutNext = buildCheckoutNext(params.get("next"), params.get("checkout"));
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setRedirectTarget(
+      resolvePostAuthRedirect(params.get("next"), params.get("checkout"), "/dashboard")
+    );
+    if (checkoutNext) setLoginHref(`/login?next=${encodeURIComponent(checkoutNext)}`);
+  }, []);
 
   // 기존 로그인 페이지(app/login/page.tsx)의 handleGoogleLogin과 동일한 Supabase
   // OAuth 로직. 회원가입/로그인 모두 같은 Google 계정 흐름을 타므로 로직은 그대로,
-  // 버튼 문구만 signup 전용 키를 쓴다.
+  // 버튼 문구만 signup 전용 키를 쓴다. next/checkout을 /auth/callback으로 넘기는 방식도
+  // 로그인 페이지와 동일하다.
   async function handleGoogleSignup() {
     setIsGoogleLoading(true);
     setErrorMessage("");
+
+    const params = new URLSearchParams(window.location.search);
+    const checkoutNext = buildCheckoutNext(params.get("next"), params.get("checkout"));
+    const callbackUrl = new URL("/auth/callback", window.location.origin);
+    if (checkoutNext) callbackUrl.searchParams.set("next", checkoutNext);
 
     const supabase = createClient();
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: callbackUrl.toString(),
       },
     });
 
@@ -144,12 +172,24 @@ export default function SignupPage() {
     }
 
     setIsLoading(true);
+
+    // 이메일 확인 링크(/auth/confirm)가 나중에 실제로 클릭되는 시점은 이 페이지가 이미
+    // 사라진 뒤이므로, checkout 의도(next=/pricing&checkout=pro)를 지금 하나의 next 값으로
+    // 합쳐 emailRedirectTo 쿼리에 실어 보낸다 — Google 가입(handleGoogleSignup)의
+    // /auth/callback?next=... 과 동일한 패턴이다. /auth/confirm → /auth/confirmed →
+    // /login까지 이 next 하나만 그대로 전달되고, 각 단계는 lib/auth/nextPath.ts의 안전
+    // 검증을 다시 거친다(아래 /auth/confirm, /auth/confirmed 참고).
+    const params = new URLSearchParams(window.location.search);
+    const checkoutNext = buildCheckoutNext(params.get("next"), params.get("checkout"));
+    const emailRedirectUrl = new URL("/auth/confirm", window.location.origin);
+    if (checkoutNext) emailRedirectUrl.searchParams.set("next", checkoutNext);
+
     const supabase = createClient();
     const { data, error } = await supabase.auth.signUp({
       email: email.trim(),
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/confirm`,
+        emailRedirectTo: emailRedirectUrl.toString(),
         data: {
           display_name: name.trim(),
         },
@@ -164,7 +204,7 @@ export default function SignupPage() {
 
     // 이메일 확인이 꺼져 있는 프로젝트는 signUp() 즉시 세션이 발급된다.
     if (data.session) {
-      router.push("/dashboard");
+      router.push(redirectTarget);
       router.refresh();
       return;
     }
@@ -344,7 +384,7 @@ export default function SignupPage() {
                 <div className="pt-4 text-center">
                   <p className="text-[14px] text-neutral-600">
                     {t("auth.signup.loginPrompt")}{" "}
-                    <Link href="/login" className="ml-1 font-[400] text-primary-navy hover:underline">
+                    <Link href={loginHref} className="ml-1 font-[400] text-primary-navy hover:underline">
                       {t("auth.signup.loginLink")}
                     </Link>
                   </p>

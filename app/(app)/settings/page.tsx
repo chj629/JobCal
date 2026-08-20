@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Globe, Lock, Sparkles, User, type LucideIcon } from "lucide-react";
-import { CheckoutEventNames, initializePaddle, type Paddle } from "@paddle/paddle-js";
 import { translate, useLocale, useT } from "@/lib/locale-context";
 import type { Locale } from "@/lib/i18n/messages";
 import { createClient } from "@/lib/supabase/client";
@@ -12,6 +11,7 @@ import {
   getUserSubscriptionSummary,
   type UserSubscriptionSummary,
 } from "@/lib/paddle/getUserSubscriptionSummary";
+import { usePaddleCheckout } from "@/lib/paddle/usePaddleCheckout";
 import { dateKeyOf } from "@/lib/date";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import MaterialIcon from "@/components/ui/MaterialIcon";
@@ -64,18 +64,11 @@ export default function SettingsPage() {
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
 
   const [userId, setUserId] = useState<string | null>(null);
-  const [paddleInstance, setPaddleInstance] = useState<Paddle | null>(null);
-  const [isCheckoutBusy, setIsCheckoutBusy] = useState(false);
   // null = 아직 조회 전(로딩). paddle_subscriptions(webhook이 채우는 source of truth)를
   // 읽어서만 정해지고, 체크아웃 성공 콜백이나 Customer Portal 이동 등 클라이언트 쪽에서
   // 직접 "pro"로 바꾸거나 상태를 조작하는 경로는 없다.
   const [subscription, setSubscription] = useState<UserSubscriptionSummary | null>(null);
   const [isPortalLoading, setIsPortalLoading] = useState(false);
-  // Paddle의 eventCallback은 initializePaddle 최초 호출 시 한 번만 등록되므로(재호출은
-  // SDK가 무시/경고함) 그 안에서 최신 locale로 토스트 문구를 고르려면 클로저 대신 ref로
-  // 읽어야 한다 — t()(useT())를 effect deps에 넣으면 locale이 바뀔 때마다 이 effect가
-  // 재실행되어 initializePaddle을 다시 호출하게 된다.
-  const localeRef = useRef(locale);
 
   // docs/stitch/설정페이지/jobcal_settings_language_sophisticated_refresh는 드롭다운에서
   // 고른 값을 "変更を保存"를 눌러야 실제로 반영하는 구조다(기존 버튼 2개를 즉시 전환하던
@@ -86,10 +79,6 @@ export default function SettingsPage() {
     // lib/locale-context.tsx의 LocaleProvider와 동일한 이유로 microtask로 한 틱 미뤄
     // effect 본문에서 동기적으로 setState하지 않는다(react-hooks/set-state-in-effect 회피).
     queueMicrotask(() => setPendingLocale(locale));
-  }, [locale]);
-
-  useEffect(() => {
-    localeRef.current = locale;
   }, [locale]);
 
   useEffect(() => {
@@ -135,71 +124,13 @@ export default function SettingsPage() {
     }
   }
 
-  // Paddle Checkout(플랜 탭)에서만 쓰는 client-side SDK 초기화. NEXT_PUBLIC_PADDLE_CLIENT_TOKEN이
-  // 아직 설정되지 않은 로컬 환경에서는 조용히 건너뛴다(paddleInstance가 계속 null이라
-  // 업그레이드 버튼이 비활성 상태로 남을 뿐, 다른 화면에는 영향 없음). eventCallback은
-  // initializePaddle 호출 시 한 번만 등록되므로 여기서 checkout 완료/종료/에러에 따라
-  // isCheckoutBusy를 되돌리고 UX용 토스트만 띄운다 — Pro 권한 부여는 절대 여기서 하지
-  // 않는다(실제 판정은 webhook -> paddle_subscriptions가 source of truth).
-  useEffect(() => {
-    const clientToken = process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN;
-    if (!clientToken) return;
-
-    initializePaddle({
-      token: clientToken,
-      environment: process.env.NEXT_PUBLIC_PADDLE_ENV === "production" ? "production" : "sandbox",
-      eventCallback: (event) => {
-        if (
-          event.name === CheckoutEventNames.CHECKOUT_COMPLETED ||
-          event.name === CheckoutEventNames.CHECKOUT_CLOSED ||
-          event.name === CheckoutEventNames.CHECKOUT_ERROR ||
-          event.name === CheckoutEventNames.CHECKOUT_PAYMENT_ERROR
-        ) {
-          setIsCheckoutBusy(false);
-        }
-
-        if (event.name === CheckoutEventNames.CHECKOUT_COMPLETED) {
-          showToast(translate(localeRef.current, "settings.plan.checkoutCompleted"));
-        } else if (
-          event.name === CheckoutEventNames.CHECKOUT_ERROR ||
-          event.name === CheckoutEventNames.CHECKOUT_PAYMENT_ERROR
-        ) {
-          showToast(translate(localeRef.current, "settings.plan.checkoutError"), "error");
-        }
-      },
-    }).then((instance) => {
-      if (instance) setPaddleInstance(instance);
-    });
-  }, [showToast]);
-
-  // 클릭 즉시 isCheckoutBusy를 true로 만들어 버튼을 비활성화한다 — Checkout.open() 자체는
-  // 동기 호출이지만 오버레이가 실제로 뜨기까지 약간의 시간차가 있어, 그 사이 중복 클릭하면
-  // Checkout이 여러 번 열릴 수 있다. isCheckoutBusy는 checkout.loaded가 아니라
-  // checkout.closed/completed/error에서만 풀어, 오버레이가 떠 있는 동안 계속 비활성 상태로
-  // 둔다(버튼 자체는 오버레이에 가려지지만 이중 안전장치).
-  function handleUpgradeClick() {
-    if (isCheckoutBusy || !paddleInstance || !userId) return;
-
-    const priceId = process.env.NEXT_PUBLIC_PADDLE_PRO_PRICE_ID;
-    if (!priceId) {
-      showToast(t("settings.plan.notConfigured"), "error");
-      return;
-    }
-
-    setIsCheckoutBusy(true);
-    paddleInstance.Checkout.open({
-      items: [{ priceId, quantity: 1 }],
-      // 로그인한 Supabase user.id를 그대로 실어 보낸다 — Paddle customer의 email 매칭이
-      // 아니라 이 값을 기준으로 app/api/paddle/webhook이 paddle_customers/
-      // paddle_subscriptions를 upsert한다(lib/paddle/processWebhook.ts).
-      customData: { user_id: userId },
-      ...(email ? { customer: { email } } : {}),
-      settings: {
-        variant: "one-page",
-        locale,
-      },
-    });
-  }
+  // Paddle Checkout(플랜 탭) 초기화/오픈은 랜딩/ /pricing과 공유하는 훅으로 옮겼다
+  // (lib/paddle/usePaddleCheckout.ts) — 동작은 이전과 동일하다.
+  const { isReady: isPaddleReady, isCheckoutBusy, openCheckout } = usePaddleCheckout({
+    userId,
+    email,
+    locale,
+  });
 
   async function handleSaveName() {
     const trimmed = displayName.trim();
@@ -639,8 +570,8 @@ export default function SettingsPage() {
 
                   <button
                     type="button"
-                    onClick={handleUpgradeClick}
-                    disabled={isCheckoutBusy || !paddleInstance || !userId}
+                    onClick={openCheckout}
+                    disabled={isCheckoutBusy || !isPaddleReady || !userId}
                     className="mt-4 inline-flex w-full items-center justify-center gap-1.5 rounded-full bg-[#e2dffe] px-6 py-3 text-[13px] font-medium text-[#1a192f] shadow-sm transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {isCheckoutBusy && (

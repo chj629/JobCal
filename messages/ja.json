@@ -35,6 +35,7 @@
   },
   "landing": {
     "nav": {
+      "pricing": "料金",
       "login": "ログイン",
       "getStarted": "無料で始める"
     },
@@ -123,6 +124,7 @@
       "getStarted": "無料で始める"
     },
     "footer": {
+      "pricing": "料金",
       "privacy": "プライバシーポリシー",
       "terms": "利用規約",
       "refundPolicy": "返金ポリシー",
@@ -321,6 +323,45 @@
       "contactBody": "返金・解約に関するご質問は、お問い合わせページよりご連絡ください。",
       "contactLinkText": "お問い合わせページへ"
     }
+  },
+  "pricing": {
+    "title": "料金プラン",
+    "description": "無料のFreeプランから始めて、必要になったらいつでもProにアップグレードできます。",
+    "free": {
+      "name": "Free",
+      "price": "¥0",
+      "priceNote": "無料でご利用いただけます",
+      "aiLimit": "AIメール分析：1日3回まで",
+      "cta": "無料で始める"
+    },
+    "pro": {
+      "name": "JobCal Pro",
+      "price": "¥780",
+      "priceUnit": "/ 月（税込）",
+      "priceNote": "毎月自動更新の月額サブスクリプションです。無料トライアルはありません。",
+      "aiLimit": "AIメール分析：1日50回まで",
+      "notice": "毎月自動更新 ・ いつでも解約可能",
+      "cta": "Proで始める"
+    },
+    "features": {
+      "sectionTitle": "共通機能（Free / Pro 共通）",
+      "companyManagement": "応募企業の登録・閲覧・編集・削除",
+      "companySearch": "企業の検索・並び替え・優先度設定",
+      "selectionSteps": "選考ステップ・選考状況の管理",
+      "schedule": "日程・結果発表予定日の管理",
+      "dashboard": "ダッシュボード",
+      "calendar": "カレンダー",
+      "analytics": "分析",
+      "mypage": "マイページ情報管理",
+      "contactsAndMemo": "担当者情報・メモ管理",
+      "responsive": "PC・スマートフォン対応（レスポンシブ）"
+    },
+    "aiSectionTitle": "AIメール分析（Free / Pro の違い）",
+    "linksTitle": "関連ページ",
+    "termsLinkText": "利用規約",
+    "privacyLinkText": "プライバシーポリシー",
+    "refundPolicyLinkText": "返金ポリシー",
+    "tokushohoLinkText": "特定商取引法に基づく表記"
   },
   "sidebar": {
     "dashboard": "ホーム",
