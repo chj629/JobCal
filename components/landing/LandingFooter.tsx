@@ -36,6 +36,12 @@ export default function LandingFooter() {
           >
             {t("landing.footer.contact")}
           </Link>
+          <Link
+            href="/tokushoho"
+            className="font-[400] text-neutral-500 transition-colors hover:text-neutral-900"
+          >
+            {t("landing.footer.tokushoho")}
+          </Link>
         </nav>
 
         <p className="text-[13px] text-neutral-400">{t("landing.footer.copyright", { year })}</p>

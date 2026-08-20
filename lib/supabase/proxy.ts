@@ -5,12 +5,14 @@ import { NextResponse, type NextRequest } from "next/server";
 // 않는 URL(오타·끊긴 링크 등)도 전부 /login으로 307 리다이렉트해버려 app/not-found.tsx가
 // 비로그인 방문자에게는 절대 보이지 않았다(존재하지 않는 URL이 404 대신 307을 반환하는
 // 버그를 실제로 재현·확인함). 실제로 로그인이 필요한 화면은 (app) 라우트 그룹의 5개
-// 페이지와, 그 화면에서만 호출되는 API 2개뿐이라 목록을 뒤집어 "보호 경로 allowlist"로
-// 바꿨다 — 여기 없는 경로(존재하지 않는 URL 포함)는 이제 미들웨어를 그대로 통과해
-// Next.js 자체 라우팅(404는 app/not-found.tsx)으로 넘어간다. 기존에 보호되던 5페이지+API
-// 2개의 로그인 요구 동작은 그대로 유지된다.
+// 페이지와, 그 화면에서만 호출되는 로그인 전용 API뿐이라 목록을 뒤집어 "보호 경로
+// allowlist"로 바꿨다 — 여기 없는 경로(존재하지 않는 URL 포함)는 이제 미들웨어를 그대로
+// 통과해 Next.js 자체 라우팅(404는 app/not-found.tsx)으로 넘어간다. 기존에 보호되던
+// 5페이지+API의 로그인 요구 동작은 그대로 유지된다.
 // 유지보수 메모: 새로운 로그인 전용 page/API를 추가하면 반드시 이 목록에도 추가해야
-// 한다 — 여기 없는 경로는 비로그인 사용자도 그대로 통과한다(공개 경로 취급).
+// 한다 — 여기 없는 경로는 비로그인 사용자도 그대로 통과한다(공개 경로 취급). 단,
+// Paddle webhook(app/api/paddle/webhook)처럼 Paddle 서버가 호출하는 경로는 로그인
+// 세션이 없으므로 여기 넣지 않는다 — 넣으면 /login으로 리다이렉트되어 웹훅이 실패한다.
 const PROTECTED_PATH_PREFIXES = [
   "/dashboard",
   "/companies",
@@ -19,6 +21,7 @@ const PROTECTED_PATH_PREFIXES = [
   "/settings",
   "/api/ai/analyze-email",
   "/api/account/delete",
+  "/api/paddle/portal",
 ];
 
 function isProtectedPath(pathname: string) {

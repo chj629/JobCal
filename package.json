@@ -13,6 +13,8 @@
     "@dnd-kit/modifiers": "^9.0.0",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
+    "@paddle/paddle-js": "^1.6.4",
+    "@paddle/paddle-node-sdk": "^3.10.0",
     "@supabase/ssr": "^0.12.3",
     "@supabase/supabase-js": "^2.110.8",
     "lucide-react": "^1.27.0",

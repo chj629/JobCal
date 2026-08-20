@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { getUserPlan } from "@/lib/paddle/getUserPlan";
 import {
   EMAIL_ANALYSIS_JSON_SCHEMA,
   buildEmailAnalysisPrompt,
@@ -10,11 +11,14 @@ export const runtime = "nodejs";
 
 const MAX_EMAIL_LENGTH = 8000;
 const DEFAULT_MODEL = "gpt-4.1-mini";
-// OpenAI 비용 남용 방지: 로그인 사용자 1명이 하루에 호출할 수 있는 최대 횟수.
+// OpenAI 비용 남용 방지: 로그인 사용자 1명이 하루에 호출할 수 있는 최대 횟수. Free/Pro는
+// lib/paddle/getUserPlan.ts가 paddle_subscriptions(webhook이 채우는 source of truth)를
+// 기준으로 서버에서만 판정하며, 요청 바디 등 클라이언트가 보낸 값은 전혀 참고하지 않는다.
 // supabase/migrations/0016_create_ai_analysis_usage.sql의 increment_ai_analysis_usage()가
 // 이 한도와 무관하게 항상 카운트만 원자적으로 올려주고, 실제 "초과 시 차단" 판정은 여기
 // route.ts가 반환된 횟수를 보고 수행한다.
-const DAILY_ANALYSIS_LIMIT = 20;
+const FREE_DAILY_ANALYSIS_LIMIT = 3;
+const PRO_DAILY_ANALYSIS_LIMIT = 50;
 // 기존 JSON schema(companyName/stepName/resultOption/events/contacts/memo) 결과가
 // 충분히 들어가는 수준의 출력 토큰 상한. 프롬프트/모델/응답 구조는 그대로 두고 비용
 // 상한선만 둔다.
@@ -61,7 +65,11 @@ export async function POST(request: Request) {
   // OpenAI 호출 전 마지막 관문: 하루 호출 횟수 제한. increment_ai_analysis_usage()는 항상
   // auth.uid()(=이 요청의 user.id와 동일, RLS로 보장)로만 판정해 클라이언트가 다른 사용자의
   // 카운트를 조작할 수 없고, 이 판정 자체도 서버(Route Handler)에서만 이뤄진다 — 클라이언트가
-  // 우회할 방법이 없다.
+  // 우회할 방법이 없다. 한도 자체(Free 3회 / Pro 50회)도 같은 이유로 getUserPlan()이 서버
+  // 세션 기준으로 조회한 실제 구독 상태로만 정해진다.
+  const plan = await getUserPlan(supabase);
+  const dailyLimit = plan === "pro" ? PRO_DAILY_ANALYSIS_LIMIT : FREE_DAILY_ANALYSIS_LIMIT;
+
   const usageDate = new Date().toISOString().slice(0, 10);
   const { data: usageCount, error: usageError } = await supabase.rpc(
     "increment_ai_analysis_usage",
@@ -73,9 +81,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "사용량 확인에 실패했습니다." }, { status: 500 });
   }
 
-  if (typeof usageCount === "number" && usageCount > DAILY_ANALYSIS_LIMIT) {
+  if (typeof usageCount === "number" && usageCount > dailyLimit) {
+    // code: 클라이언트(추후 AI Drawer UI)가 Free 사용자에게는 Pro 업그레이드 안내를,
+    // Pro 사용자에게는 단순 한도 초과 안내를 구분해서 보여줄 수 있도록 하는 용도.
+    // usageCount나 RPC 관련 내부 정보는 응답에 담지 않는다.
     return NextResponse.json(
-      { error: "일일 AI 분석 사용 한도를 초과했습니다." },
+      {
+        error: `일일 AI 분석 사용 한도(${dailyLimit}회)를 초과했습니다.`,
+        code: plan === "pro" ? "pro_limit_exceeded" : "free_limit_exceeded",
+      },
       { status: 429 }
     );
   }

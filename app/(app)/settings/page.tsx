@@ -1,27 +1,41 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { Globe, Lock, User, type LucideIcon } from "lucide-react";
+import Link from "next/link";
+import { Globe, Lock, Sparkles, User, type LucideIcon } from "lucide-react";
+import { CheckoutEventNames, initializePaddle, type Paddle } from "@paddle/paddle-js";
 import { translate, useLocale, useT } from "@/lib/locale-context";
 import type { Locale } from "@/lib/i18n/messages";
 import { createClient } from "@/lib/supabase/client";
+import {
+  getUserSubscriptionSummary,
+  type UserSubscriptionSummary,
+} from "@/lib/paddle/getUserSubscriptionSummary";
+import { dateKeyOf } from "@/lib/date";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import MaterialIcon from "@/components/ui/MaterialIcon";
 import LoadingState from "@/components/ui/LoadingState";
+import Badge from "@/components/ui/Badge";
 import { useToast } from "@/components/ui/Toast";
 
 const MIN_PASSWORD_LENGTH = 6;
+
+// Paddle 공식 환불 정책 페이지. JobCal 자체 문서에 구체적인 환불 일수를 고정 기재하지
+// 않고(판매자가 임의로 바꿀 수 없는 Paddle 정책이라 이 링크로만 안내) 항상 최신 정책을
+// 그대로 보여준다.
+const PADDLE_REFUND_POLICY_URL = "https://www.paddle.com/legal/refund-policy";
 
 // docs/stitch/설정페이지/jobcal_settings_profile_sophisticated_refresh에는 메일 필드가
 // 왜 비활성인지 설명하는 문구가 없다. 기본 화면에서는 숨기고 필요해지면 true로 되돌린다.
 const SHOW_EMAIL_HINT = false;
 
-type SettingsTab = "profile" | "account" | "language";
+type SettingsTab = "profile" | "account" | "plan" | "language";
 
 const TABS: Array<{ key: SettingsTab; labelKey: string; icon: LucideIcon }> = [
   { key: "profile", labelKey: "settings.tabs.profile", icon: User },
   { key: "account", labelKey: "settings.tabs.account", icon: Lock },
+  { key: "plan", labelKey: "settings.tabs.plan", icon: Sparkles },
   { key: "language", labelKey: "settings.tabs.language", icon: Globe },
 ];
 
@@ -54,6 +68,20 @@ export default function SettingsPage() {
 
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
 
+  const [userId, setUserId] = useState<string | null>(null);
+  const [paddleInstance, setPaddleInstance] = useState<Paddle | null>(null);
+  const [isCheckoutBusy, setIsCheckoutBusy] = useState(false);
+  // null = 아직 조회 전(로딩). paddle_subscriptions(webhook이 채우는 source of truth)를
+  // 읽어서만 정해지고, 체크아웃 성공 콜백이나 Customer Portal 이동 등 클라이언트 쪽에서
+  // 직접 "pro"로 바꾸거나 상태를 조작하는 경로는 없다.
+  const [subscription, setSubscription] = useState<UserSubscriptionSummary | null>(null);
+  const [isPortalLoading, setIsPortalLoading] = useState(false);
+  // Paddle의 eventCallback은 initializePaddle 최초 호출 시 한 번만 등록되므로(재호출은
+  // SDK가 무시/경고함) 그 안에서 최신 locale로 토스트 문구를 고르려면 클로저 대신 ref로
+  // 읽어야 한다 — t()(useT())를 effect deps에 넣으면 locale이 바뀔 때마다 이 effect가
+  // 재실행되어 initializePaddle을 다시 호출하게 된다.
+  const localeRef = useRef(locale);
+
   // docs/stitch/설정페이지/jobcal_settings_language_sophisticated_refresh는 드롭다운에서
   // 고른 값을 "変更を保存"를 눌러야 실제로 반영하는 구조다(기존 버튼 2개를 즉시 전환하던
   // 방식과 다름). 실제 반영/저장은 그대로 LocaleContext의 setLocale을 재사용한다.
@@ -66,9 +94,14 @@ export default function SettingsPage() {
   }, [locale]);
 
   useEffect(() => {
+    localeRef.current = locale;
+  }, [locale]);
+
+  useEffect(() => {
     const supabase = createClient();
     supabase.auth.getUser().then(({ data: { user } }) => {
       setEmail(user?.email ?? "");
+      setUserId(user?.id ?? null);
       const name = user?.user_metadata?.display_name;
       const safeName = typeof name === "string" ? name : "";
       setDisplayName(safeName);
@@ -76,6 +109,102 @@ export default function SettingsPage() {
       setLoading(false);
     });
   }, []);
+
+  useEffect(() => {
+    const supabase = createClient();
+    getUserSubscriptionSummary(supabase).then(setSubscription);
+  }, []);
+
+  // Paddle Customer Portal 세션 발급. 서버(app/api/paddle/portal)가 현재 로그인 세션의
+  // user.id로만 paddle_customer_id를 조회하므로, 여기서는 클라이언트가 어떤 값도 넘기지
+  // 않는다 — customerId를 body로 보내는 방식은 아예 없다. 매 클릭마다 새 세션을 받아야
+  // 하므로(1회성/시간 제한 URL) 응답을 캐시하지 않는다.
+  async function handleManageSubscriptionClick() {
+    if (isPortalLoading) return;
+
+    setIsPortalLoading(true);
+    try {
+      const response = await fetch("/api/paddle/portal", { method: "POST" });
+      const body = await response.json();
+
+      if (!response.ok || typeof body.url !== "string") {
+        showToast(t("settings.plan.portalError"), "error");
+        setIsPortalLoading(false);
+        return;
+      }
+
+      window.location.href = body.url;
+    } catch {
+      showToast(t("settings.plan.portalError"), "error");
+      setIsPortalLoading(false);
+    }
+  }
+
+  // Paddle Checkout(플랜 탭)에서만 쓰는 client-side SDK 초기화. NEXT_PUBLIC_PADDLE_CLIENT_TOKEN이
+  // 아직 설정되지 않은 로컬 환경에서는 조용히 건너뛴다(paddleInstance가 계속 null이라
+  // 업그레이드 버튼이 비활성 상태로 남을 뿐, 다른 화면에는 영향 없음). eventCallback은
+  // initializePaddle 호출 시 한 번만 등록되므로 여기서 checkout 완료/종료/에러에 따라
+  // isCheckoutBusy를 되돌리고 UX용 토스트만 띄운다 — Pro 권한 부여는 절대 여기서 하지
+  // 않는다(실제 판정은 webhook -> paddle_subscriptions가 source of truth).
+  useEffect(() => {
+    const clientToken = process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN;
+    if (!clientToken) return;
+
+    initializePaddle({
+      token: clientToken,
+      environment: process.env.NEXT_PUBLIC_PADDLE_ENV === "production" ? "production" : "sandbox",
+      eventCallback: (event) => {
+        if (
+          event.name === CheckoutEventNames.CHECKOUT_COMPLETED ||
+          event.name === CheckoutEventNames.CHECKOUT_CLOSED ||
+          event.name === CheckoutEventNames.CHECKOUT_ERROR ||
+          event.name === CheckoutEventNames.CHECKOUT_PAYMENT_ERROR
+        ) {
+          setIsCheckoutBusy(false);
+        }
+
+        if (event.name === CheckoutEventNames.CHECKOUT_COMPLETED) {
+          showToast(translate(localeRef.current, "settings.plan.checkoutCompleted"));
+        } else if (
+          event.name === CheckoutEventNames.CHECKOUT_ERROR ||
+          event.name === CheckoutEventNames.CHECKOUT_PAYMENT_ERROR
+        ) {
+          showToast(translate(localeRef.current, "settings.plan.checkoutError"), "error");
+        }
+      },
+    }).then((instance) => {
+      if (instance) setPaddleInstance(instance);
+    });
+  }, [showToast]);
+
+  // 클릭 즉시 isCheckoutBusy를 true로 만들어 버튼을 비활성화한다 — Checkout.open() 자체는
+  // 동기 호출이지만 오버레이가 실제로 뜨기까지 약간의 시간차가 있어, 그 사이 중복 클릭하면
+  // Checkout이 여러 번 열릴 수 있다. isCheckoutBusy는 checkout.loaded가 아니라
+  // checkout.closed/completed/error에서만 풀어, 오버레이가 떠 있는 동안 계속 비활성 상태로
+  // 둔다(버튼 자체는 오버레이에 가려지지만 이중 안전장치).
+  function handleUpgradeClick() {
+    if (isCheckoutBusy || !paddleInstance || !userId) return;
+
+    const priceId = process.env.NEXT_PUBLIC_PADDLE_PRO_PRICE_ID;
+    if (!priceId) {
+      showToast(t("settings.plan.notConfigured"), "error");
+      return;
+    }
+
+    setIsCheckoutBusy(true);
+    paddleInstance.Checkout.open({
+      items: [{ priceId, quantity: 1 }],
+      // 로그인한 Supabase user.id를 그대로 실어 보낸다 — Paddle customer의 email 매칭이
+      // 아니라 이 값을 기준으로 app/api/paddle/webhook이 paddle_customers/
+      // paddle_subscriptions를 upsert한다(lib/paddle/processWebhook.ts).
+      customData: { user_id: userId },
+      ...(email ? { customer: { email } } : {}),
+      settings: {
+        variant: "one-page",
+        locale,
+      },
+    });
+  }
 
   async function handleSaveName() {
     const trimmed = displayName.trim();
@@ -246,7 +375,7 @@ export default function SettingsPage() {
                       value={displayName}
                       onChange={(e) => setDisplayName(e.target.value)}
                       maxLength={30}
-                      className="w-full rounded-full border border-stitch-border bg-[#f8f9ff] px-5 py-3 text-[13px] text-[var(--color-settings-ink)] outline-none transition-all focus:ring-1 focus:ring-[var(--color-settings-ink)]"
+                      className="w-full rounded-full border border-neutral-300 bg-white px-5 py-3 text-[13px] text-[var(--color-settings-ink)] outline-none transition-all hover:border-neutral-400 focus:border-primary-navy focus:ring-2 focus:ring-[#dbeafe]"
                     />
                   </div>
 
@@ -262,7 +391,7 @@ export default function SettingsPage() {
                       type="email"
                       value={email}
                       disabled
-                      className="w-full cursor-not-allowed rounded-full border border-stitch-border bg-[#f8f9ff] px-5 py-3 text-[13px] text-[var(--color-settings-ink)] opacity-70 outline-none"
+                      className="w-full cursor-not-allowed rounded-full border border-neutral-300 bg-white px-5 py-3 text-[13px] text-[var(--color-settings-ink)] opacity-70 outline-none"
                     />
                     {/* Stitch에는 이 안내문이 없지만(disabled 상태만으로 표현), 왜 수정할 수
                         없는지 설명하는 기존 UX를 없애지는 않고 기본 화면에서만 숨긴다. */}
@@ -322,7 +451,7 @@ export default function SettingsPage() {
                         value={currentPassword}
                         onChange={(e) => setCurrentPassword(e.target.value)}
                         placeholder={t("settings.account.currentPasswordPlaceholder")}
-                        className="w-full rounded-full border border-stitch-border bg-[#f8f9ff] px-5 py-3 text-[13px] text-[var(--color-settings-ink)] outline-none transition-all placeholder:text-[var(--color-settings-secondary)] focus:ring-1 focus:ring-[var(--color-settings-ink)]"
+                        className="w-full rounded-full border border-neutral-300 bg-white px-5 py-3 text-[13px] text-[var(--color-settings-ink)] outline-none transition-all placeholder:text-[var(--color-settings-secondary)] hover:border-neutral-400 focus:border-primary-navy focus:ring-2 focus:ring-[#dbeafe]"
                       />
                       <button
                         type="button"
@@ -352,7 +481,7 @@ export default function SettingsPage() {
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
                         placeholder={t("settings.account.newPasswordPlaceholder")}
-                        className="w-full rounded-full border border-stitch-border bg-[#f8f9ff] px-5 py-3 text-[13px] text-[var(--color-settings-ink)] outline-none transition-all placeholder:text-[var(--color-settings-secondary)] focus:ring-1 focus:ring-[var(--color-settings-ink)]"
+                        className="w-full rounded-full border border-neutral-300 bg-white px-5 py-3 text-[13px] text-[var(--color-settings-ink)] outline-none transition-all placeholder:text-[var(--color-settings-secondary)] hover:border-neutral-400 focus:border-primary-navy focus:ring-2 focus:ring-[#dbeafe]"
                       />
                       <button
                         type="button"
@@ -382,7 +511,7 @@ export default function SettingsPage() {
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
                         placeholder={t("settings.account.confirmPasswordPlaceholder")}
-                        className="w-full rounded-full border border-stitch-border bg-[#f8f9ff] px-5 py-3 text-[13px] text-[var(--color-settings-ink)] outline-none transition-all placeholder:text-[var(--color-settings-secondary)] focus:ring-1 focus:ring-[var(--color-settings-ink)]"
+                        className="w-full rounded-full border border-neutral-300 bg-white px-5 py-3 text-[13px] text-[var(--color-settings-ink)] outline-none transition-all placeholder:text-[var(--color-settings-secondary)] hover:border-neutral-400 focus:border-primary-navy focus:ring-2 focus:ring-[#dbeafe]"
                       />
                       <button
                         type="button"
@@ -433,6 +562,136 @@ export default function SettingsPage() {
             </section>
           )}
 
+          {activeTab === "plan" && (
+            <section>
+              <h2 className="mb-1 text-[16px] font-medium text-[var(--color-settings-ink)]">
+                {t("settings.plan.title")}
+              </h2>
+              <p className="mb-6 text-[13px] text-[var(--color-settings-secondary)]">
+                {t("settings.plan.description")}
+              </p>
+
+              {/* 이 화면에 대한 docs/design-references PNG가 아직 없어(신규 기능), profile/account
+                  탭과 동일한 rounded-full 필 + 라벤더(#e2dffe/#1a192f) 언어를 그대로 재사용해
+                  새 디자인을 만들지 않고 기존 언어에 맞춘다. */}
+              {subscription === null ? (
+                <LoadingState>{t("common.loading")}</LoadingState>
+              ) : subscription.plan === "pro" ? (
+                <div className="max-w-md rounded-2xl border border-neutral-300 bg-white p-6">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-[16px] font-medium text-[var(--color-settings-ink)]">
+                      {t("settings.plan.proName")}
+                    </span>
+                    {subscription.scheduledChange?.action === "cancel" ? (
+                      <Badge variant="warning">{t("settings.plan.cancelScheduledBadge")}</Badge>
+                    ) : subscription.status === "past_due" ? (
+                      <Badge variant="warning">{t("settings.plan.pastDueBadge")}</Badge>
+                    ) : (
+                      <Badge variant="success">{t("settings.plan.activeBadge")}</Badge>
+                    )}
+                  </div>
+
+                  <p className="mt-2 text-[13px] text-[var(--color-settings-secondary)]">
+                    {subscription.scheduledChange?.action === "cancel"
+                      ? t("settings.plan.cancelScheduledDescription", {
+                          date: dateKeyOf(subscription.scheduledChange.effectiveAt),
+                        })
+                      : subscription.status === "past_due"
+                        ? t("settings.plan.pastDueDescription")
+                        : t("settings.plan.proActiveDescription")}
+                  </p>
+
+                  <button
+                    type="button"
+                    onClick={handleManageSubscriptionClick}
+                    disabled={isPortalLoading}
+                    className="mt-5 inline-flex w-full items-center justify-center gap-1.5 rounded-full border border-neutral-300 bg-white px-6 py-3 text-[13px] font-medium text-[var(--color-settings-ink)] shadow-sm transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {isPortalLoading && (
+                      <MaterialIcon name="progress_activity" size={14} className="animate-spin" />
+                    )}
+                    {isPortalLoading ? t("settings.plan.portalLoading") : t("settings.plan.manageButton")}
+                  </button>
+                </div>
+              ) : (
+                <div className="max-w-md rounded-2xl border border-neutral-300 bg-white p-6">
+                  <div className="flex items-baseline justify-between gap-3">
+                    <span className="text-[16px] font-medium text-[var(--color-settings-ink)]">
+                      {t("settings.plan.proName")}
+                    </span>
+                    <span className="text-[15px] font-medium text-[var(--color-settings-ink)]">
+                      {t("settings.plan.priceLabel")}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-[13px] text-[var(--color-settings-secondary)]">
+                    {t("settings.plan.proDescription")}
+                  </p>
+
+                  {/* Paddle Checkout(결제 오버레이) 진입 전, 자동갱신/무료체험 없음/해지
+                      조건을 JobCal 사이트 자체에서 명확히 고지한다 — Paddle Seller Handbook의
+                      "구매 전 정기결제 여부를 매우 명확히 알릴 것" 요구사항과, 特定商取引法
+                      최종확인화면 취지(신청 확정 직전 계약조건을 간단히 확인 가능해야 함)를
+                      반영한 것. 세 조건(자동갱신/무료체험 없음/해지 가능)을 한 줄 요약으로
+                      묶고, 해지 효력 발생 시점처럼 부가적인 설명만 더 작은 텍스트로 분리해
+                      카드가 고지문 나열로 보이지 않게 한다 — 고지 내용 자체는 삭제하지 않고
+                      전부 화면에 남아있다. */}
+                  <p className="mt-3 text-[12px] leading-[1.6] text-[var(--color-settings-secondary)]">
+                    {t("settings.plan.noticeSummary")}
+                  </p>
+                  <p className="mt-1 text-[11px] leading-[1.6] text-[var(--color-settings-secondary)]">
+                    {t("settings.plan.noticeCancelDetail")}
+                  </p>
+
+                  <button
+                    type="button"
+                    onClick={handleUpgradeClick}
+                    disabled={isCheckoutBusy || !paddleInstance || !userId}
+                    className="mt-4 inline-flex w-full items-center justify-center gap-1.5 rounded-full bg-[#e2dffe] px-6 py-3 text-[13px] font-medium text-[#1a192f] shadow-sm transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {isCheckoutBusy && (
+                      <MaterialIcon name="progress_activity" size={14} className="animate-spin" />
+                    )}
+                    {isCheckoutBusy ? t("settings.plan.upgrading") : t("settings.plan.upgradeButton")}
+                  </button>
+
+                  {/* 체크박스가 아니라 문구+링크로 처리한 이유: 特定商取引法(2022년 개정)도
+                      Paddle Seller Handbook도 "구매 전 계약조건을 간단히 확인 가능하게 표시"
+                      만 요구할 뿐, 별도 체크박스 UI를 명시적으로 요구하지 않는다(배너·링크
+                      방식도 허용됨을 확인). 동의 안내는 가장 옅은 muted 텍스트로, 그 아래
+                      실제 링크 3개는 밑줄 + 잉크 색으로 대비를 줘서 "읽는 문장"과 "누를 수
+                      있는 링크"가 시각적으로 분리되게 한다. */}
+                  <p className="mt-3 text-[10px] leading-[1.5] text-[var(--color-settings-secondary)]">
+                    {t("settings.plan.agreementNotice")}
+                  </p>
+                  <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] leading-[1.5]">
+                    <Link
+                      href="/terms"
+                      className="text-[var(--color-settings-ink)] underline underline-offset-2 hover:opacity-70"
+                    >
+                      {t("settings.plan.termsLinkText")}
+                    </Link>
+                    <span className="text-[var(--color-settings-secondary)]">・</span>
+                    <Link
+                      href="/tokushoho"
+                      className="text-[var(--color-settings-ink)] underline underline-offset-2 hover:opacity-70"
+                    >
+                      {t("settings.plan.tokushohoLinkText")}
+                    </Link>
+                    <span className="text-[var(--color-settings-secondary)]">・</span>
+                    <a
+                      href={PADDLE_REFUND_POLICY_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[var(--color-settings-ink)] underline underline-offset-2 hover:opacity-70"
+                    >
+                      {t("legal.tokushoho.paddleRefundPolicyLinkText")}
+                    </a>
+                  </div>
+                </div>
+              )}
+            </section>
+          )}
+
           {activeTab === "language" && (
             <section>
               <h2 className="mb-1 text-[16px] font-medium text-[var(--color-settings-ink)]">
@@ -458,7 +717,7 @@ export default function SettingsPage() {
                       id="settings-language-select"
                       value={pendingLocale}
                       onChange={(e) => setPendingLocale(e.target.value as Locale)}
-                      className="w-full appearance-none rounded-full border border-stitch-border bg-[#f8f9ff] px-5 py-3 text-[13px] text-[var(--color-settings-ink)] outline-none transition-all focus:ring-1 focus:ring-[var(--color-settings-ink)]"
+                      className="w-full appearance-none rounded-full border border-neutral-300 bg-white px-5 py-3 text-[13px] text-[var(--color-settings-ink)] outline-none transition-all hover:border-neutral-400 focus:border-primary-navy focus:ring-2 focus:ring-[#dbeafe]"
                     >
                       {LANGUAGE_OPTIONS.map((option) => (
                         <option key={option.value} value={option.value}>

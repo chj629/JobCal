@@ -3,13 +3,15 @@
 import { useT } from "@/lib/locale-context";
 import LegalPageShell, { LegalSection } from "@/components/legal/LegalPageShell";
 
-const LAST_UPDATED = "2026-08-18";
+const LAST_UPDATED = "2026-08-19";
 
-// docs 조사(Supabase Auth/DB, Google OAuth, OpenAI 메일 분석)를 기준으로 실제 처리하는
-// 데이터만 기술한다. 존재하지 않는 기능이나 사업자 정보는 추가하지 않는다.
+// docs 조사(Supabase Auth/DB, Google OAuth, OpenAI 메일 분석, Paddle 결제)를 기준으로
+// 실제 처리하는 데이터만 기술한다. 존재하지 않는 기능이나 사업자 정보는 추가하지 않는다.
 // 9개 섹션 구조(취득 정보/이용 목적/AI 메일 분석/외부 서비스/보관·삭제/쿠키/안전관리조치/
 // 이용자 권리/문의·운영자)는 실제 코드 조사 결과를 그대로 반영한 것이며, 문의 접수 기능이
-// 아직 없다는 점과 운영자 정보가 미확정이라는 점을 9번 섹션에서 사실대로 안내한다.
+// 아직 없다는 점과 운영자 정보가 미확정이라는 점을 9번 섹션에서 사실대로 안내한다. Paddle
+// 도입(유료 Pro 플랜)에 맞춰 section2(이용 목적)와 section4(외부 서비스)에 Paddle 관련
+// 내용만 추가했고, 기존 섹션 구조/번호는 그대로 유지한다.
 export default function PrivacyPage() {
   const t = useT();
 
@@ -46,6 +48,7 @@ export default function PrivacyPage() {
           <li>{t("legal.privacy.section4Openai")}</li>
           <li>{t("legal.privacy.section4Google")}</li>
           <li>{t("legal.privacy.section4Vercel")}</li>
+          <li>{t("legal.privacy.section4Paddle")}</li>
         </ul>
       </LegalSection>
 
