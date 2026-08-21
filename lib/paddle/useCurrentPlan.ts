@@ -28,7 +28,16 @@ export function useCurrentPlan(): UseCurrentPlanResult {
 
   useEffect(() => {
     const supabase = createClient();
-    getUserPlan(supabase).then(setPlan);
+    // 로그인 직후(signInWithPassword → router.push/refresh로 이 컴포넌트가 막 마운트된
+    // 시점)에는 방금 생성한 브라우저 클라이언트의 세션 hydration(localStorage에서 세션을
+    // 읽어들이는 내부 초기화)이 아직 끝나지 않았을 수 있다 — 이 상태에서 곧바로 쿼리를
+    // 보내면 Authorization 헤더 없이(=anon 권한으로) 나가 "permission denied for table
+    // paddle_subscriptions"가 발생할 수 있다(Production smoke test에서 실제 관찰됨).
+    // supabase.auth.getSession()은 내부적으로 그 초기화 Promise를 기다린 뒤에만
+    // 응답하므로(node_modules/@supabase/auth-js의 GoTrueClient.getSession() 구현 확인),
+    // 이 한 줄을 먼저 await하는 것만으로 hydration 완료를 보장할 수 있다 — 별도의 전역
+    // auth state나 onAuthStateChange 구독을 새로 만들지 않는다.
+    supabase.auth.getSession().then(() => getUserPlan(supabase)).then(setPlan);
   }, []);
 
   return { plan, refetch };

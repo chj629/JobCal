@@ -36,6 +36,10 @@ export const metadata: Metadata = {
   description: SITE_DESCRIPTION,
   alternates: {
     canonical: "/",
+    languages: {
+      ja: "https://jobcal.app/",
+      ko: "https://jobcal.app/ko",
+    },
   },
   openGraph: {
     title: SITE_TITLE,

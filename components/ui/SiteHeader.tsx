@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, type ReactNode } from "react";
 import { useT } from "@/lib/locale-context";
+import type { Locale } from "@/lib/i18n/messages";
 import LanguageSwitcher from "@/components/ui/LanguageSwitcher";
 
 export interface SiteHeaderProps {
@@ -15,6 +16,10 @@ export interface SiteHeaderProps {
   // 이 prop을 넘기지 않는 인증 페이지(AuthHeader 등)는 지금과 완전히 동일하게
   // 렌더링된다 — sm 이상(태블릿 768px 포함)/데스크톱은 어느 쪽이든 결과가 같다.
   compactOnMobile?: boolean;
+  // 마케팅 랜딩(/, /ko) 전용. 넘기면 LanguageSwitcher가 setLocale 대신 이 URL로
+  // 이동하는 <Link>로 렌더링된다(components/ui/LanguageSwitcher.tsx의 hrefs 참고).
+  // 인증 페이지/설정 등 기존 호출부는 넘기지 않으므로 동작이 바뀌지 않는다.
+  languageHrefs?: Record<Locale, string>;
 }
 
 // 랜딩 페이지(LandingNav)와 모든 인증 페이지(AuthHeader → login/signup/forgot-password/
@@ -25,7 +30,7 @@ export interface SiteHeaderProps {
 // (컨테이너 우측 padding을 기준으로) 절대 밀리지 않는다. 로고도 shrink-0로 항상 좌측
 // 고정 폭이라 오른쪽 콘텐츠 양과 무관하게 X가 고정된다. 높이(h-[68px])도 여기 한 곳에서만
 // 관리해 화면마다 컨텐츠 높이 차이로 다시 어긋나는 일이 없게 한다.
-export default function SiteHeader({ children, compactOnMobile = false }: SiteHeaderProps) {
+export default function SiteHeader({ children, compactOnMobile = false, languageHrefs }: SiteHeaderProps) {
   const t = useT();
   // position:fixed 요소의 폭은 window.innerWidth(세로 스크롤바 트랙 포함)를 기준으로
   // 계산되는데, 페이지마다 실제 스크롤바 유무가 달라(콘텐츠가 긴 랜딩 vs 한 화면에 다
@@ -61,7 +66,7 @@ export default function SiteHeader({ children, compactOnMobile = false }: SiteHe
           }
         >
           {children}
-          <LanguageSwitcher compact={compactOnMobile} />
+          <LanguageSwitcher compact={compactOnMobile} hrefs={languageHrefs} />
         </div>
       </div>
     </header>

@@ -14,7 +14,12 @@ export function useSubscriptionSummary() {
 
   useEffect(() => {
     const supabase = createClient();
-    getUserSubscriptionSummary(supabase).then(setSummary);
+    // useCurrentPlan.ts와 동일한 이유 — 로그인 직후 이 훅이 마운트될 때 브라우저
+    // 클라이언트의 세션 hydration이 아직 끝나지 않았을 수 있어, 먼저
+    // supabase.auth.getSession()으로 그 초기화 완료를 기다린 뒤에만 조회한다(자세한
+    // 설명은 useCurrentPlan.ts 주석 참고). 쿼리 자체(getUserSubscriptionSummary)는
+    // 그대로 두고 호출 시점만 늦춘다.
+    supabase.auth.getSession().then(() => getUserSubscriptionSummary(supabase)).then(setSummary);
   }, []);
 
   return summary;
