@@ -22,10 +22,13 @@ const SHOW_UPCOMING_EVENTS_CARD = false;
 
 export default function AnalyticsPage() {
   const t = useT();
-  const { companies, loading: companiesLoading, error } = useCompanies();
-  const { events, loading: eventsLoading } = useEvents();
-  const { steps, loading: stepsLoading } = useApplicationSteps();
+  const { companies, loading: companiesLoading, error: companiesError } = useCompanies();
+  const { events, loading: eventsLoading, error: eventsError } = useEvents();
+  const { steps, loading: stepsLoading, error: stepsError } = useApplicationSteps();
   const loading = companiesLoading || eventsLoading || stepsLoading;
+  // Dashboard/Companies/Calendar와 동일한 이유 — 세 Context 중 하나라도 실패하면 배너
+  // 1개만 보여준다.
+  const hasLoadError = !!(companiesError || eventsError || stepsError);
 
   const totalCount = companies.length;
   const inProgressCount = companies.filter((c) => c.overallStatus === "in_progress").length;
@@ -53,9 +56,9 @@ export default function AnalyticsPage() {
             <p className="text-[16px] text-secondary">{t("analytics.description")}</p>
           </div>
 
-          {error && (
+          {hasLoadError && (
             <p className="rounded-[10px] border border-error/40 bg-error/10 px-4 py-3 text-sm text-error">
-              {error}
+              {t("common.dataLoadFailed")}
             </p>
           )}
 

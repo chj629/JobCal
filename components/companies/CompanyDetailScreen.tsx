@@ -102,8 +102,9 @@ export default function CompanyDetailScreen({ companyId, onClose }: CompanyDetai
       // router.back())를 타 두 경우 모두 올바르게 정리된다.
       onClose();
     } else {
+      // 확인 다이얼로그는 닫지 않는다 — 다시 시도할 수 있게 isDeleting만 복구한다.
       setIsDeleting(false);
-      setIsDeleteConfirmOpen(false);
+      showToast(t("common.deleteFailed"), "error");
     }
   }
 

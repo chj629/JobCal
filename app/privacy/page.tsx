@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useT } from "@/lib/locale-context";
 import LegalPageShell, { LegalSection } from "@/components/legal/LegalPageShell";
 
@@ -80,6 +81,13 @@ export default function PrivacyPage() {
 
       <LegalSection title={t("legal.privacy.section9Title")}>
         <p>{t("legal.privacy.section9Body")}</p>
+        <p>
+          {t("legal.privacy.section9OperatorPrefix")}
+          <Link href="/tokushoho" className="underline hover:text-neutral-900">
+            {t("legal.privacy.section9OperatorLinkText")}
+          </Link>
+          {t("legal.privacy.section9OperatorSuffix")}
+        </p>
       </LegalSection>
     </LegalPageShell>
   );

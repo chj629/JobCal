@@ -19,7 +19,12 @@
     "optional": "(任意)",
     "cannotUndo": "この操作は元に戻せません。",
     "showPassword": "パスワードを表示",
-    "hidePassword": "パスワードを非表示"
+    "hidePassword": "パスワードを非表示",
+    "saveFailed": "保存に失敗しました。もう一度お試しください。",
+    "deleteFailed": "削除に失敗しました。もう一度お試しください。",
+    "dataLoadFailed": "データの読み込みに失敗しました。ページを再読み込みしてもう一度お試しください。",
+    "sessionExpired": "セッションの有効期限が切れました。もう一度ログインしてください。",
+    "loginAgain": "ログインページへ"
   },
   "applicationSteps": {
     "default": {
@@ -156,7 +161,7 @@
       "section4Openai": "OpenAI：AIメール解析機能におけるメール本文の解析処理",
       "section4Google": "Google：Googleログインご利用時の認証処理",
       "section4Vercel": "Vercel：本サービスのウェブサイトのホスティング",
-      "section4Paddle": "Paddle：有料（Pro）プランのお支払い処理、請求、購読（サブスクリプション）管理、返金対応を行う決済代行事業者です。Paddleは当該お取引のMerchant of Record（販売者）として、お支払いに関するお問い合わせ対応も行います。お支払いに必要な情報（メールアドレス、お支払い情報）がPaddleへ提供されます。カード情報など決済情報は本サービスのサーバーには保存されず、Paddleが直接処理します。",
+      "section4Paddle": "Paddle：有料（Pro）プランのお支払いにおけるMerchant of Record（販売者）であり、お支払い処理、請求、購読（サブスクリプション）管理、返金対応、お支払いに関するお問い合わせ対応を行います。お支払いに必要な情報（メールアドレス、お支払い情報）がPaddleへ提供されます。カード情報など決済情報は本サービスのサーバーには保存されず、Paddleが直接処理します。",
       "section5Title": "5. 保管期間・削除",
       "section5Body1": "アカウントおよびサービス利用データは、利用者ご自身が削除するか、退会（アカウント削除）いただくまで保管します。",
       "section5Body2": "設定画面から退会（アカウント削除）を行うと、認証アカウントの削除と連動して、企業・選考・予定・メモ・担当者・マイページ情報など本サービスのデータベースに保存されている当該利用者のデータが削除されます。",
@@ -172,7 +177,10 @@
       "section8Body2": "アカウントおよび関連データの削除は、設定画面の「アカウント削除」から、利用者ご自身の操作で行うことができます。",
       "section8Body3": "上記以外のお問い合わせについては、次項をご確認ください。",
       "section9Title": "9. お問い合わせ・運営者情報",
-      "section9Body": "本サービスに関するお問い合わせは、お問い合わせページより受け付けております。運営者情報につきましては、確定次第あらためて掲載いたします。"
+      "section9Body": "本サービスに関するお問い合わせは、お問い合わせページより受け付けております。",
+      "section9OperatorPrefix": "運営者情報については、",
+      "section9OperatorLinkText": "特定商取引法に基づく表記",
+      "section9OperatorSuffix": "をご確認ください。"
     },
     "terms": {
       "title": "利用規約",
@@ -381,7 +389,6 @@
   "header": {
     "notifications": "通知",
     "accountMenu": "アカウントメニュー",
-    "menu": "メニュー",
     "aiCta": "AIで追加",
     "aiOnboardingHelp": "AI機能の案内を見る"
   },
@@ -456,6 +463,11 @@
       "confirmPassword": "パスワード(確認)",
       "submit": "登録する",
       "submitLoading": "登録中...",
+      "agreementPrefix": "登録することで、",
+      "agreementTermsLinkText": "利用規約",
+      "agreementMiddle": "および",
+      "agreementPrivacyLinkText": "プライバシーポリシー",
+      "agreementSuffix": "に同意したものとみなされます。",
       "loginPrompt": "既にアカウントをお持ちですか?",
       "loginLink": "ログイン",
       "confirmedTitle": "メールをご確認ください",
@@ -659,6 +671,11 @@
     "loading": "読み込んでいます...",
     "addCompany": "企業を登録",
     "addCompanyModalTitle": "企業を追加",
+    "emptyState": {
+      "title": "最初の企業を登録しましょう",
+      "description": "就活メールを貼り付けるだけで、AIが企業・選考・予定をまとめて整理します。",
+      "manualCta": "企業を手動で登録"
+    },
     "noStepLabel": "登録された選考なし",
     "today": "今日",
     "tomorrow": "明日",
@@ -940,6 +957,10 @@
       "submitting": "分析中...",
       "analyzeFailed": "分析に失敗しました。",
       "dailyLimitReached": "本日のAI分析利用上限に達しました。明日また利用してください。",
+      "freeLimitTitle": "本日の無料AI分析回数を使い切りました",
+      "freeLimitDescription": "無料プランでは1日3回までAI分析を利用できます。\nProなら1日50回まで利用できます。",
+      "freeLimitCta": "Proを見る",
+      "proLimitMessage": "本日のAI分析上限に達しました。\n明日もう一度お試しください。",
       "networkError": "分析リクエスト中にエラーが発生しました。",
       "emptyTitle": "メールを貼り付けてください",
       "emptyDescription": "採用メールから以下の情報を抽出します。",

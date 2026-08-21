@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, type ReactNode, type TransitionEvent } from "react";
-import { useAiDrawerMounted } from "@/lib/ai-drawer-context";
+import { useAiDrawer } from "@/lib/ai-drawer-context";
 
 export interface CompanyDetailModalProps {
   open: boolean;
@@ -28,7 +28,7 @@ export default function CompanyDetailModal({
 }: CompanyDetailModalProps) {
   // AI Drawer(components/ui/Drawer.tsx, sm/640px 이상에서도 항상 fixed)가 열려 있으면
   // 내부 스크롤 영역에 가로 스크롤 스펜서를 붙인다 — 아래 className 주석 참고.
-  const aiDrawerMounted = useAiDrawerMounted();
+  const { mounted: aiDrawerMounted } = useAiDrawer();
   // components/ui/Modal.tsx, components/ui/Drawer.tsx와 동일한 mount/visible 패턴.
   const [mounted, setMounted] = useState(open);
   const [visible, setVisible] = useState(false);

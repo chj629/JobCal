@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import CompanyCreateForm from "@/components/CompanyCreateForm";
+import { useAiDrawer } from "@/lib/ai-drawer-context";
 import StepReconcileDialog from "@/components/companies/StepReconcileDialog";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import EmptyState from "@/components/ui/EmptyState";
@@ -81,11 +82,20 @@ export default function CompaniesPage() {
     low: t("companies.list.priority.low"),
   };
 
-  const { companies, addCompany, updateCompany, deleteCompany, loading: companiesLoading, error } =
-    useCompanies();
+  const {
+    companies,
+    addCompany,
+    updateCompany,
+    deleteCompany,
+    loading: companiesLoading,
+    error: companiesError,
+  } = useCompanies();
   const stepReconcile = useStepReconcileCheck();
-  const { steps, loading: stepsLoading, refresh: refreshSteps } = useApplicationSteps();
-  const { events, loading: eventsLoading, refresh: refreshEvents } = useEvents();
+  const { steps, loading: stepsLoading, refresh: refreshSteps, error: stepsError } =
+    useApplicationSteps();
+  const { events, loading: eventsLoading, refresh: refreshEvents, error: eventsError } = useEvents();
+  // Dashboard와 동일한 이유 — 세 Context 중 하나라도 실패하면 배너 1개만 보여준다.
+  const hasLoadError = !!(companiesError || stepsError || eventsError);
   const { refresh: refreshContacts } = useCompanyContacts();
   const { refresh: refreshNotes } = useCompanyNotes();
   const { refresh: refreshCredentials } = useCompanyCredentials();
@@ -96,6 +106,9 @@ export default function CompaniesPage() {
   const [priorityFilter, setPriorityFilter] = useState<string>(ALL);
   const [stepFilter, setStepFilter] = useState<string>(ALL);
   const [isAddOpen, setIsAddOpen] = useState(false);
+  // components/dashboard/DashboardEmptyState.tsx와 동일하게 app/(app)/layout.tsx의
+  // handleOpenAiDrawer를 그대로 여는 것 — Drawer open 로직을 여기서 새로 만들지 않는다.
+  const { open: openAiDrawer } = useAiDrawer();
   const [deleteTarget, setDeleteTarget] = useState<Company | null>(null);
   const [pageSize, setPageSize] = useState(PAGE_SIZE_OPTIONS[0]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -109,8 +122,11 @@ export default function CompaniesPage() {
   async function handleStatusChange(company: Company, newStatus: OverallStatus) {
     setSavingStatusId(company.id);
     const proceed = stepReconcile.guardSubmit(company, async (values) => {
-      await updateCompany(company.id, values);
+      const ok = await updateCompany(company.id, values);
       setSavingStatusId(null);
+      // 실패해도 로컬 companies 상태가 갱신되지 않아(위 주석 참고) select는 이미 원래
+      // 값을 그대로 보여준다 — 여기서는 실패했다는 사실만 안내한다.
+      if (!ok) showToast(t("common.saveFailed"), "error");
     });
     proceed({ ...companyToFormValues(company), overallStatus: newStatus });
   }
@@ -212,8 +228,12 @@ export default function CompaniesPage() {
       refreshNotes();
       refreshCredentials();
       refreshNextActions();
+      setDeleteTarget(null);
+    } else {
+      // 확인 다이얼로그는 닫지 않는다 — ConfirmDialog 자신의 isSubmitting은 이미
+      // finally로 복구되어 다시 시도할 수 있는 상태로 남는다.
+      showToast(t("common.deleteFailed"), "error");
     }
-    setDeleteTarget(null);
   }
 
   return (
@@ -334,9 +354,9 @@ export default function CompaniesPage() {
             </div>
           </div>
 
-          {error && (
+          {hasLoadError && (
             <p className="mb-4 shrink-0 rounded-[10px] border border-error/40 bg-error/10 px-4 py-3 text-sm text-error">
-              {error}
+              {t("common.dataLoadFailed")}
             </p>
           )}
 
@@ -462,19 +482,32 @@ export default function CompaniesPage() {
                       <tr>
                         <td colSpan={7}>
                           {hasNoCompaniesAtAll ? (
-                            <div className="flex flex-col items-center gap-4 py-6">
+                            <div className="flex flex-col items-center gap-5 py-6">
                               <EmptyState
                                 icon="apartment"
                                 title={t("companies.list.empty.noCompaniesTitle")}
                                 description={t("companies.list.empty.noCompaniesDescription")}
                               />
-                              <button
-                                type="button"
-                                onClick={() => setIsAddOpen(true)}
-                                className="rounded-stitch-xl bg-primary-navy px-4 py-2 text-[12px] font-[400] text-white shadow-sm transition-all hover:opacity-90"
-                              >
-                                {t("companies.list.addCompany")}
-                              </button>
+                              {/* components/dashboard/DashboardEmptyState.tsx와 동일한 시각
+                                  언어(Primary: AI로 열기, Secondary: 기존 CompanyCreateForm) —
+                                  버튼 클래스도 그대로 재사용한다. */}
+                              <div className="flex flex-wrap items-center justify-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={openAiDrawer}
+                                  className="flex items-center gap-1.5 rounded-stitch-xl bg-primary-navy px-5 py-2.5 text-[13px] font-[500] text-white shadow-sm transition-all hover:opacity-90"
+                                >
+                                  <MaterialIcon name="auto_awesome" size={16} />
+                                  {t("header.aiCta")}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setIsAddOpen(true)}
+                                  className="rounded-stitch-xl border border-stitch-border px-5 py-2.5 text-[13px] font-[500] text-stitch-ink transition-colors hover:bg-black/[0.02]"
+                                >
+                                  {t("dashboard.emptyState.manualCta")}
+                                </button>
+                              </div>
                             </div>
                           ) : (
                             <EmptyState icon="search_off" title={t("companies.list.empty.noResults")} />
@@ -573,6 +606,8 @@ export default function CompaniesPage() {
                 // 이름만 입력하고 나머지는 비어 있는 상태라, 바로 상세 화면으로 이동해
                 // 이어서 채울 수 있게 한다.
                 router.push(`/companies/${created.id}`);
+              } else {
+                showToast(t("common.saveFailed"), "error");
               }
             }}
           />

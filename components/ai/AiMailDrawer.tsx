@@ -34,6 +34,16 @@ export function useEmailAnalysisFlow() {
   const [step, setStep] = useState<Step>("paste");
   const [analyzing, setAnalyzing] = useState(false);
   const [analyzeError, setAnalyzeError] = useState<string | null>(null);
+  // 세션이 만료되면 이 경로를 보호하는 middleware(lib/supabase/proxy.ts)가 /login으로
+  // 307 리다이렉트하는데, fetch는 리다이렉트를 그대로 따라가 최종적으로 /login 페이지의
+  // HTML(status 200)을 받는다 — 이를 일반 네트워크 오류와 구분해 로그인 유도 UI를
+  // 보여주기 위한 플래그(아래 handleAnalyze 참고).
+  const [isSessionExpired, setIsSessionExpired] = useState(false);
+  // 429(일일 사용 한도 초과) 응답의 code 필드("free_limit_exceeded" | "pro_limit_exceeded")를
+  // 그대로 옮긴 값 — quota 계산/제한 로직(app/api/ai/analyze-email/route.ts)은 건드리지
+  // 않고, 이미 서버가 구분해서 내려주는 값을 화면에서도 구분해 보여주기 위한 용도.
+  // null이면 daily-limit 오류가 아니거나 아직 오류가 없는 상태.
+  const [dailyLimitPlan, setDailyLimitPlan] = useState<"free" | "pro" | null>(null);
   const [analysis, setAnalysis] = useState<EmailAnalysisResult | null>(null);
   const [existingCompany, setExistingCompany] = useState<Company | null>(null);
   const [registeredCompany, setRegisteredCompany] = useState<RegisteredCompany | null>(null);
@@ -51,6 +61,8 @@ export function useEmailAnalysisFlow() {
     if (fromOnboarding) setAnalysisStartedFromOnboarding(true);
     setAnalyzing(true);
     setAnalyzeError(null);
+    setIsSessionExpired(false);
+    setDailyLimitPlan(null);
 
     try {
       const response = await fetch("/api/ai/analyze-email", {
@@ -58,6 +70,19 @@ export function useEmailAnalysisFlow() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ emailText }),
       });
+
+      // API route는 성공/실패 모두 항상 application/json만 반환한다. content-type이
+      // 다르다는 것은(=HTML) middleware가 세션 만료로 /login으로 리다이렉트했고,
+      // fetch가 그 리다이렉트를 그대로 따라가 로그인 페이지 HTML(status 200)을 받았다는
+      // 뜻이다 — response.json()으로 파싱을 시도하면 SyntaxError가 나서 일반 네트워크
+      // 오류로 오인되므로, 파싱 전에 먼저 구분한다.
+      const contentType = response.headers.get("content-type") ?? "";
+      if (!contentType.includes("application/json")) {
+        setIsSessionExpired(true);
+        setAnalyzeError(t("common.sessionExpired"));
+        setAnalyzing(false);
+        return;
+      }
 
       const json = await response.json();
 
@@ -67,12 +92,28 @@ export function useEmailAnalysisFlow() {
         if (process.env.NODE_ENV === "development") {
           console.error("[new-from-email] 분석 요청 실패:", json.error);
         }
-        // 429(일일 사용 한도 초과)만 기존 일반 오류 문구와 구분해 별도 안내를 보여준다.
-        setAnalyzeError(
-          response.status === 429
-            ? t("aiEmail.paste.dailyLimitReached")
-            : t("aiEmail.paste.analyzeFailed")
-        );
+        // route.ts가 미들웨어를 거치지 않고 직접 401을 반환하는 경우(예: 미들웨어 통과
+        // 직후 세션이 만료된 극단적 타이밍)도 같은 세션 만료 안내로 처리한다. 429(일일
+        // 사용 한도 초과)는 기존 그대로 별도 안내를 유지한다.
+        if (response.status === 401) {
+          setIsSessionExpired(true);
+          setAnalyzeError(t("common.sessionExpired"));
+        } else if (response.status === 429) {
+          // code로 Free/Pro 한도 초과를 구분해 서로 다른 안내를 보여준다. 알 수 없는
+          // code(예상치 못한 값)가 오면 기존 일반 한도 초과 문구로 안전하게 폴백한다 —
+          // 429의 다른 원인 처리를 바꾸지 않는다.
+          if (json.code === "free_limit_exceeded") {
+            setDailyLimitPlan("free");
+            setAnalyzeError(t("aiEmail.paste.freeLimitDescription"));
+          } else if (json.code === "pro_limit_exceeded") {
+            setDailyLimitPlan("pro");
+            setAnalyzeError(t("aiEmail.paste.proLimitMessage"));
+          } else {
+            setAnalyzeError(t("aiEmail.paste.dailyLimitReached"));
+          }
+        } else {
+          setAnalyzeError(t("aiEmail.paste.analyzeFailed"));
+        }
         setAnalyzing(false);
         return;
       }
@@ -93,6 +134,8 @@ export function useEmailAnalysisFlow() {
     setStep("paste");
     setAnalyzing(false);
     setAnalyzeError(null);
+    setIsSessionExpired(false);
+    setDailyLimitPlan(null);
     setAnalysis(null);
     setExistingCompany(null);
     setRegisteredCompany(null);
@@ -104,6 +147,8 @@ export function useEmailAnalysisFlow() {
     setStep,
     analyzing,
     analyzeError,
+    isSessionExpired,
+    dailyLimitPlan,
     analysis,
     existingCompany,
     setExistingCompany,
@@ -245,6 +290,8 @@ export default function AiMailDrawer({
           onAnalyze={(emailText) => flow.handleAnalyze(emailText, onboardingStep2Active)}
           loading={flow.analyzing}
           error={flow.analyzeError}
+          isSessionExpired={flow.isSessionExpired}
+          dailyLimitPlan={flow.dailyLimitPlan}
           footerContainer={footerEl}
           showOnboardingStep2={onboardingStep2Active}
           onOnboardingStep2Dismiss={onOnboardingStep2Dismiss}

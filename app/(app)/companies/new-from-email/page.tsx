@@ -16,6 +16,8 @@ export default function NewFromEmailPage() {
     setStep,
     analyzing,
     analyzeError,
+    isSessionExpired,
+    dailyLimitPlan,
     analysis,
     existingCompany,
     setExistingCompany,
@@ -32,7 +34,13 @@ export default function NewFromEmailPage() {
 
       <div className="mx-auto max-w-[720px] px-8 py-8">
         {step === "paste" && (
-          <EmailPasteForm onAnalyze={handleAnalyze} loading={analyzing} error={analyzeError} />
+          <EmailPasteForm
+            onAnalyze={handleAnalyze}
+            loading={analyzing}
+            error={analyzeError}
+            isSessionExpired={isSessionExpired}
+            dailyLimitPlan={dailyLimitPlan}
+          />
         )}
 
         {step === "match" && analysis && (

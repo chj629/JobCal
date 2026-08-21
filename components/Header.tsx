@@ -212,18 +212,12 @@ export default function Header({ aiDrawerOpen, onOpenAiDrawer, onStartAiOnboardi
     <>
     <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center border-b border-stitch-border bg-card font-[family-name:var(--font-hanken-grotesk)] tracking-[-0.025em]">
       <div className="flex h-full w-full items-center px-6">
-        <div className="flex-1">
-          {/* docs/stitch: 모바일(<md)에서만 보이는 메뉴 버튼. Stitch에도 열린 상태(드로어)
-              목업은 없고, 이 앱은 <md에서 Sidebar.tsx의 하단 내비게이션으로 이동을 대신
-              제공하므로 이 버튼은 아직 동작을 연결하지 않은 자리만 유지한다. */}
-          <button
-            type="button"
-            aria-label={t("header.menu")}
-            className="-ml-2 p-2 text-stitch-ink md:hidden"
-          >
-            <MaterialIcon name="menu" />
-          </button>
-        </div>
+        {/* 모바일(<md)에서 열 수 있는 사이드바/드로어 구조가 없고, Sidebar.tsx의 하단
+            내비게이션이 이미 데스크톱 사이드바와 동일한 5개 항목(대시보드/기업/캘린더/
+            분석/설정)을 전부 제공한다 — 아무 동작도 연결되지 않은 채 남아있던 모바일
+            전용 메뉴 버튼을 제거했다(자리를 차지하던 빈 wrapper는 데스크톱 레이아웃에
+            영향이 없도록 그대로 둔다). */}
+        <div className="flex-1"></div>
 
         <div className="ml-auto flex items-center gap-3">
           {!aiDrawerOpen && (

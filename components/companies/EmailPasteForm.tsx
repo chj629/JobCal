@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import Link from "next/link";
 import { useT } from "@/lib/locale-context";
 import MaterialIcon from "@/components/ui/MaterialIcon";
 import AiOnboardingStep2 from "@/components/AiOnboardingStep2";
@@ -10,6 +11,13 @@ interface EmailPasteFormProps {
   onAnalyze: (emailText: string) => void;
   loading: boolean;
   error: string | null;
+  // true면 error가 세션 만료 안내이므로, 로그인 화면으로 이동하는 링크를 함께 보여준다.
+  // 생략하면 기존처럼 텍스트만 표시한다.
+  isSessionExpired?: boolean;
+  // "free" | "pro"면 error가 일일 AI 분석 한도 초과 안내다. "free"일 때만 제목을 전용
+  // 문구로 바꾸고 Settings Plan 탭으로 가는 CTA를 보여준다. "pro"는 기존 제목을 그대로
+  // 쓰고 본문 메시지만 바뀐다(업그레이드 CTA 없음). null/생략이면 기존과 동일하다.
+  dailyLimitPlan?: "free" | "pro" | null;
   // AiMailDrawer가 넘겨주면 footer 버튼을 Drawer의 고정 footer 영역으로 portal
   // 렌더링한다. 생략(예: new-from-email 페이지의 전체 폭 사용)하면 기존처럼
   // content 하단에 그대로 인라인 렌더링한다 — 로직은 동일, 위치만 다르다.
@@ -39,6 +47,8 @@ export default function EmailPasteForm({
   onAnalyze,
   loading,
   error,
+  isSessionExpired = false,
+  dailyLimitPlan = null,
   footerContainer,
   showOnboardingStep2 = false,
   onOnboardingStep2Dismiss,
@@ -109,8 +119,26 @@ export default function EmailPasteForm({
           <div className="flex items-start gap-3 rounded-stitch-2xl border border-error/40 bg-error/10 p-4">
             <MaterialIcon name="warning" size={18} className="mt-0.5 shrink-0 text-error" />
             <div>
-              <p className="text-[13px] font-[500] text-error">{t("aiEmail.paste.errorTitle")}</p>
-              <p className="mt-1 text-[12px] text-error">{error}</p>
+              <p className="text-[13px] font-[500] text-error">
+                {dailyLimitPlan === "free" ? t("aiEmail.paste.freeLimitTitle") : t("aiEmail.paste.errorTitle")}
+              </p>
+              <p className="mt-1 whitespace-pre-line text-[12px] text-error">{error}</p>
+              {isSessionExpired && (
+                <Link
+                  href="/login"
+                  className="mt-2 inline-block text-[12px] font-[500] text-error underline underline-offset-2 hover:opacity-80"
+                >
+                  {t("common.loginAgain")}
+                </Link>
+              )}
+              {dailyLimitPlan === "free" && (
+                <Link
+                  href="/settings?tab=plan"
+                  className="mt-2 inline-block text-[12px] font-[500] text-primary-navy underline underline-offset-2 hover:opacity-80"
+                >
+                  {t("aiEmail.paste.freeLimitCta")}
+                </Link>
+              )}
             </div>
           </div>
         )}

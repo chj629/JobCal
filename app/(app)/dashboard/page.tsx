@@ -19,6 +19,7 @@ import UpcomingSchedule from "@/components/dashboard/UpcomingSchedule";
 import WeeklyProgress from "@/components/dashboard/WeeklyProgress";
 import FocusCompanies from "@/components/dashboard/FocusCompanies";
 import PipelineOverview from "@/components/dashboard/PipelineOverview";
+import DashboardEmptyState from "@/components/dashboard/DashboardEmptyState";
 import type { AppEvent } from "@/lib/events";
 import type { ApplicationStep } from "@/lib/applicationSteps";
 
@@ -72,9 +73,14 @@ export default function DashboardPage() {
   const t = useT();
   const router = useRouter();
   const { showToast } = useToast();
-  const { companies, addCompany, loading: companiesLoading, error } = useCompanies();
-  const { steps, loading: stepsLoading, refresh: refreshSteps } = useApplicationSteps();
-  const { events, loading: eventsLoading } = useEvents();
+  const { companies, addCompany, loading: companiesLoading, error: companiesError } = useCompanies();
+  const { steps, loading: stepsLoading, refresh: refreshSteps, error: stepsError } =
+    useApplicationSteps();
+  const { events, loading: eventsLoading, error: eventsError } = useEvents();
+  // 세 Context 중 하나라도 로드에 실패하면 배너 1개만 보여준다 — companies가 성공해도
+  // events/application_steps가 실패하면 "일정/전형이 원래 없다"처럼 보이지 않도록,
+  // 그리고 여러 Context가 동시에 실패해도 배너가 중복되지 않도록 하나로 합친다.
+  const hasLoadError = !!(companiesError || stepsError || eventsError);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [displayName, setDisplayName] = useState<string | null>(null);
 
@@ -191,13 +197,21 @@ export default function DashboardPage() {
           </div>
         </section>
 
-        <WeeklyProgress events={events} />
-
-        {error && (
+        {/* 로드 실패 배너를 통합 Empty State보다 먼저 둔다 — companies fetch가 실패하면
+            companies는 여전히 빈 배열이라 아래 조건(companies.length === 0)이 그대로
+            참이 되므로, 에러 배너 없이는 "정말 기업이 0개인 신규 사용자"의 안내와
+            구분되지 않는다(DashboardEmptyState 자체의 조건/내용은 그대로 둔다). */}
+        {hasLoadError && (
           <p className="mb-3 rounded-[10px] border border-error/40 bg-error/10 px-4 py-3 text-sm text-error">
-            {error}
+            {t("common.dataLoadFailed")}
           </p>
         )}
+
+        {companies.length === 0 && (
+          <DashboardEmptyState onManualRegister={() => setIsAddOpen(true)} />
+        )}
+
+        <WeeklyProgress events={events} />
 
         {/* docs/stitch/.../code.html은 grid-cols-[1fr_1fr_1.5fr]이지만, 가운데 카드(本日の予定)
             헤더 행에 truncate/min-w-0가 없어 실제 렌더링(screen.png)에서는 1:1:1.5가 아니라
@@ -227,6 +241,10 @@ export default function DashboardPage() {
                 // 이름만 입력하고 나머지는 비어 있는 상태라, 바로 상세 화면으로 이동해
                 // 이어서 채울 수 있게 한다.
                 router.push(`/companies/${created.id}`);
+              } else {
+                // 모달은 닫지 않는다 — CompanyCreateForm의 isSaving은 이미 finally로
+                // 복구되어 재시도 가능한 상태로 남는다.
+                showToast(t("common.saveFailed"), "error");
               }
             }}
           />

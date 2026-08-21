@@ -19,7 +19,12 @@
     "optional": "(선택)",
     "cannotUndo": "이 작업은 되돌릴 수 없습니다.",
     "showPassword": "비밀번호 표시",
-    "hidePassword": "비밀번호 숨기기"
+    "hidePassword": "비밀번호 숨기기",
+    "saveFailed": "저장에 실패했습니다. 다시 시도해주세요.",
+    "deleteFailed": "삭제에 실패했습니다. 다시 시도해주세요.",
+    "dataLoadFailed": "데이터를 불러오지 못했습니다. 페이지를 새로고침한 후 다시 시도해주세요.",
+    "sessionExpired": "로그인 세션이 만료되었습니다. 다시 로그인해주세요.",
+    "loginAgain": "로그인 페이지로"
   },
   "applicationSteps": {
     "default": {
@@ -156,7 +161,7 @@
       "section4Openai": "OpenAI: AI 메일 분석 기능의 이메일 원문 분석 처리",
       "section4Google": "Google: Google 로그인 이용 시 인증 처리",
       "section4Vercel": "Vercel: 서비스 웹사이트 호스팅",
-      "section4Paddle": "Paddle: 유료(Pro) 플랜의 결제 처리, 청구, 구독 관리, 환불 대응을 담당하는 결제대행사입니다. Paddle은 해당 거래의 Merchant of Record(판매자)로서 결제 관련 문의 대응도 수행합니다. 결제에 필요한 정보(이메일 주소, 결제 정보)가 Paddle에 제공됩니다. 카드 정보 등 결제 정보는 본 서비스의 서버에 저장되지 않으며, Paddle이 직접 처리합니다.",
+      "section4Paddle": "Paddle: 유료(Pro) 플랜 결제의 Merchant of Record(판매자)이며, 결제 처리, 청구, 구독 관리, 환불 대응, 결제 관련 문의 대응을 수행합니다. 결제에 필요한 정보(이메일 주소, 결제 정보)가 Paddle에 제공됩니다. 카드 정보 등 결제 정보는 본 서비스의 서버에 저장되지 않으며, Paddle이 직접 처리합니다.",
       "section5Title": "5. 보관 기간 및 삭제",
       "section5Body1": "계정 및 서비스 이용 데이터는 이용자가 직접 삭제하거나 회원 탈퇴(계정 삭제)할 때까지 보관합니다.",
       "section5Body2": "설정 화면에서 회원 탈퇴(계정 삭제)를 진행하면 인증 계정 삭제와 연동되어, 기업·전형·일정·메모·담당자·마이페이지 정보 등 서비스 데이터베이스에 저장된 해당 이용자의 데이터가 함께 삭제됩니다.",
@@ -172,7 +177,10 @@
       "section8Body2": "계정 및 관련 데이터의 삭제는 설정 화면의 '계정 삭제' 기능을 통해 이용자가 직접 처리할 수 있습니다.",
       "section8Body3": "그 외 문의 사항은 다음 항목을 확인해 주세요.",
       "section9Title": "9. 문의 및 운영자 정보",
-      "section9Body": "본 서비스에 관한 문의는 문의하기 페이지를 통해 접수하실 수 있습니다. 운영자 정보는 확정되는 대로 별도 게시하겠습니다."
+      "section9Body": "본 서비스에 관한 문의는 문의하기 페이지를 통해 접수하실 수 있습니다.",
+      "section9OperatorPrefix": "운영자 정보에 대해서는 ",
+      "section9OperatorLinkText": "특정상거래법에 따른 표시",
+      "section9OperatorSuffix": "를 확인해 주세요."
     },
     "terms": {
       "title": "이용약관",
@@ -381,7 +389,6 @@
   "header": {
     "notifications": "알림",
     "accountMenu": "계정 메뉴",
-    "menu": "메뉴",
     "aiCta": "AI로 추가",
     "aiOnboardingHelp": "AI 기능 안내 보기"
   },
@@ -456,6 +463,11 @@
       "confirmPassword": "비밀번호 확인",
       "submit": "회원가입",
       "submitLoading": "가입 중...",
+      "agreementPrefix": "가입함으로써 ",
+      "agreementTermsLinkText": "이용약관",
+      "agreementMiddle": " 및 ",
+      "agreementPrivacyLinkText": "개인정보처리방침",
+      "agreementSuffix": "에 동의하는 것으로 간주됩니다.",
       "loginPrompt": "이미 계정이 있으신가요?",
       "loginLink": "로그인",
       "confirmedTitle": "이메일을 확인해 주세요",
@@ -659,6 +671,11 @@
     "loading": "불러오는 중입니다...",
     "addCompany": "기업 등록",
     "addCompanyModalTitle": "기업 추가",
+    "emptyState": {
+      "title": "첫 기업을 등록해보세요",
+      "description": "취업 메일을 붙여넣기만 하면 AI가 기업, 전형, 일정을 한 번에 정리해드려요.",
+      "manualCta": "기업 직접 등록"
+    },
     "noStepLabel": "등록된 전형 없음",
     "today": "오늘",
     "tomorrow": "내일",
@@ -940,6 +957,10 @@
       "submitting": "분석 중...",
       "analyzeFailed": "분석에 실패했습니다.",
       "dailyLimitReached": "오늘의 AI 분석 사용 한도에 도달했습니다. 내일 다시 이용해주세요.",
+      "freeLimitTitle": "오늘의 무료 AI 분석 횟수를 모두 사용했습니다",
+      "freeLimitDescription": "무료 플랜에서는 하루 3회까지 AI 분석을 사용할 수 있습니다.\nPro에서는 하루 50회까지 사용할 수 있습니다.",
+      "freeLimitCta": "Pro 보기",
+      "proLimitMessage": "오늘의 AI 분석 한도에 도달했습니다.\n내일 다시 시도해주세요.",
       "networkError": "분석 요청 중 오류가 발생했습니다.",
       "emptyTitle": "메일을 붙여넣어 주세요",
       "emptyDescription": "채용 메일에서 아래 정보를 추출합니다.",

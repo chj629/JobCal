@@ -22,8 +22,11 @@ const dmSans = DM_Sans({
   subsets: ["latin"],
 });
 
-// OGイメージ資産(ブランド画像)がまだ存在しないため、openGraph.images/twitter.imagesは
-// 意図的に設定しない — 存在しないファイルパスを登録しない。
+// OG/Twitter 이미지는 app/opengraph-image.tsx(Next.js 파일 컨벤션)가 자동 생성한다 —
+// 여기 metadata에 images 배열을 직접 나열하지 않아도 Next.js가 그 파일을 찾아
+// og:image/twitter:image 메타 태그를 알아서 주입한다. twitter.card만 이미지가 있는
+// 상태에 맞춰 summary_large_image로 바꾼다(card 타입은 이미지 존재만으로 자동 결정되지
+// 않아 명시적으로 지정해야 한다).
 const SITE_TITLE = "JobCal";
 const SITE_DESCRIPTION = "就職活動の企業・選考・日程をまとめて管理できるJobCal";
 
@@ -43,7 +46,7 @@ export const metadata: Metadata = {
     type: "website",
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
     title: SITE_TITLE,
     description: SITE_DESCRIPTION,
   },

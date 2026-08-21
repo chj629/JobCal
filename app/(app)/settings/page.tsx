@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Globe, Lock, Sparkles, User, type LucideIcon } from "lucide-react";
@@ -25,6 +25,13 @@ import Badge from "@/components/ui/Badge";
 import { useToast } from "@/components/ui/Toast";
 
 const MIN_PASSWORD_LENGTH = 6;
+
+// CHECKOUT_COMPLETED 이후 Paddle webhook → paddle_subscriptions 반영 지연을 고려한
+// bounded retry 설정. 무한 polling은 하지 않는다 — 최대 시도 후에도 Pro가 확인되지
+// 않으면 조용히 멈추고(에러 표시 없음), 다음에 이 페이지를 새로고침하거나 다시 열면
+// 마운트 시 1회 조회가 그사이 반영된 최신 상태를 보여준다.
+const CHECKOUT_REFETCH_INTERVAL_MS = 2000;
+const MAX_CHECKOUT_REFETCH_ATTEMPTS = 5;
 
 // paddle_transactions.grand_total은 Paddle 원본 최소 통화 단위 문자열(예: JPY는 "780")을
 // 그대로 저장한 값이다 — 화면에 표시할 때만 통화별 소수 자릿수(JPY=0, USD=2 등)를
@@ -148,6 +155,50 @@ export default function SettingsPage() {
     getUserTransactionHistory(supabase).then(setTransactions);
   }, []);
 
+  // 재시도 세대 번호. refetchSubscriptionAfterCheckout 호출마다(=결제할 때마다) 증가시켜
+  // 이전에 진행 중이던 재시도를 자동으로 무효화하고, 언마운트 시에도 증가시켜 이후
+  // setSubscription 호출을 막는다.
+  const checkoutRefetchGenerationRef = useRef(0);
+
+  useEffect(() => {
+    return () => {
+      checkoutRefetchGenerationRef.current += 1;
+    };
+  }, []);
+
+  // usePaddleCheckout의 onCheckoutCompleted로 전달된다(CHECKOUT_COMPLETED 직후 1회
+  // 호출). Paddle webhook이 아직 paddle_subscriptions에 반영되지 않았을 수 있어, 단순히
+  // 이 시점에 한 번만 refetch하는 것으로는 해결됐다고 가정하지 않는다 — Pro가 확인될
+  // 때까지 제한된 횟수만 짧은 간격으로 재조회하고, 확인되면 즉시 멈춘다.
+  // getUserSubscriptionSummary/getUserPlan의 Pro 판정 로직과 past_due 정책, 기존 결제
+  // 알림 로직은 전혀 건드리지 않는다 — 여기서는 결과를 받아 subscription state만 갱신한다.
+  function refetchSubscriptionAfterCheckout() {
+    const generation = ++checkoutRefetchGenerationRef.current;
+    const supabase = createClient();
+    let attempt = 0;
+
+    function tryFetch() {
+      getUserSubscriptionSummary(supabase).then((result) => {
+        // 언마운트되었거나 그사이 새 결제(새 재시도 세대)가 시작됐으면 이 결과는 버린다.
+        if (checkoutRefetchGenerationRef.current !== generation) return;
+
+        if (result.plan === "pro") {
+          setSubscription(result);
+          return;
+        }
+
+        attempt += 1;
+        if (attempt < MAX_CHECKOUT_REFETCH_ATTEMPTS) {
+          setTimeout(tryFetch, CHECKOUT_REFETCH_INTERVAL_MS);
+        }
+        // 최대 횟수에 도달해도 무한 loading으로 만들지 않는다 — subscription은 이미
+        // 마운트 시 조회된 값(Free)을 그대로 유지하고 조용히 멈춘다.
+      });
+    }
+
+    tryFetch();
+  }
+
   // Paddle Customer Portal 세션 발급. 서버(app/api/paddle/portal)가 현재 로그인 세션의
   // user.id로만 paddle_customer_id를 조회하므로, 여기서는 클라이언트가 어떤 값도 넘기지
   // 않는다 — customerId를 body로 보내는 방식은 아예 없다. 매 클릭마다 새 세션을 받아야
@@ -158,6 +209,20 @@ export default function SettingsPage() {
     setIsPortalLoading(true);
     try {
       const response = await fetch("/api/paddle/portal", { method: "POST" });
+
+      // /api/paddle/portal도 middleware(lib/supabase/proxy.ts)의 보호 경로다 — 세션이
+      // 만료된 상태로 호출하면 /login으로 307 리다이렉트되고 fetch가 이를 따라가
+      // HTML(status 200)을 받는다. handleConfirmDeleteAccount/AiMailDrawer.handleAnalyze와
+      // 동일하게, response.json() 파싱을 시도하기 전에 content-type/401로 이 경우를
+      // 먼저 구분해 일반 "결제 관리 오류"와 다른 안내를 보여준다. route는 성공/실패 모두
+      // 항상 application/json만 반환한다.
+      const contentType = response.headers.get("content-type") ?? "";
+      if (!contentType.includes("application/json") || response.status === 401) {
+        showToast(t("common.sessionExpired"), "error");
+        setIsPortalLoading(false);
+        return;
+      }
+
       const body = await response.json();
 
       if (!response.ok || typeof body.url !== "string") {
@@ -179,6 +244,7 @@ export default function SettingsPage() {
     userId,
     email,
     locale,
+    onCheckoutCompleted: refetchSubscriptionAfterCheckout,
   });
 
   async function handleSaveName() {
@@ -267,6 +333,21 @@ export default function SettingsPage() {
   async function handleConfirmDeleteAccount() {
     try {
       const response = await fetch("/api/account/delete", { method: "POST" });
+
+      // /api/account/delete는 이 경로를 보호하는 middleware(lib/supabase/proxy.ts)의
+      // 대상이다 — 세션이 만료된 상태로 호출하면 middleware가 /login으로 307 리다이렉트
+      // 하고, fetch는 그 리다이렉트를 그대로 따라가 최종적으로 /login 페이지의
+      // HTML(status 200)을 받는다. response.ok만 보면 이 경우도 성공으로 오인해 실제로는
+      // 계정이 삭제되지 않았는데 signOut() 후 로그인 화면으로 보내버린다 — AI 분석
+      // 흐름(components/ai/AiMailDrawer.tsx의 handleAnalyze)에 적용한 것과 동일하게,
+      // content-type으로 이 케이스를 먼저 구분한다. API route는 성공/실패 모두 항상
+      // application/json만 반환한다.
+      const contentType = response.headers.get("content-type") ?? "";
+      if (!contentType.includes("application/json") || response.status === 401) {
+        showToast(t("common.sessionExpired"), "error");
+        return;
+      }
+
       if (!response.ok) {
         showToast(t("settings.account.deleteSection.error"), "error");
         return;

@@ -379,6 +379,21 @@ export default function SignupPage() {
                     )}
                     {isLoading ? t("auth.signup.submitLoading") : t("auth.signup.submit")}
                   </button>
+
+                  {/* 가입 버튼보다 시각적으로 약하게(12px, muted) — 새 체크박스/카드 없이
+                      순수 안내 문구 + 인라인 링크 2개만 추가한다. submit 로직/validation은
+                      건드리지 않는다. */}
+                  <p className="mt-3 text-center text-[12px] leading-[1.6] text-neutral-500">
+                    {t("auth.signup.agreementPrefix")}
+                    <Link href="/terms" className="underline hover:text-neutral-900">
+                      {t("auth.signup.agreementTermsLinkText")}
+                    </Link>
+                    {t("auth.signup.agreementMiddle")}
+                    <Link href="/privacy" className="underline hover:text-neutral-900">
+                      {t("auth.signup.agreementPrivacyLinkText")}
+                    </Link>
+                    {t("auth.signup.agreementSuffix")}
+                  </p>
                 </form>
 
                 <div className="pt-4 text-center">

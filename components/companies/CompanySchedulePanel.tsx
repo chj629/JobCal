@@ -16,6 +16,7 @@ import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import EmptyState from "@/components/ui/EmptyState";
 import MaterialIcon from "@/components/ui/MaterialIcon";
 import Modal from "@/components/ui/Modal";
+import { useToast } from "@/components/ui/Toast";
 
 interface CompanySchedulePanelProps {
   companyId: string;
@@ -32,6 +33,7 @@ interface CompanySchedulePanelProps {
 // 이벤트의 소속 전형은 여기서 바꾸지 않는다(수정은 항상 원래 전형 그대로 updateEvent).
 export default function CompanySchedulePanel({ companyId }: CompanySchedulePanelProps) {
   const t = useT();
+  const { showToast } = useToast();
   const { steps } = useApplicationSteps();
   const { events, addEvent, updateEvent, deleteEvent } = useEvents();
   const [eventFormState, setEventFormState] = useState<{ event: AppEvent | null } | null>(null);
@@ -58,8 +60,12 @@ export default function CompanySchedulePanel({ companyId }: CompanySchedulePanel
 
   async function handleConfirmDelete() {
     if (!deleteTarget) return;
-    await deleteEvent(deleteTarget.id);
-    setDeleteTarget(null);
+    const ok = await deleteEvent(deleteTarget.id);
+    if (ok) {
+      setDeleteTarget(null);
+    } else {
+      showToast(t("common.deleteFailed"), "error");
+    }
   }
 
   return (
@@ -212,7 +218,11 @@ export default function CompanySchedulePanel({ companyId }: CompanySchedulePanel
             const ok = eventFormState.event
               ? await updateEvent(eventFormState.event.id, values)
               : await addEvent(companyId, newEventStepId, values);
-            if (ok) setEventFormState(null);
+            if (ok) {
+              setEventFormState(null);
+            } else {
+              showToast(t("common.saveFailed"), "error");
+            }
           }}
         />
       )}

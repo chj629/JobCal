@@ -14,6 +14,7 @@ import Button from "@/components/ui/Button";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import LoadingState from "@/components/ui/LoadingState";
 import MaterialIcon from "@/components/ui/MaterialIcon";
+import { useToast } from "@/components/ui/Toast";
 import EventDetailPopover from "@/components/calendar/EventDetailPopover";
 import CalendarAddEventFlow from "@/components/calendar/CalendarAddEventFlow";
 import EventForm from "@/components/companies/EventForm";
@@ -70,10 +71,20 @@ function startOfWeek(date: Date) {
 
 export default function CalendarPage() {
   const t = useT();
+  const { showToast } = useToast();
   const { locale } = useLocale();
-  const { companies, loading: companiesLoading, error } = useCompanies();
-  const { events, loading: eventsLoading, addEvent, updateEvent, deleteEvent } = useEvents();
-  const { steps } = useApplicationSteps();
+  const { companies, loading: companiesLoading, error: companiesError } = useCompanies();
+  const {
+    events,
+    loading: eventsLoading,
+    error: eventsError,
+    addEvent,
+    updateEvent,
+    deleteEvent,
+  } = useEvents();
+  const { steps, error: stepsError } = useApplicationSteps();
+  // Dashboard/Companies와 동일한 이유 — 세 Context 중 하나라도 실패하면 배너 1개만 보여준다.
+  const hasLoadError = !!(companiesError || eventsError || stepsError);
   // 이 페이지에서 한 번만 호출해 TodayEventsCard/CalendarWeeklyProgress/EventDetailPopover에
   // 그대로 내려준다. 각자 따로 호출하면 완료 상태가 컴포넌트별로 분리되어, 한쪽에서 체크해도
   // 다른 쪽(진행률 등)이 페이지를 새로고침하기 전까지 반영되지 않는 문제가 있었다.
@@ -344,9 +355,9 @@ export default function CalendarPage() {
           </div>
         )}
 
-        {error && (
+        {hasLoadError && (
           <p className="mb-6 shrink-0 rounded-[10px] border border-error/40 bg-error/10 px-4 py-3 text-sm text-error">
-            {error}
+            {t("common.dataLoadFailed")}
           </p>
         )}
 
@@ -556,7 +567,11 @@ export default function CalendarPage() {
           onCancel={() => setIsAddEventOpen(false)}
           onSubmit={async (companyId, stepId, values) => {
             const ok = await addEvent(companyId, stepId, values);
-            if (ok) setIsAddEventOpen(false);
+            if (ok) {
+              setIsAddEventOpen(false);
+            } else {
+              showToast(t("common.saveFailed"), "error");
+            }
           }}
         />
       )}
@@ -568,7 +583,11 @@ export default function CalendarPage() {
           onCancel={() => setEditingEvent(null)}
           onSubmit={async (values) => {
             const ok = await updateEvent(editingEvent.id, values);
-            if (ok) setEditingEvent(null);
+            if (ok) {
+              setEditingEvent(null);
+            } else {
+              showToast(t("common.saveFailed"), "error");
+            }
           }}
         />
       )}
@@ -583,8 +602,12 @@ export default function CalendarPage() {
         onCancel={() => setDeleteTarget(null)}
         onConfirm={async () => {
           if (!deleteTarget) return;
-          await deleteEvent(deleteTarget.id);
-          setDeleteTarget(null);
+          const ok = await deleteEvent(deleteTarget.id);
+          if (ok) {
+            setDeleteTarget(null);
+          } else {
+            showToast(t("common.deleteFailed"), "error");
+          }
         }}
       />
     </div>
