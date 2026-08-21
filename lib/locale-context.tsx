@@ -2,7 +2,13 @@
 
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { messages, type Locale } from "@/lib/i18n/messages";
+import type { Locale } from "@/lib/i18n/messages";
+import { translate } from "@/lib/i18n/translate";
+
+// 기존 호출부(app/(app)/settings/page.tsx 등)가 "@/lib/locale-context"에서 translate를
+// import해 왔으므로 그대로 재수출한다 — 실제 구현은 lib/i18n/translate.ts로 옮겼다(서버
+// 컴포넌트의 metadata export에서도 호출할 수 있어야 해서 "use client"가 아닌 모듈이 필요).
+export { translate };
 
 type TranslateVars = Record<string, string | number>;
 
@@ -30,40 +36,6 @@ const LOCALE_STORAGE_KEY = "jobcal:locale";
 
 function isLocale(value: unknown): value is Locale {
   return value === "ja" || value === "ko";
-}
-
-function getByPath(source: unknown, path: string): unknown {
-  return path.split(".").reduce<unknown>((acc, segment) => {
-    if (acc && typeof acc === "object" && segment in acc) {
-      return (acc as Record<string, unknown>)[segment];
-    }
-    return undefined;
-  }, source);
-}
-
-// {name} 형태의 자리표시자를 vars 값으로 치환한다. 일치하는 값이 없으면 그대로 둔다.
-function applyVars(text: string, vars?: TranslateVars): string {
-  if (!vars) return text;
-  return text.replace(/\{(\w+)\}/g, (match, varName) =>
-    varName in vars ? String(vars[varName]) : match
-  );
-}
-
-// 현재 locale 사전 → 일본어 사전 → 키 문자열 순으로 대체한다.
-export function translate(locale: Locale, key: string, vars?: TranslateVars): string {
-  const primary = getByPath(messages[locale], key);
-  if (typeof primary === "string") return applyVars(primary, vars);
-
-  if (process.env.NODE_ENV === "development") {
-    console.warn(`[i18n] missing key "${key}" for locale "${locale}"`);
-  }
-
-  if (locale !== "ja") {
-    const fallback = getByPath(messages.ja, key);
-    if (typeof fallback === "string") return applyVars(fallback, vars);
-  }
-
-  return key;
 }
 
 interface LocaleProviderProps {

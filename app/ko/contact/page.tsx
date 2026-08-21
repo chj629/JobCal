@@ -3,15 +3,15 @@ import { buildPublicPageMetadata } from "@/lib/i18n/publicPageMetadata";
 import ContactPageContent from "@/components/legal/ContactPageContent";
 
 export const metadata = buildPublicPageMetadata({
-  locale: "ja",
+  locale: "ko",
   jaPath: "/contact",
   titleKey: "legal.contact.title",
   descriptionKey: "legal.contact.description",
 });
 
-export default function ContactPage() {
+export default function KoContactPage() {
   return (
-    <LocaleProvider initialLocale="ja" locked>
+    <LocaleProvider initialLocale="ko" locked>
       <ContactPageContent />
     </LocaleProvider>
   );

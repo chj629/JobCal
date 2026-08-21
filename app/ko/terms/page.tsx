@@ -3,15 +3,15 @@ import { buildPublicPageMetadata } from "@/lib/i18n/publicPageMetadata";
 import TermsPageContent from "@/components/legal/TermsPageContent";
 
 export const metadata = buildPublicPageMetadata({
-  locale: "ja",
+  locale: "ko",
   jaPath: "/terms",
   titleKey: "legal.terms.title",
   descriptionKey: "legal.terms.intro",
 });
 
-export default function TermsPage() {
+export default function KoTermsPage() {
   return (
-    <LocaleProvider initialLocale="ja" locked>
+    <LocaleProvider initialLocale="ko" locked>
       <TermsPageContent />
     </LocaleProvider>
   );

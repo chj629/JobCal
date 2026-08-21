@@ -20,6 +20,10 @@ export interface SiteHeaderProps {
   // 이동하는 <Link>로 렌더링된다(components/ui/LanguageSwitcher.tsx의 hrefs 참고).
   // 인증 페이지/설정 등 기존 호출부는 넘기지 않으므로 동작이 바뀌지 않는다.
   languageHrefs?: Record<Locale, string>;
+  // 공개 페이지(랜딩 + legal/pricing) 전용. 로고가 이동할 "홈" 경로 — 기본값 "/".
+  // /ko/* 공개 페이지에서만 "/ko"를 넘겨, 로고를 눌러도 언어가 바뀌지 않게 한다.
+  // 인증 페이지 등 기존 호출부는 넘기지 않으므로 지금까지와 동일하게 "/"로 이동한다.
+  homeHref?: string;
 }
 
 // 랜딩 페이지(LandingNav)와 모든 인증 페이지(AuthHeader → login/signup/forgot-password/
@@ -30,7 +34,12 @@ export interface SiteHeaderProps {
 // (컨테이너 우측 padding을 기준으로) 절대 밀리지 않는다. 로고도 shrink-0로 항상 좌측
 // 고정 폭이라 오른쪽 콘텐츠 양과 무관하게 X가 고정된다. 높이(h-[68px])도 여기 한 곳에서만
 // 관리해 화면마다 컨텐츠 높이 차이로 다시 어긋나는 일이 없게 한다.
-export default function SiteHeader({ children, compactOnMobile = false, languageHrefs }: SiteHeaderProps) {
+export default function SiteHeader({
+  children,
+  compactOnMobile = false,
+  languageHrefs,
+  homeHref = "/",
+}: SiteHeaderProps) {
   const t = useT();
   // position:fixed 요소의 폭은 window.innerWidth(세로 스크롤바 트랙 포함)를 기준으로
   // 계산되는데, 페이지마다 실제 스크롤바 유무가 달라(콘텐츠가 긴 랜딩 vs 한 화면에 다
@@ -55,7 +64,7 @@ export default function SiteHeader({ children, compactOnMobile = false, language
         }
       >
         <Link
-          href="/"
+          href={homeHref}
           className="shrink-0 text-2xl font-[500] tracking-tight text-primary-navy"
         >
           {t("common.appName")}

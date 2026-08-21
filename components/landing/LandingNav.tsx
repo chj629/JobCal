@@ -2,8 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useT } from "@/lib/locale-context";
-import type { Locale } from "@/lib/i18n/messages";
+import { useLocale, useT } from "@/lib/locale-context";
+import { toPublicPageHref, usePublicPageLanguageHrefs } from "@/lib/i18n/publicLocalePaths";
 import SiteHeader from "@/components/ui/SiteHeader";
 
 // docs/stitch/랜딩페이지/screen.png 상단 고정 네비게이션.
@@ -22,19 +22,22 @@ import SiteHeader from "@/components/ui/SiteHeader";
 // 이 버튼들 자체도 sm 미만에서만 gap/padding/폰트를 살짝 줄였다(버튼의 색/모양/
 // 문구는 전혀 안 바꿈 — "버튼 디자인은 유지, 간격만 축소"). sm(640px) 이상(태블릿
 // 768px 포함)·데스크톱은 전부 기존 값 그대로다.
-// /(일본어)와 /ko(한국어) 두 랜딩이 공유하는 고정 맵 — 어느 쪽 페이지에서 렌더링되든
-// 항상 같은 값이다(바뀌는 건 이 페이지 자신의 locale뿐, 이동 대상 URL은 고정).
-const LANDING_LANGUAGE_HREFS: Record<Locale, string> = { ja: "/", ko: "/ko" };
-
 export default function LandingNav() {
   const t = useT();
   const router = useRouter();
+  const { locale } = useLocale();
+  // LandingNav는 랜딩(/, /ko)뿐 아니라 /pricing, /ko/pricing에서도 재사용된다 — 언어
+  // 전환 대상은 하드코딩된 맵이 아니라 현재 URL로부터 계산해야, /pricing에서 언어를
+  // 바꿔도 "/"(랜딩)가 아니라 "/ko/pricing"으로 이동한다.
+  const languageHrefs = usePublicPageLanguageHrefs();
+  const homeHref = toPublicPageHref(locale, "/");
+  const pricingHref = toPublicPageHref(locale, "/pricing");
 
   return (
-    <SiteHeader compactOnMobile languageHrefs={LANDING_LANGUAGE_HREFS}>
+    <SiteHeader compactOnMobile languageHrefs={languageHrefs} homeHref={homeHref}>
       <div className="flex items-center gap-2 sm:gap-5">
         <Link
-          href="/pricing"
+          href={pricingHref}
           className="whitespace-nowrap text-[12px] font-[400] text-neutral-900 transition-colors hover:text-primary-navy sm:text-[13px]"
         >
           {t("landing.nav.pricing")}

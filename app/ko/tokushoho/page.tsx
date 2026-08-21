@@ -3,15 +3,15 @@ import { buildPublicPageMetadata } from "@/lib/i18n/publicPageMetadata";
 import TokushohoPageContent from "@/components/legal/TokushohoPageContent";
 
 export const metadata = buildPublicPageMetadata({
-  locale: "ja",
+  locale: "ko",
   jaPath: "/tokushoho",
   titleKey: "legal.tokushoho.title",
   descriptionKey: "legal.tokushoho.intro",
 });
 
-export default function TokushohoPage() {
+export default function KoTokushohoPage() {
   return (
-    <LocaleProvider initialLocale="ja" locked>
+    <LocaleProvider initialLocale="ko" locked>
       <TokushohoPageContent />
     </LocaleProvider>
   );
