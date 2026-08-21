@@ -385,6 +385,19 @@
     "aiCta": "AI로 추가",
     "aiOnboardingHelp": "AI 기능 안내 보기"
   },
+  "notifications": {
+    "title": "알림",
+    "markAllRead": "모두 읽음",
+    "empty": "새로운 알림이 없습니다",
+    "deadlineD1": "{title} 마감이 내일입니다",
+    "deadlineD0": "{title} 마감이 오늘입니다",
+    "scheduleD1": "내일은 {title}입니다",
+    "scheduleD0": "오늘은 {title}입니다",
+    "timeD1": "내일 {time}",
+    "timeD0": "{time}",
+    "billingPastDueTitle": "결제 수단을 확인해주세요",
+    "billingPastDueDescription": "Pro 플랜 결제를 확인하지 못했습니다."
+  },
   "aiOnboarding": {
     "title": "무엇부터 해야 할지 고민되나요?",
     "description": "취업 메일을 붙여넣기만 하면 AI가 기업과 전형 일정을 정리해 등록해드려요.",

@@ -65,6 +65,11 @@ async function upsertSubscription(data: SubscriptionCreatedNotification | Subscr
       status: data.status,
       price_id: data.items[0]?.price?.id ?? "",
       scheduled_change: data.scheduledChange,
+      // lib/notifications.ts의 computeBillingNotification이 past_due 알림의 "발생 주기"를
+      // 구분하는 키로 쓴다(0023) — 새 Paddle 이벤트를 구독하지 않고, 이미 받고 있는 이
+      // payload의 필드를 하나 더 저장할 뿐이다. 결제 재시도나 scheduled_change 같은 무관한
+      // 갱신으로는 바뀌지 않고, 실제로 다음 결제 주기로 넘어갈 때만 바뀐다.
+      current_billing_period_starts_at: data.currentBillingPeriod?.startsAt ?? null,
     },
     { onConflict: "paddle_subscription_id" }
   );

@@ -1,12 +1,19 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useT } from "@/lib/locale-context";
 import MaterialIcon from "@/components/ui/MaterialIcon";
 import AiOnboardingHint from "@/components/AiOnboardingHint";
 import { VIDEO_SRC as AI_ONBOARDING_STEP2_VIDEO_SRC } from "@/components/AiOnboardingStep2";
+import NotificationPanel from "@/components/NotificationPanel";
+import { useEvents } from "@/lib/events-context";
+import { useCompanies } from "@/lib/companies-context";
+import { useApplicationSteps } from "@/lib/application-steps-context";
+import { computeBillingNotification, computeNotifications, type AppNotification } from "@/lib/notifications";
+import { useNotificationReads } from "@/lib/notification-reads";
+import { useSubscriptionSummary } from "@/lib/paddle/useSubscriptionSummary";
 
 export interface HeaderProps {
   aiDrawerOpen: boolean;
@@ -38,8 +45,45 @@ export default function Header({ aiDrawerOpen, onOpenAiDrawer, onStartAiOnboardi
     null
   );
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const accountButtonRef = useRef<HTMLButtonElement>(null);
+  const accountMenuRef = useRef<HTMLDivElement>(null);
   const aiButtonRef = useRef<HTMLButtonElement>(null);
   const [showAiOnboarding, setShowAiOnboarding] = useState(false);
+
+  // 알림센터: events/companies/applicationSteps는 이미 AppLayout이 감싼 Provider들이
+  // 전량 로드해둔 상태를 그대로 쓴다 — Header가 알림을 위해 별도로 다시 fetch하지 않는다.
+  const { events } = useEvents();
+  const { companies } = useCompanies();
+  const { steps } = useApplicationSteps();
+  const { readKeys, markRead, markAllRead } = useNotificationReads();
+  const notifButtonRef = useRef<HTMLButtonElement>(null);
+  const [notifPanelOpen, setNotifPanelOpen] = useState(false);
+
+  // 3단계: Paddle past_due 결제 알림. useCurrentPlan(Pro 판정)은 건드리지 않고 별도
+  // 훅으로 status/subscriptionId만 읽는다 — 이 알림의 존재 여부가 Pro/Free 판정에
+  // 영향을 주지 않는다(past_due도 기존처럼 Pro 유지).
+  const subscriptionSummary = useSubscriptionSummary();
+  const billingNotification = useMemo(
+    () =>
+      computeBillingNotification(
+        subscriptionSummary?.subscriptionId ?? null,
+        subscriptionSummary?.status ?? null,
+        subscriptionSummary?.currentBillingPeriodStartsAt ?? null
+      ),
+    [subscriptionSummary]
+  );
+
+  const eventNotifications = useMemo(
+    () => computeNotifications(events, companies, steps),
+    [events, companies, steps]
+  );
+  // 결제 알림은 기업/일정보다 조치가 급한 편이라 목록 맨 위에 둔다. deadline/schedule
+  // 알림끼리의 기존 정렬(시각 오름차순)은 그대로 유지된다.
+  const notifications: AppNotification[] = useMemo(
+    () => (billingNotification ? [billingNotification, ...eventNotifications] : eventNotifications),
+    [billingNotification, eventNotifications]
+  );
+  const hasUnread = notifications.some((n) => !readKeys.has(n.key));
 
   useEffect(() => {
     const supabase = createClient();
@@ -85,6 +129,27 @@ export default function Header({ aiDrawerOpen, onOpenAiDrawer, onStartAiOnboardi
     document.head.appendChild(link);
   }, [showAiOnboarding]);
 
+  // 계정 메뉴 "바깥 클릭 시 닫기". NotificationPanel.tsx와 동일한 이유로 풀스크린 backdrop
+  // div 대신 document의 mousedown을 구독한다 — backdrop 방식은 알림 패널이 열려 있을 때
+  // 이 메뉴 버튼을 덮어(반대 방향도 마찬가지) 첫 클릭이 backdrop에 막히고 두 번째 클릭에야
+  // 메뉴가 열리는 문제가 있었다. mousedown 시점에 accountMenuRef/accountButtonRef 바깥인지만
+  // 판정하고 아무 것도 가로막지 않으므로, 알림 패널이 열려 있는 상태에서 이 버튼을 눌러도
+  // 같은 클릭 안에서 "알림 패널 닫힘(NotificationPanel 쪽 mousedown 리스너) + 계정 메뉴
+  // 열림(이 버튼의 onClick)"이 함께 일어난다.
+  useEffect(() => {
+    if (!isMenuOpen) return;
+
+    function handlePointerDown(event: MouseEvent) {
+      const target = event.target as Node;
+      if (accountMenuRef.current?.contains(target)) return;
+      if (accountButtonRef.current?.contains(target)) return;
+      setIsMenuOpen(false);
+    }
+
+    document.addEventListener("mousedown", handlePointerDown);
+    return () => document.removeEventListener("mousedown", handlePointerDown);
+  }, [isMenuOpen]);
+
   // 자동 표시든 "?" 아이콘으로 다시 본 것이든, 사용자가 실제로 CTA/"나중에" 중
   // 하나를 골라 닫을 때마다 플래그를 저장한다 — 이미 true여도 다시 쓰는 것은
   // 무해하므로 호출부에서 분기하지 않는다.
@@ -111,6 +176,27 @@ export default function Header({ aiDrawerOpen, onOpenAiDrawer, onStartAiOnboardi
   function handleDismissAiOnboarding() {
     setShowAiOnboarding(false);
     markAiOnboardingSeen();
+  }
+
+  // 계정 메뉴와 상호 배타적으로 열리게 한다(요청사항 5) — 한쪽을 열면 다른 쪽은 닫는다.
+  function handleToggleNotifPanel() {
+    setNotifPanelOpen((open) => !open);
+    setIsMenuOpen(false);
+  }
+
+  function handleSelectNotification(notification: AppNotification) {
+    markRead(notification.key);
+    setNotifPanelOpen(false);
+    if (notification.kind === "billing") {
+      router.push("/settings?tab=plan");
+    } else {
+      router.push(`/companies/${notification.companyId}`);
+    }
+  }
+
+  function handleMarkAllNotificationsRead() {
+    const unreadKeys = notifications.filter((n) => !readKeys.has(n.key)).map((n) => n.key);
+    markAllRead(unreadKeys);
   }
 
   async function handleLogout() {
@@ -180,17 +266,30 @@ export default function Header({ aiDrawerOpen, onOpenAiDrawer, onStartAiOnboardi
           </button>
 
           <button
+            ref={notifButtonRef}
             type="button"
+            onClick={handleToggleNotifPanel}
             aria-label={t("header.notifications")}
-            className="flex h-8 w-8 items-center justify-center rounded-full text-secondary transition-all hover:bg-black/[0.02] hover:text-stitch-ink"
+            className="relative flex h-8 w-8 items-center justify-center rounded-full text-secondary transition-all hover:bg-black/[0.02] hover:text-stitch-ink"
           >
             <MaterialIcon name="notifications" size={18} />
+            {/* 숫자 배지 대신 아주 작은 dot만 — 미읽음이 하나라도 있으면 표시(요청사항 2). */}
+            {hasUnread && (
+              <span
+                aria-hidden="true"
+                className="absolute right-1 top-1 h-2 w-2 rounded-full bg-primary-navy ring-2 ring-card"
+              />
+            )}
           </button>
 
           <div className="relative">
             <button
+              ref={accountButtonRef}
               type="button"
-              onClick={() => setIsMenuOpen((open) => !open)}
+              onClick={() => {
+                setIsMenuOpen((open) => !open);
+                setNotifPanelOpen(false);
+              }}
               aria-label={t("header.accountMenu")}
               className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-navy text-[11px] font-[500] text-white ring-1 ring-border transition-opacity hover:opacity-90"
             >
@@ -198,38 +297,38 @@ export default function Header({ aiDrawerOpen, onOpenAiDrawer, onStartAiOnboardi
             </button>
 
             {isMenuOpen && (
-              <>
-                <div className="fixed inset-0 z-10" onClick={() => setIsMenuOpen(false)} />
-                <div className="absolute right-0 top-10 z-20 w-48 rounded-lg border border-stitch-border bg-card py-1 text-left shadow-lg">
-                  {profile && (
-                    <div className="border-b border-stitch-border px-3 py-2">
-                      <p className="truncate text-sm font-semibold text-stitch-ink">
-                        {profile.primaryLine}
-                      </p>
-                      {profile.email && (
-                        <p className="truncate text-xs text-secondary">{profile.email}</p>
-                      )}
-                    </div>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsMenuOpen(false);
-                      router.push("/settings");
-                    }}
-                    className="block w-full px-3 py-2 text-left text-sm text-stitch-ink hover:bg-background"
-                  >
-                    {t("sidebar.settings")}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleLogout}
-                    className="block w-full px-3 py-2 text-left text-sm text-error hover:bg-background"
-                  >
-                    {t("sidebar.logout")}
-                  </button>
-                </div>
-              </>
+              <div
+                ref={accountMenuRef}
+                className="absolute right-0 top-10 z-20 w-48 rounded-lg border border-stitch-border bg-card py-1 text-left shadow-lg"
+              >
+                {profile && (
+                  <div className="border-b border-stitch-border px-3 py-2">
+                    <p className="truncate text-sm font-semibold text-stitch-ink">
+                      {profile.primaryLine}
+                    </p>
+                    {profile.email && (
+                      <p className="truncate text-xs text-secondary">{profile.email}</p>
+                    )}
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsMenuOpen(false);
+                    router.push("/settings");
+                  }}
+                  className="block w-full px-3 py-2 text-left text-sm text-stitch-ink hover:bg-background"
+                >
+                  {t("sidebar.settings")}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="block w-full px-3 py-2 text-left text-sm text-error hover:bg-background"
+                >
+                  {t("sidebar.logout")}
+                </button>
+              </div>
             )}
           </div>
         </div>
@@ -241,6 +340,16 @@ export default function Header({ aiDrawerOpen, onOpenAiDrawer, onStartAiOnboardi
       anchorRef={aiButtonRef}
       onStart={handleStartAiOnboarding}
       onDismiss={handleDismissAiOnboarding}
+    />
+
+    <NotificationPanel
+      open={notifPanelOpen}
+      anchorRef={notifButtonRef}
+      notifications={notifications}
+      readKeys={readKeys}
+      onSelect={handleSelectNotification}
+      onMarkAllRead={handleMarkAllNotificationsRead}
+      onClose={() => setNotifPanelOpen(false)}
     />
     </>
   );

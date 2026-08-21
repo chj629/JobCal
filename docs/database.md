@@ -12,6 +12,7 @@
 8. `task_completions`(레거시, 아래 설명 참고)
 9. `event_completions`
 10. `ai_analysis_usage`
+11. `notification_reads`
 
 별도 `profiles` 테이블은 없습니다. 이메일/표시 이름(display_name)은 Supabase Auth의
 `user_metadata`에 저장됩니다(`app/signup/page.tsx`의 `signUp({ options: { data: {
@@ -289,6 +290,29 @@ Dashboard "오늘 해야 할 일"의 현재 체크 상태 저장 테이블(이�
 - user_id
 - event_id
 - created_at
+
+---
+
+## notification_reads
+
+알림센터(`lib/notifications.ts`)가 계산한 알림의 읽음 상태를 저장합니다. 알림 자체(제목,
+기업명, 일시 등)는 DB에 저장하지 않고 매번 events/companies/application_steps로부터
+즉석 계산합니다 — 이 테이블은 그 계산 결과의 deterministic key에 대해 "읽었는지"만
+기록합니다(`event_completions`와 같은 목적의 테이블).
+
+- id
+- user_id
+- notification_key
+- created_at
+
+`notification_key`는 `{kind}:{event.id}:{dateKey}:{bucket}` 형식입니다(예:
+`deadline:3fa2.../2026-08-22/d1`). `dateKey`(기준 일시의 YYYY-MM-DD)가 포함되므로 일정
+날짜가 바뀌면 새 key가 되어, 이전 읽음 기록이 재조정된 알림을 잘못 숨기지 않습니다.
+연결된 이벤트가 삭제되면 그 key는 다시 계산되지 않으므로, 남는 row는 조회되지 않는
+데이터일 뿐 별도 정리가 필요 없습니다.
+
+`unique(user_id, notification_key)` 제약이 있어 중복 읽음 처리는 upsert(ignoreDuplicates)로
+안전하게 무시됩니다.
 
 ---
 

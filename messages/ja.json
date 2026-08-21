@@ -385,6 +385,19 @@
     "aiCta": "AIで追加",
     "aiOnboardingHelp": "AI機能の案内を見る"
   },
+  "notifications": {
+    "title": "通知",
+    "markAllRead": "すべて既読にする",
+    "empty": "新しい通知はありません",
+    "deadlineD1": "{title}の期限は明日です",
+    "deadlineD0": "{title}の期限は本日です",
+    "scheduleD1": "明日は{title}です",
+    "scheduleD0": "本日は{title}です",
+    "timeD1": "明日 {time}",
+    "timeD0": "{time}",
+    "billingPastDueTitle": "お支払い方法をご確認ください",
+    "billingPastDueDescription": "Proプランのお支払いを確認できませんでした。"
+  },
   "aiOnboarding": {
     "title": "何から始めればいいか迷っていますか？",
     "description": "就活メールを貼り付けるだけで、AIが企業や選考予定をまとめて登録します。",

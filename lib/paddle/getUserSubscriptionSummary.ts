@@ -19,6 +19,14 @@ export interface UserSubscriptionSummary {
   // Paddle 원본 status 문자열. 구독이 아예 없으면 null.
   status: string | null;
   scheduledChange: ScheduledChange | null;
+  // paddle_subscriptions의 PK. 알림센터(lib/notifications.ts의 computeBillingNotification)가
+  // past_due 알림의 deterministic key를 만드는 데 쓴다 — 이 필드 추가 전부터 있던
+  // plan/status/scheduledChange 용도(Settings > Plan 표시)에는 영향 없음.
+  subscriptionId: string | null;
+  // 0023: 현재 결제 주기 시작 시각. computeBillingNotification이 "이 past_due가 몇 번째
+  // 발생 주기인지" 구분하는 데 쓴다(무관한 subscription.updated로는 바뀌지 않고, 실제로
+  // 다음 결제 주기로 넘어갈 때만 바뀜) — Settings > Plan 표시에는 쓰지 않는다.
+  currentBillingPeriodStartsAt: string | null;
 }
 
 const PRO_STATUSES = ["active", "trialing", "past_due"];
@@ -32,18 +40,26 @@ export async function getUserSubscriptionSummary(
 ): Promise<UserSubscriptionSummary> {
   const { data, error } = await supabase
     .from("paddle_subscriptions")
-    .select("status, scheduled_change")
+    .select("paddle_subscription_id, status, scheduled_change, current_billing_period_starts_at")
     .in("status", PRO_STATUSES)
     .limit(1)
     .maybeSingle();
 
   if (error || !data) {
-    return { plan: "free", status: null, scheduledChange: null };
+    return {
+      plan: "free",
+      status: null,
+      scheduledChange: null,
+      subscriptionId: null,
+      currentBillingPeriodStartsAt: null,
+    };
   }
 
   return {
     plan: "pro",
     status: data.status,
     scheduledChange: data.scheduled_change,
+    subscriptionId: data.paddle_subscription_id,
+    currentBillingPeriodStartsAt: data.current_billing_period_starts_at,
   };
 }

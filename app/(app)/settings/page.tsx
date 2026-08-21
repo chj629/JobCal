@@ -114,6 +114,17 @@ export default function SettingsPage() {
     queueMicrotask(() => setPendingLocale(locale));
   }, [locale]);
 
+  // components/NotificationPanel.tsx의 past_due 결제 알림이 "/settings?tab=plan"으로
+  // 이동시키기 위한 최소한의 딥링크 지원 — useSearchParams(Suspense 경계 필요)를 새로
+  // 들이지 않고, 이미 클라이언트 전용인 이 페이지에서 마운트 시 한 번만 location.search를
+  // 읽는다. tab 쿼리가 없거나 알 수 없는 값이면 기존 그대로 기본 탭("profile")을 유지한다.
+  useEffect(() => {
+    const tabParam = new URLSearchParams(window.location.search).get("tab");
+    if (tabParam === "plan") {
+      queueMicrotask(() => setActiveTab("plan"));
+    }
+  }, []);
+
   useEffect(() => {
     const supabase = createClient();
     supabase.auth.getUser().then(({ data: { user } }) => {
