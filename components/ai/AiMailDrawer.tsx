@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import EmailPasteForm from "@/components/companies/EmailPasteForm";
 import CompanyMatchPicker from "@/components/companies/CompanyMatchPicker";
@@ -37,8 +37,18 @@ export function useEmailAnalysisFlow() {
   const [analysis, setAnalysis] = useState<EmailAnalysisResult | null>(null);
   const [existingCompany, setExistingCompany] = useState<Company | null>(null);
   const [registeredCompany, setRegisteredCompany] = useState<RegisteredCompany | null>(null);
+  // "이 분석이 onboarding Step 2에서 시작됐는지"를 기억하는 상태 — AI onboarding Step 3
+  // (AiMailDrawer.tsx)가 review 화면에서 등록 버튼을 spotlight할지 판단하는 데 쓰인다.
+  // AiMailDrawer.tsx가 handleAnalyze를 호출하는 순간(=클릭 시점) onboardingStep2Active가
+  // true였을 때만 true로 설정되고, match→review 단계를 거치는 동안에도 그대로 유지된다
+  // (Step2 자체는 그 클릭과 동시에 이미 종료되어 onboardingStep2Active가 곧장 false로
+  // 바뀌므로, review 화면에 도달한 시점엔 그 값을 더 이상 참조할 수 없어 별도로 기억해
+  // 둬야 한다). new-from-email 페이지는 fromOnboarding 인자를 전혀 넘기지 않으므로
+  // 항상 false로 남아 그 페이지에는 영향이 없다.
+  const [analysisStartedFromOnboarding, setAnalysisStartedFromOnboarding] = useState(false);
 
-  async function handleAnalyze(emailText: string) {
+  async function handleAnalyze(emailText: string, fromOnboarding = false) {
+    if (fromOnboarding) setAnalysisStartedFromOnboarding(true);
     setAnalyzing(true);
     setAnalyzeError(null);
 
@@ -86,6 +96,7 @@ export function useEmailAnalysisFlow() {
     setAnalysis(null);
     setExistingCompany(null);
     setRegisteredCompany(null);
+    setAnalysisStartedFromOnboarding(false);
   }
 
   return {
@@ -98,6 +109,8 @@ export function useEmailAnalysisFlow() {
     setExistingCompany,
     registeredCompany,
     setRegisteredCompany,
+    analysisStartedFromOnboarding,
+    setAnalysisStartedFromOnboarding,
     handleAnalyze,
     reset,
   };
@@ -109,20 +122,37 @@ export interface AiMailDrawerProps {
   // Drawer 닫힘 애니메이션이 완전히 끝난 시점에만 호출(components/ui/Drawer.tsx의 onClosed
   // 그대로 전달). AppLayout이 Header AI 버튼 재표시 타이밍을 여기 맞추기 위해 필요.
   onClosed?: () => void;
+  // AI onboarding Step 1의 CTA(Header)를 누른 직후 true가 되어, "메일 입력" 단계의
+  // 실제 textarea를 대상으로 하는 Step 2 데모/spotlight를 보여준다. app/(app)/layout.tsx가
+  // 소유한 상태를 그대로 받아 flow.step === "paste"일 때만 EmailPasteForm으로 넘긴다.
+  onboardingStep2Active?: boolean;
+  onOnboardingStep2Dismiss?: () => void;
 }
 
 // EmailPasteForm/CompanyMatchPicker/EmailAnalysisReview는 new-from-email 페이지와 동일한
 // 컴포넌트를 그대로 가져다 쓴다(내부 로직/저장(handleRegister) 로직 수정 없음).
-export default function AiMailDrawer({ open, onClose, onClosed }: AiMailDrawerProps) {
+export default function AiMailDrawer({
+  open,
+  onClose,
+  onClosed,
+  onboardingStep2Active = false,
+  onOnboardingStep2Dismiss,
+}: AiMailDrawerProps) {
   const t = useT();
   const router = useRouter();
   const flow = useEmailAnalysisFlow();
   // Drawer의 고정 footer 영역 DOM 노드. 각 스텝 컴포넌트가 이 노드로 자신의 버튼을
   // portal 렌더링해, content 스크롤과 무관하게 항상 화면 하단에 보이게 한다.
   const [footerEl, setFooterEl] = useState<HTMLDivElement | null>(null);
+  // 실제 "登録" 버튼(EmailAnalysisReview.tsx) — AI onboarding Step 3가 이 버튼 자체를
+  // spotlight한다.
+  const registerButtonRef = useRef<HTMLButtonElement>(null);
 
   function handleClose() {
     flow.reset();
+    // Drawer를 닫으면(예: onboarding 데모 도중 X 클릭) Step 2도 함께 종료해
+    // 다음에 Drawer를 다시 열었을 때 엉뚱한 phase로 남아있지 않게 한다.
+    onOnboardingStep2Dismiss?.();
     onClose();
   }
 
@@ -207,10 +237,17 @@ export default function AiMailDrawer({ open, onClose, onClosed }: AiMailDrawerPr
 
       {flow.step === "paste" && (
         <EmailPasteForm
-          onAnalyze={flow.handleAnalyze}
+          // "이 분석이 onboarding Step 2에서 시작됐는지"는 이 클릭 시점의
+          // onboardingStep2Active 값으로 판별해 flow.handleAnalyze에 넘긴다 — 클릭과
+          // 동시에 Step 2 자체는 곧장 종료되어(onboardingStep2Active가 false로 바뀌어)
+          // review 화면에 도달했을 땐 이 값을 더 이상 참조할 수 없으므로,
+          // analysisStartedFromOnboarding(useEmailAnalysisFlow)이 그 판단을 기억해 둔다.
+          onAnalyze={(emailText) => flow.handleAnalyze(emailText, onboardingStep2Active)}
           loading={flow.analyzing}
           error={flow.analyzeError}
           footerContainer={footerEl}
+          showOnboardingStep2={onboardingStep2Active}
+          onOnboardingStep2Dismiss={onOnboardingStep2Dismiss}
         />
       )}
 
@@ -240,6 +277,9 @@ export default function AiMailDrawer({ open, onClose, onClosed }: AiMailDrawerPr
             flow.setStep("complete");
           }}
           footerContainer={footerEl}
+          showOnboardingStep3={flow.analysisStartedFromOnboarding}
+          registerButtonRef={registerButtonRef}
+          onOnboardingStep3Dismiss={() => flow.setAnalysisStartedFromOnboarding(false)}
         />
       )}
 

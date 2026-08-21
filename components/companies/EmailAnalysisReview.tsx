@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { useCompanies } from "@/lib/companies-context";
 import { useApplicationSteps } from "@/lib/application-steps-context";
@@ -36,6 +36,7 @@ import { useT } from "@/lib/locale-context";
 import MaterialIcon from "@/components/ui/MaterialIcon";
 import { useToast } from "@/components/ui/Toast";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import AiOnboardingStep3 from "@/components/AiOnboardingStep3";
 
 interface EmailAnalysisReviewProps {
   analysis: EmailAnalysisResult;
@@ -44,6 +45,11 @@ interface EmailAnalysisReviewProps {
   onDone: (companyId: string, companyName: string) => void;
   // EmailPasteForm과 동일한 목적 — 제공되면 footer 버튼을 Drawer의 고정 footer로 portal.
   footerContainer?: HTMLDivElement | null;
+  // AI onboarding Step 3(AiMailDrawer.tsx 전용). new-from-email 페이지는 이 prop들을
+  // 넘기지 않으므로 항상 false/undefined로 동작해 기존 화면은 전혀 영향받지 않는다.
+  showOnboardingStep3?: boolean;
+  registerButtonRef?: RefObject<HTMLButtonElement | null>;
+  onOnboardingStep3Dismiss?: () => void;
 }
 
 // 아래 두 맵은 lib/companies.ts, lib/events.ts의 *_LABELS(한국어 고정)를 건드리지 않고,
@@ -112,6 +118,9 @@ export default function EmailAnalysisReview({
   onBack,
   onDone,
   footerContainer,
+  showOnboardingStep3 = false,
+  registerButtonRef,
+  onOnboardingStep3Dismiss,
 }: EmailAnalysisReviewProps) {
   const t = useT();
   const { showToast } = useToast();
@@ -517,8 +526,16 @@ export default function EmailAnalysisReview({
         {t("aiEmail.review.back")}
       </button>
       <button
+        ref={registerButtonRef}
         type="button"
-        onClick={handleRegister}
+        onClick={() => {
+          // 실제 등록 로직은 그대로 실행하고, 그 same 클릭이 Step 3 튜토리얼의 종료
+          // 조건이기도 하다 — 등록을 가로채거나 복제하지 않는다(EmailPasteForm.tsx의
+          // "AIで分析" 버튼과 동일한 패턴). onOnboardingStep3Dismiss가 없으면(온보딩 중이
+          // 아니거나 new-from-email 페이지면) 아무 일도 하지 않는다.
+          handleRegister();
+          onOnboardingStep3Dismiss?.();
+        }}
         disabled={saving}
         className="flex-[2] inline-flex items-center justify-center gap-1.5 rounded-full bg-primary-navy py-4 text-[14px] font-[500] text-white transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
       >
@@ -901,6 +918,19 @@ export default function EmailAnalysisReview({
           cancelLabel={t("common.cancel")}
           onConfirm={confirmHole}
           onCancel={cancelHole}
+        />
+      )}
+
+      {/* showOnboardingStep3가 아니라 onOnboardingStep3Dismiss/registerButtonRef 유무로
+          렌더 여부를 결정한다 — EmailPasteForm.tsx의 AiOnboardingStep2와 같은 이유
+          (showOnboardingStep3로 게이팅하면 그 값이 false가 되는 바로 그 렌더에서
+          AiOnboardingStep3가 통째로 unmount되어, 내부 fade-out이 실행될 기회조차 없이
+          사라져 버린다). */}
+      {registerButtonRef && onOnboardingStep3Dismiss && (
+        <AiOnboardingStep3
+          active={showOnboardingStep3}
+          targetRef={registerButtonRef}
+          onDismiss={onOnboardingStep3Dismiss}
         />
       )}
     </div>

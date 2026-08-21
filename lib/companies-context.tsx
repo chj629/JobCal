@@ -72,7 +72,12 @@ export function CompaniesProvider({ children }: { children: ReactNode }) {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(() => {
+    } = supabase.auth.onAuthStateChange((event) => {
+      // USER_UPDATED(예: user_metadata만 바꾸는 supabase.auth.updateUser 호출 — AI onboarding
+      // "본 것으로 표시", 언어/표시명 설정 등)와 TOKEN_REFRESHED는 로그인한 사용자나 그
+      // 데이터가 바뀐 게 아니므로 재조회할 필요가 없다. 이걸 걸러내지 않으면 그런 호출마다
+      // companies를 포함한 전체 데이터가 다시 로딩되며 화면이 깜빡이듯 리셋되어 보였다.
+      if (event === "USER_UPDATED" || event === "TOKEN_REFRESHED" || event === "INITIAL_SESSION") return;
       load();
     });
 

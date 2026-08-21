@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useT } from "@/lib/locale-context";
 import MaterialIcon from "@/components/ui/MaterialIcon";
+import AiOnboardingStep2 from "@/components/AiOnboardingStep2";
 
 interface EmailPasteFormProps {
   onAnalyze: (emailText: string) => void;
@@ -13,6 +14,11 @@ interface EmailPasteFormProps {
   // 렌더링한다. 생략(예: new-from-email 페이지의 전체 폭 사용)하면 기존처럼
   // content 하단에 그대로 인라인 렌더링한다 — 로직은 동일, 위치만 다르다.
   footerContainer?: HTMLDivElement | null;
+  // AI onboarding Step 2(AiMailDrawer 전용, app/(app)/layout.tsx가 내려줌).
+  // new-from-email 페이지는 두 prop을 넘기지 않으므로 항상 false로 동작해
+  // 기존 화면은 전혀 영향받지 않는다.
+  showOnboardingStep2?: boolean;
+  onOnboardingStep2Dismiss?: () => void;
 }
 
 // docs/stitch/AI Drawer/jobcal_dashboard_ai_drawer_step_1_sophisticated_refresh 기준 순서.
@@ -34,10 +40,29 @@ export default function EmailPasteForm({
   loading,
   error,
   footerContainer,
+  showOnboardingStep2 = false,
+  onOnboardingStep2Dismiss,
 }: EmailPasteFormProps) {
   const t = useT();
   const [emailText, setEmailText] = useState("");
   const hasText = emailText.trim().length > 0;
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  // 실제 "AIで分析" 버튼 — AiOnboardingStep2의 buttonSpotlight 단계가 이 버튼 자체를
+  // spotlight한다(새 버튼을 만들지 않는다).
+  const analyzeButtonRef = useRef<HTMLButtonElement>(null);
+  // AiOnboardingStep2가 textareaSpotlight 단계인 동안에만 true — 그동안 textarea
+  // placeholder를 튜토리얼용 문구로 바꾼다(온보딩이 끝나면 AiOnboardingStep2가 false로
+  // 되돌려 원래 placeholder로 복원된다).
+  const [spotlightActive, setSpotlightActive] = useState(false);
+
+  // Step 2 튜토리얼의 최종 종료 조건은 이제 "메일 붙여넣기"가 아니라 사용자가 실제
+  // "AIで分析" 버튼을 누르는 순간이다(아래 footer 버튼의 onClick 참고). textarea에
+  // 붙여넣거나 입력하는 것만으로는 더 이상 종료하지 않는다 — AiOnboardingStep2가
+  // hasText prop을 보고 textareaSpotlight ↔ buttonSpotlight 사이를 자체적으로
+  // 오간다(아래 <AiOnboardingStep2 hasText={hasText} .../> 참고).
+  function dismissOnboardingStep2IfActive() {
+    if (showOnboardingStep2) onOnboardingStep2Dismiss?.();
+  }
 
   if (loading) {
     return (
@@ -56,9 +81,16 @@ export default function EmailPasteForm({
 
   const footer = (
     <button
+      ref={analyzeButtonRef}
       type="button"
       disabled={!hasText}
-      onClick={() => onAnalyze(emailText)}
+      onClick={() => {
+        // 실제 분석 로직은 그대로 실행하고, 그 same 클릭이 Step 2 튜토리얼의 최종
+        // 종료 조건이기도 하다 — 별도 분석을 가로채거나 만들지 않는다. showOnboardingStep2가
+        // false면(온보딩 중이 아니면) dismissOnboardingStep2IfActive는 아무 일도 하지 않는다.
+        onAnalyze(emailText);
+        dismissOnboardingStep2IfActive();
+      }}
       className="flex flex-1 items-center justify-center gap-2 rounded-full bg-primary-navy py-3.5 text-[14px] font-[500] text-white transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
     >
       <MaterialIcon name="auto_awesome" size={18} />
@@ -103,13 +135,32 @@ export default function EmailPasteForm({
         <div className="space-y-3">
           <p className="px-1 text-[13px] font-[500] text-stitch-ink">{t("aiEmail.paste.label")}</p>
           <textarea
+            ref={textareaRef}
             value={emailText}
             onChange={(e) => setEmailText(e.target.value)}
-            placeholder={t("aiEmail.paste.placeholder")}
+            placeholder={spotlightActive ? t("aiOnboarding.step2.tutorialPlaceholder") : t("aiEmail.paste.placeholder")}
             className="h-[320px] w-full resize-none rounded-stitch-2xl border border-stitch-border bg-white p-6 text-[14px] text-stitch-ink outline-none transition-all placeholder:text-secondary focus:border-primary-navy focus:ring-1 focus:ring-primary-navy"
           />
         </div>
       </div>
+
+      {/* showOnboardingStep2가 아니라 onOnboardingStep2Dismiss 유무로만 렌더 여부를
+          결정한다 — showOnboardingStep2로 게이팅하면 그 값이 false가 되는 바로 그
+          렌더에서 AiOnboardingStep2가 통째로 unmount되어, 그 안의 dim fade-out
+          로직(active=false가 된 뒤에도 잠깐 더 mount된 채로 opacity만 내리는 처리)이
+          실행될 기회조차 없이 dim이 즉시 사라져 버렸다. active={showOnboardingStep2}는
+          그대로 넘기고, "언제 실제로 사라질지"는 전적으로 AiOnboardingStep2 자신의
+          내부 mounted 상태가 결정하게 한다. */}
+      {onOnboardingStep2Dismiss && (
+        <AiOnboardingStep2
+          active={showOnboardingStep2}
+          textareaRef={textareaRef}
+          analyzeButtonRef={analyzeButtonRef}
+          hasText={hasText}
+          onDismiss={onOnboardingStep2Dismiss}
+          onSpotlightActiveChange={setSpotlightActive}
+        />
+      )}
 
       {footerContainer ? (
         // footerContainer(AiMailDrawer가 만든 placeholder)가 이미 "flex gap-3" 행이므로,

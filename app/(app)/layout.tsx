@@ -31,6 +31,11 @@ export default function AppLayout({
   // 보여야 하므로, 열 때는 같이 true가 되지만 닫을 때는 Drawer의 onClosed 콜백이 올 때만
   // false가 되는 별도 상태를 둔다.
   const [aiDrawerMounted, setAiDrawerMounted] = useState(false);
+  // AI onboarding Step 2("메일 본문 붙여넣기" 데모/spotlight). Header(Step 1 CTA)와
+  // AiMailDrawer(실제 textarea)가 서로 형제 컴포넌트라 이 레이아웃이 상태를 소유하고
+  // 양쪽에 내려준다. Step 2 자체는 별도 DB 상태를 쓰지 않는다 — Drawer가 열릴 때마다
+  // (Step 1 CTA 클릭 시 또는 "?" 도움말로 다시 볼 때) 매번 새로 시작한다.
+  const [aiOnboardingStep2Active, setAiOnboardingStep2Active] = useState(false);
   // docs/stitch/ 리뉴얼: screen.png에는 스크롤바가 보이지 않는다. <main>은 이 레이아웃이
   // 모든 페이지에서 공유하므로, 아직 리뉴얼하지 않은 페이지에 영향을 주지 않도록
   // 리뉴얼된 경로에서만 스크롤바 숨김 클래스를 붙인다.
@@ -60,6 +65,7 @@ export default function AppLayout({
                         <Header
                           aiDrawerOpen={aiDrawerMounted}
                           onOpenAiDrawer={handleOpenAiDrawer}
+                          onStartAiOnboardingStep2={() => setAiOnboardingStep2Active(true)}
                         />
                         {/* @container/main: Calendar/Analytics의 2단 그리드가 뷰포트가 아니라
                             main의 실제 폭을 기준으로 전환되는 컨테이너 쿼리 기준점 — AI Drawer는
@@ -105,6 +111,8 @@ export default function AppLayout({
                         open={aiDrawerOpen}
                         onClose={() => setAiDrawerOpen(false)}
                         onClosed={() => setAiDrawerMounted(false)}
+                        onboardingStep2Active={aiOnboardingStep2Active}
+                        onOnboardingStep2Dismiss={() => setAiOnboardingStep2Active(false)}
                       />
                     </div>
                   </ToastProvider>

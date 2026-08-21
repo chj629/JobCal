@@ -73,7 +73,11 @@ export function CompanyNotesProvider({ children }: { children: ReactNode }) {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(() => {
+    } = supabase.auth.onAuthStateChange((event) => {
+      // lib/companies-context.tsx와 동일한 이유로 USER_UPDATED/TOKEN_REFRESHED는 재조회하지
+      // 않는다 — user_metadata만 바뀌는 호출(예: AI onboarding 완료 표시)마다 전체 데이터가
+      // 다시 로딩되며 화면이 리셋되듯 깜빡이는 문제를 막는다.
+      if (event === "USER_UPDATED" || event === "TOKEN_REFRESHED" || event === "INITIAL_SESSION") return;
       if (isMounted) load();
     });
 

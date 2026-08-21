@@ -381,7 +381,30 @@
   "header": {
     "notifications": "通知",
     "accountMenu": "アカウントメニュー",
-    "menu": "メニュー"
+    "menu": "メニュー",
+    "aiCta": "AIで追加",
+    "aiOnboardingHelp": "AI機能の案内を見る"
+  },
+  "aiOnboarding": {
+    "title": "何から始めればいいか迷っていますか？",
+    "description": "就活メールを貼り付けるだけで、AIが企業や選考予定をまとめて登録します。",
+    "cta": "AIで追加してみる",
+    "dismiss": "あとで",
+    "step2": {
+      "title": "次はあなたの番です",
+      "description": "企業から届いたメール本文をコピーして、ここに貼り付けてみましょう。",
+      "note": "貼り付けると次のステップに進みます。",
+      "dismiss": "スキップ",
+      "tutorialPlaceholder": "ここにメール本文を貼り付け",
+      "analyzeTitle": "内容を確認できたら、AIで分析",
+      "analyzeDescription": "メール内容はそのまま修正できます。\n問題なければ「AIで分析」を押して、企業や選考情報を抽出しましょう。"
+    },
+    "step3": {
+      "title": "内容を確認して登録しましょう",
+      "description": "AIが抽出した内容は、登録前に自由に修正できます。",
+      "note": "問題なければ「登録」を押して完了です。",
+      "dismiss": "スキップ"
+    }
   },
   "auth": {
     "branding": {
