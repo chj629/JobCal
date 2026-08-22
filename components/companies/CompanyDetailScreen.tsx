@@ -1,7 +1,8 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { notFound } from "next/navigation";
+import Link from "next/link";
+import { notFound, useRouter } from "next/navigation";
 import StepTimeline from "@/components/companies/StepTimeline";
 import StepDetailPanel from "@/components/companies/StepDetailPanel";
 import SelectionMemo from "@/components/companies/SelectionMemo";
@@ -37,18 +38,11 @@ import { useStepReconcileCheck } from "@/lib/useStepReconcileCheck";
 
 export interface CompanyDetailScreenProps {
   companyId: string;
-  // standalone 페이지에서는 목록으로 이동(router.push("/companies")), 모달에서는 모달을
-  // 닫는 동작(router.back(), 애니메이션 포함)으로 각각 다르게 연결된다 — 이 컴포넌트
-  // 자신은 "닫힌다"는 사실만 알고 실제로 무엇을 할지는 몰라도 된다. 삭제 성공 시에도
-  // 그대로 재사용한다(아래 handleConfirmDelete 참고).
-  onClose: () => void;
 }
 
-// app/(app)/companies/[id]/page.tsx(standalone)와 app/(app)/@modal/(.)companies/[id]/page.tsx
-// (풀스크린 모달)가 공유하는 Company Detail 본체. UI/CRUD/전형/일정/메모 로직은 여기 하나만
-// 존재하고, 두 라우트는 이 컴포넌트에 companyId/onClose만 다르게 넘겨 얇게 감싼다.
-export default function CompanyDetailScreen({ companyId, onClose }: CompanyDetailScreenProps) {
+export default function CompanyDetailScreen({ companyId }: CompanyDetailScreenProps) {
   const t = useT();
+  const router = useRouter();
   const { showToast } = useToast();
   const { companies, deleteCompany, loading: companiesLoading, error } = useCompanies();
   const { loading: stepsLoading, refresh: refreshSteps } = useApplicationSteps();
@@ -74,9 +68,10 @@ export default function CompanyDetailScreen({ companyId, onClose }: CompanyDetai
   }
 
   if (!company) {
-    // 삭제로 이 기업이 context에서 사라지면 onClose()가 실제로 화면을 정리하기 직전
-    // company === undefined인 채로 한 번 더 렌더링된다. 이 경우엔 notFound() 대신
-    // 그냥 아무것도 보여주지 않고 정리가 끝나길 기다린다.
+    // 삭제 성공 시 deleteCompany가 companies context에서 이 기업을 먼저 제거하고, 그 다음
+    // handleConfirmDelete가 router.push("/companies")를 호출한다 — 그 사이 한 번
+    // company === undefined인 채로 재렌더링될 수 있다. isDeleting이 true인 동안은 이
+    // 과도기 렌더로 보고 notFound() 대신 아무것도 보여주지 않은 채 페이지 이동을 기다린다.
     if (isDeleting) return null;
     notFound();
   }
@@ -94,13 +89,7 @@ export default function CompanyDetailScreen({ companyId, onClose }: CompanyDetai
       refreshNotes();
       refreshCredentials();
       refreshNextActions();
-      // router.push("/companies")를 직접 호출하면(과거 구현) standalone에서는 문제없지만,
-      // 인터셉트 모달(@modal) 안에서는 Next.js가 이 push를 "같은 부모 아래에서의 이동"으로
-      // 처리해 @modal 슬롯이 default.tsx로 리셋되지 않고 그대로 남는 문제가 있었다(빈
-      // 모달이 안 닫힌 채 떠 있는 상태로 보임). onClose를 그대로 쓰면 standalone은 기존과
-      // 동일하게 /companies로 이동하고, 모달은 정상적인 닫힘 경로(요청 → 애니메이션 →
-      // router.back())를 타 두 경우 모두 올바르게 정리된다.
-      onClose();
+      router.push("/companies");
     } else {
       // 확인 다이얼로그는 닫지 않는다 — 다시 시도할 수 있게 isDeleting만 복구한다.
       setIsDeleting(false);
@@ -114,7 +103,6 @@ export default function CompanyDetailScreen({ companyId, onClose }: CompanyDetai
         key={company.id}
         company={company}
         error={error}
-        onClose={onClose}
         onDeleteClick={() => setIsDeleteConfirmOpen(true)}
       />
       <ConfirmDialog
@@ -135,11 +123,10 @@ export default function CompanyDetailScreen({ companyId, onClose }: CompanyDetai
 interface CompanyDetailViewProps {
   company: Company;
   error: string | null;
-  onClose: () => void;
   onDeleteClick: () => void;
 }
 
-function CompanyDetailView({ company, error, onClose, onDeleteClick }: CompanyDetailViewProps) {
+function CompanyDetailView({ company, error, onDeleteClick }: CompanyDetailViewProps) {
   const t = useT();
   const { updateCompany } = useCompanies();
   const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
@@ -185,6 +172,13 @@ function CompanyDetailView({ company, error, onClose, onDeleteClick }: CompanyDe
   return (
     <div className="min-h-screen bg-stitch-bg min-[1600px]:min-h-full">
       <div className="mx-auto max-w-[1200px] px-6 pb-6 pt-14 font-[family-name:var(--font-hanken-grotesk)] font-[350] tracking-[-0.025em] text-stitch-ink">
+        <Link
+          href="/companies"
+          className="mb-4 inline-block text-[13px] text-secondary transition-colors hover:text-stitch-ink"
+        >
+          {t("companies.detail.backToList")}
+        </Link>
+
         <div className="mb-8 flex flex-col justify-between gap-4 md:flex-row md:items-start">
           <div>
             {isEditingName ? (
@@ -278,14 +272,6 @@ function CompanyDetailView({ company, error, onClose, onDeleteClick }: CompanyDe
           </div>
 
           <div className="flex items-center gap-2 pt-1">
-            <button
-              type="button"
-              onClick={onClose}
-              aria-label={t("companies.detail.backToList")}
-              className="flex h-8 w-8 items-center justify-center rounded-stitch-xl border border-stitch-border bg-card text-secondary shadow-sm transition-colors hover:bg-[#f8f9ff]"
-            >
-              <MaterialIcon name="close" size={18} />
-            </button>
             <button
               type="button"
               onClick={onDeleteClick}

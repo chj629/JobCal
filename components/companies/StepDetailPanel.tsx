@@ -10,7 +10,7 @@ import {
   type StepStatus,
 } from "@/lib/applicationSteps";
 import { useEvents } from "@/lib/events-context";
-import { createEmptyEventFormValues, eventToFormValues, getNextEvent } from "@/lib/events";
+import { createEmptyEventFormValues, eventToFormValues, getRepresentativeEvent } from "@/lib/events";
 import { useT } from "@/lib/locale-context";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import MaterialIcon from "@/components/ui/MaterialIcon";
@@ -30,14 +30,16 @@ type FormatChoice = "online" | "offline" | "undecided";
 // 드래그는 터치 기기에서 동작하지 않아, 모바일(md 미만)에서만 이름 옆에 위/아래 이동
 // 아이콘 버튼을 추가로 보여준다 — 새 reorder 로직 없이 StepTimeline의 드래그와 똑같이
 // moveStep(id, "up"|"down")을 그대로 호출한다.
-// 일시/형식은 이 전형에 연결된 이벤트 중 "대표 일정"(nextEvent) 하나를 클릭 시 인라인으로
+// 일시/형식은 이 전형에 연결된 이벤트 중 "대표 일정"(primaryEvent) 하나를 클릭 시 인라인으로
 // 직접 편집하며, 별도 데이터를 두지 않고 events 테이블의 실제 값을 addEvent/updateEvent로
-// 갱신한다. 대표 일정은 lib/events.ts의 getNextEvent()를 그대로 재사용해 Dashboard/Companies
-// 목록과 동일한 "가장 가까운 미래 이벤트" 기준을 쓴다(과거 이벤트는 대표로 잡히지 않음).
-// 한 전형에 이벤트가 2개 이상이면 대표 일정 1개만 여기서 편집하고, 나머지는 "그 외 N개"
-// 안내만 보여준 뒤 전체 관리는 CompanySchedulePanel("일정" 카드)로 유도한다. nextEvent가
+// 갱신한다. 대표 일정은 lib/events.ts의 getRepresentativeEvent()로 고른다 — 미래 이벤트가
+// 있으면 그중 가장 가까운 것, 없으면 과거 이벤트 중 가장 최근 것을 대표로 삼는다(Dashboard/
+// Companies 목록이 쓰는 getNextEvent()는 "미래만" 보여줘야 해서 과거 이벤트를 제외하지만,
+// 이 패널은 이미 등록된 과거 일정도 未定으로 숨기지 않고 그대로 보여줘야 하므로 별도 함수를
+// 쓴다). 한 전형에 이벤트가 2개 이상이면 대표 일정 1개만 여기서 편집하고, 나머지는 "그 외
+// N개" 안내만 보여준 뒤 전체 관리는 CompanySchedulePanel("일정" 카드)로 유도한다. primaryEvent가
 // 이미 있으면 형식만 바꿔도 즉시 updateEvent로 반영되지만,
-// nextEvent가 없는 상태에서 형식만 먼저 입력하면 아직 실제 일정이 아니므로(가짜 일시로
+// primaryEvent가 없는 상태에서 형식만 먼저 입력하면 아직 실제 일정이 아니므로(가짜 일시로
 // 이벤트를 만들면 Calendar/Dashboard/Analytics에 없는 일정이 노출된다) DB에 쓰지 않고
 // pendingFormat에만 잠시 담아둔다. 이후 일시를 입력해 이벤트를 생성하는 순간 그 값을
 // 함께 반영한다(이벤트 생성 기준은 항상 "실제 일시 입력"으로 통일).
@@ -54,7 +56,7 @@ export default function StepDetailPanel({ companyId, selectedStepId }: StepDetai
   const [isEditingFormat, setIsEditingFormat] = useState(false);
   const [formatChoiceDraft, setFormatChoiceDraft] = useState<FormatChoice>("undecided");
   const [formatValueDraft, setFormatValueDraft] = useState("");
-  // nextEvent가 없는 상태에서 형식만 먼저 저장했을 때만 채워진다 — DB에는 아직 아무것도
+  // primaryEvent가 없는 상태에서 형식만 먼저 저장했을 때만 채워진다 — DB에는 아직 아무것도
   // 쓰지 않고, 일시를 입력해 이벤트가 만들어지는 순간 함께 반영한 뒤 비운다. stepId를
   // 함께 저장해두고 읽을 때 현재 선택된 전형과 다르면 무시한다 — 전형을 바꿔도 이전
   // 전형의 임시 값이 새 전형에 잘못 노출되지 않는다(effect로 초기화할 필요가 없다).
@@ -82,9 +84,9 @@ export default function StepDetailPanel({ companyId, selectedStepId }: StepDetai
   const activePendingFormat = pendingFormat && pendingFormat.stepId === step.id ? pendingFormat : null;
 
   const stepEvents = events.filter((event) => event.applicationStepId === step.id);
-  const nextEvent = getNextEvent(stepEvents);
-  const nextEventAt = nextEvent ? (nextEvent.startsAt ?? nextEvent.dueAt) : null;
-  const otherEventsCount = stepEvents.length - (nextEvent ? 1 : 0);
+  const primaryEvent = getRepresentativeEvent(stepEvents);
+  const primaryEventAt = primaryEvent ? (primaryEvent.startsAt ?? primaryEvent.dueAt) : null;
+  const otherEventsCount = stepEvents.length - (primaryEvent ? 1 : 0);
 
   function startRename() {
     skipRenameBlurRef.current = false;
@@ -135,9 +137,9 @@ export default function StepDetailPanel({ companyId, selectedStepId }: StepDetai
 
   function startEditDateTime() {
     skipDateTimeBlurRef.current = false;
-    if (nextEvent) {
-      const values = eventToFormValues(nextEvent);
-      setDateTimeDraft(nextEvent.eventType === "schedule" ? values.startsAt : values.dueAt);
+    if (primaryEvent) {
+      const values = eventToFormValues(primaryEvent);
+      setDateTimeDraft(primaryEvent.eventType === "schedule" ? values.startsAt : values.dueAt);
     } else {
       setDateTimeDraft("");
     }
@@ -154,11 +156,11 @@ export default function StepDetailPanel({ companyId, selectedStepId }: StepDetai
       setIsEditingDateTime(false);
       return;
     }
-    if (nextEvent) {
-      const values = eventToFormValues(nextEvent);
-      if (nextEvent.eventType === "schedule") values.startsAt = dateTimeDraft;
+    if (primaryEvent) {
+      const values = eventToFormValues(primaryEvent);
+      if (primaryEvent.eventType === "schedule") values.startsAt = dateTimeDraft;
       else values.dueAt = dateTimeDraft;
-      await updateEvent(nextEvent.id, values);
+      await updateEvent(primaryEvent.id, values);
     } else {
       // 실제 일시가 입력된 지금이 이벤트를 만드는 유일한 시점이다. 그 전에 형식만 먼저
       // 골라뒀다면(pendingFormat) 여기서 함께 반영한다.
@@ -175,12 +177,12 @@ export default function StepDetailPanel({ companyId, selectedStepId }: StepDetai
 
   function startEditFormat() {
     skipFormatBlurRef.current = false;
-    if (nextEvent) {
-      const isOnline = !!nextEvent.onlineUrl;
-      const isOffline = !!nextEvent.location;
+    if (primaryEvent) {
+      const isOnline = !!primaryEvent.onlineUrl;
+      const isOffline = !!primaryEvent.location;
       setFormatChoiceDraft(isOnline ? "online" : isOffline ? "offline" : "undecided");
       setFormatValueDraft(
-        isOnline ? (nextEvent.onlineUrl ?? "") : isOffline ? (nextEvent.location ?? "") : ""
+        isOnline ? (primaryEvent.onlineUrl ?? "") : isOffline ? (primaryEvent.location ?? "") : ""
       );
     } else if (activePendingFormat) {
       setFormatChoiceDraft(activePendingFormat.choice);
@@ -198,11 +200,11 @@ export default function StepDetailPanel({ companyId, selectedStepId }: StepDetai
   async function handleFormatChoiceChange(newChoice: FormatChoice) {
     setFormatChoiceDraft(newChoice);
     setFormatValueDraft("");
-    if (nextEvent) {
-      const values = eventToFormValues(nextEvent);
+    if (primaryEvent) {
+      const values = eventToFormValues(primaryEvent);
       values.onlineUrl = "";
       values.location = "";
-      await updateEvent(nextEvent.id, values);
+      await updateEvent(primaryEvent.id, values);
     } else {
       setPendingFormat({ stepId: step!.id, choice: newChoice, value: "" });
     }
@@ -219,8 +221,8 @@ export default function StepDetailPanel({ companyId, selectedStepId }: StepDetai
       setIsEditingFormat(false);
       return;
     }
-    if (nextEvent) {
-      const values = eventToFormValues(nextEvent);
+    if (primaryEvent) {
+      const values = eventToFormValues(primaryEvent);
       if (formatChoiceDraft === "online") {
         values.onlineUrl = formatValueDraft;
         values.location = "";
@@ -231,7 +233,7 @@ export default function StepDetailPanel({ companyId, selectedStepId }: StepDetai
         values.onlineUrl = "";
         values.location = "";
       }
-      await updateEvent(nextEvent.id, values);
+      await updateEvent(primaryEvent.id, values);
     } else {
       // 일정이 아직 없는 상태에서 형식만 저장하면 실제 일정이 아닌데도 이벤트가 생겨
       // Calendar/Dashboard/Analytics에 가짜 일정으로 노출된다. DB에는 쓰지 않고 로컬
@@ -383,8 +385,8 @@ export default function StepDetailPanel({ companyId, selectedStepId }: StepDetai
               onClick={startEditDateTime}
               className="-mx-1.5 -my-0.5 rounded-stitch-md border border-transparent bg-[#f8f9ff] px-1.5 py-0.5 text-left text-[13px] font-[400] text-stitch-ink transition-colors hover:border-stitch-border"
             >
-              {nextEvent && nextEventAt
-                ? formatDateTime(nextEventAt, nextEvent.endsAt)
+              {primaryEvent && primaryEventAt
+                ? formatDateTime(primaryEventAt, primaryEvent.endsAt)
                 : t("companies.detail.selectionDetail.noDateSet")}
             </button>
           )}
@@ -432,10 +434,10 @@ export default function StepDetailPanel({ companyId, selectedStepId }: StepDetai
               onClick={startEditFormat}
               className="-mx-1.5 -my-0.5 rounded-stitch-md border border-transparent bg-[#f8f9ff] px-1.5 py-0.5 text-left text-[13px] font-[400] text-stitch-ink transition-colors hover:border-stitch-border"
             >
-              {nextEvent
-                ? nextEvent.onlineUrl
+              {primaryEvent
+                ? primaryEvent.onlineUrl
                   ? t("companies.detail.selectionDetail.online")
-                  : (nextEvent.location ?? t("companies.detail.selectionDetail.noDateSet"))
+                  : (primaryEvent.location ?? t("companies.detail.selectionDetail.noDateSet"))
                 : activePendingFormat?.choice === "online"
                   ? t("companies.detail.selectionDetail.online")
                   : activePendingFormat?.choice === "offline"

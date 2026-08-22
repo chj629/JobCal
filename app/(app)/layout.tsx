@@ -17,13 +17,8 @@ import { AiDrawerProvider } from "@/lib/ai-drawer-context";
 
 export default function AppLayout({
   children,
-  modal,
 }: Readonly<{
   children: React.ReactNode;
-  // app/(app)/@modal 병렬 슬롯. /companies/[id]로의 소프트 내비게이션을 이 레이아웃
-  // 아래(모든 페이지 공통) 어디서든 가로채 풀스크린 모달로 띄우기 위한 것으로, 일치하는
-  // 라우트가 없으면 app/(app)/@modal/default.tsx가 null을 렌더링해 평소엔 아무 영향이 없다.
-  modal: React.ReactNode;
 }>) {
   const [aiDrawerOpen, setAiDrawerOpen] = useState(false);
   // aiDrawerOpen은 X 클릭 즉시 false가 되어 Drawer의 닫힘 애니메이션을 시작시켜야 한다.
@@ -59,7 +54,7 @@ export default function AppLayout({
               <CompanyCredentialsProvider>
                 <NextActionsProvider>
                   <ToastProvider>
-                    <AiDrawerProvider value={{ mounted: aiDrawerMounted, open: handleOpenAiDrawer }}>
+                    <AiDrawerProvider value={{ open: handleOpenAiDrawer }}>
                       <div className="flex min-h-screen sm:h-screen sm:overflow-hidden">
                         <Sidebar />
                         <div className="flex min-w-0 flex-1 flex-col sm:min-h-0">
@@ -96,16 +91,6 @@ export default function AppLayout({
                               />
                             )}
                           </main>
-                          {/* app/(app)/@modal 슬롯. CompanyDetailModal 자신이 fixed 포지셔닝으로
-                              <main> 영역만 덮으므로(Header/Sidebar 회피) 여기 위치 자체는
-                              시각적으로 무관하다 — children과 형제로 두어 목록/대시보드 등
-                              아래 페이지가 언마운트되지 않게 하는 것이 핵심이다. @modal은 parallel
-                              route라 이 레이아웃의 직접 자식이 아니어서 prop으로 내려줄 수 없지만,
-                              위에서 감싼 AiDrawerProvider가 이미 이 서브트리 전체를 덮고 있어
-                              CompanyDetailModal도 그 context(mounted)를 그대로 읽을 수 있다 — AI
-                              Drawer가 열려 있는 동안 main과 동일한 가로 스크롤 스펜서 기법을 쓰기
-                              위함(components/companies/CompanyDetailModal.tsx 참고). */}
-                          {modal}
                         </div>
                         {/* Drawer.tsx는 항상 position:fixed라(sm 이상에서도) 이 자리가 실제 flex
                             레이아웃에 관여하지 않는다 — 렌더 위치 자체는 시각적으로 무관하다. */}

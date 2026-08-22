@@ -158,3 +158,24 @@ export function getNextEvent(events: AppEvent[]): AppEvent | null {
 
   return upcoming[0]?.event ?? null;
 }
+
+// StepDetailPanel처럼 "이 전형에 실제로 등록된 일정"을 보여줘야 하는 곳에서 쓴다. getNextEvent와
+// 달리 과거 일정도 대상에 포함한다 — 미래 일정이 있으면 그중 가장 가까운 것을, 없으면 과거
+// 일정 중 가장 최근 것을 반환한다. 날짜가 있는 일정이 하나도 없으면 null.
+export function getRepresentativeEvent(events: AppEvent[]): AppEvent | null {
+  const now = Date.now();
+
+  const dated = events
+    .map((event) => ({ event, at: event.startsAt ?? event.dueAt }))
+    .filter((entry): entry is { event: AppEvent; at: string } => entry.at !== null);
+
+  const future = dated.filter((entry) => new Date(entry.at).getTime() >= now);
+  if (future.length > 0) {
+    future.sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
+    return future[0].event;
+  }
+
+  const past = dated.filter((entry) => new Date(entry.at).getTime() < now);
+  past.sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
+  return past[0]?.event ?? null;
+}
