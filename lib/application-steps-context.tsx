@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { handleSupabaseError } from "@/lib/supabase/errorHandling";
+import { useHandleSupabaseError } from "@/lib/supabase/errorHandling";
 import { useT } from "@/lib/locale-context";
 import {
   rowToApplicationStep,
@@ -27,6 +27,7 @@ interface ApplicationStepsContextValue {
 const ApplicationStepsContext = createContext<ApplicationStepsContextValue | null>(null);
 
 export function ApplicationStepsProvider({ children }: { children: ReactNode }) {
+  const handleSupabaseError = useHandleSupabaseError();
   const t = useT();
   const supabase = useMemo(() => createClient(), []);
   const [steps, setSteps] = useState<ApplicationStep[]>([]);

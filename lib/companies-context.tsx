@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { handleSupabaseError } from "@/lib/supabase/errorHandling";
+import { useHandleSupabaseError } from "@/lib/supabase/errorHandling";
 import {
   rowToCompany,
   companyFormValuesToRow,
@@ -23,6 +23,7 @@ interface CompaniesContextValue {
 const CompaniesContext = createContext<CompaniesContextValue | null>(null);
 
 export function CompaniesProvider({ children }: { children: ReactNode }) {
+  const handleSupabaseError = useHandleSupabaseError();
   const supabase = useMemo(() => createClient(), []);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
@@ -85,6 +86,11 @@ export function CompaniesProvider({ children }: { children: ReactNode }) {
       isMounted = false;
       subscription.unsubscribe();
     };
+    // handleSupabaseError는 이제 locale이 바뀔 때마다 새 함수가 되는데(useHandleSupabaseError),
+    // 이걸 deps에 넣으면 언어 설정 변경(user_metadata.language)마다 이 effect가 재실행돼
+    // 위 onAuthStateChange 필터가 막으려던 "화면이 깜빡이듯 리셋"이 다시 생긴다 — 다른
+    // context 파일들과 동일하게 의도적으로 제외한다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [supabase]);
 
   async function addCompany(values: CompanyFormValues) {

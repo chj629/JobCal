@@ -115,7 +115,9 @@ function PricingPageInner() {
 
   async function handleProCtaClick() {
     if (!userId) {
-      router.push(`/login?next=${encodeURIComponent(pathname)}&checkout=pro`);
+      router.push(
+        `${toPublicPageHref(locale, "/login")}?next=${encodeURIComponent(pathname)}&checkout=pro`
+      );
       return;
     }
     // 클라이언트에 캐시된 plan state만 믿지 않고, Checkout을 열기 직전 한 번 더 최신
@@ -173,7 +175,7 @@ function PricingPageInner() {
 
             <button
               type="button"
-              onClick={() => router.push("/signup")}
+              onClick={() => router.push(toPublicPageHref(locale, "/signup"))}
               className="mt-8 w-full rounded-stitch-2xl border border-neutral-200 bg-white px-6 py-3 text-[14px] font-[400] text-neutral-900 transition-colors hover:border-neutral-300 hover:bg-neutral-50"
             >
               {t("pricing.free.cta")}

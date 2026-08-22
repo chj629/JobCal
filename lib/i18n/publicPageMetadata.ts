@@ -56,3 +56,20 @@ export function buildPublicPageMetadata(options: {
     },
   };
 }
+
+// Auth 5종(로그인/회원가입/비밀번호 찾기/비밀번호 재설정/이메일 인증 완료)용. canonical/
+// hreflang/og·twitter 이미지 로직은 위 buildPublicPageMetadata와 완전히 같지만(그대로
+// 재사용, 복제하지 않음), 검색 노출은 의도적으로 막아야 한다는 점만 다르다 —
+// robots.ts가 이미 크롤링 자체를 차단하지만, 그걸 무시하는 일부 봇이나 직접 링크
+// 공유로 페이지 자체가 열람될 경우에도 색인되지 않도록 페이지 metadata에도 명시한다.
+export function buildAuthPageMetadata(options: {
+  locale: Locale;
+  jaPath: string;
+  titleKey: string;
+  descriptionKey: string;
+}): Metadata {
+  return {
+    ...buildPublicPageMetadata(options),
+    robots: { index: false, follow: false },
+  };
+}

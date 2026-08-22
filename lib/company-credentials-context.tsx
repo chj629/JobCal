@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { handleSupabaseError } from "@/lib/supabase/errorHandling";
+import { useHandleSupabaseError } from "@/lib/supabase/errorHandling";
 import {
   rowToCompanyCredential,
   credentialFormValuesToRow,
@@ -23,6 +23,7 @@ interface CompanyCredentialsContextValue {
 const CompanyCredentialsContext = createContext<CompanyCredentialsContextValue | null>(null);
 
 export function CompanyCredentialsProvider({ children }: { children: ReactNode }) {
+  const handleSupabaseError = useHandleSupabaseError();
   const supabase = useMemo(() => createClient(), []);
   const [credentials, setCredentials] = useState<CompanyCredential[]>([]);
   const [loading, setLoading] = useState(true);

@@ -3,15 +3,15 @@ import { buildAuthPageMetadata } from "@/lib/i18n/publicPageMetadata";
 import SignupPageContent from "@/components/auth/SignupPageContent";
 
 export const metadata = buildAuthPageMetadata({
-  locale: "ja",
+  locale: "ko",
   jaPath: "/signup",
   titleKey: "auth.signup.title",
   descriptionKey: "auth.signup.description",
 });
 
-export default function SignupPage() {
+export default function KoSignupPage() {
   return (
-    <LocaleProvider initialLocale="ja" locked>
+    <LocaleProvider initialLocale="ko" locked>
       <SignupPageContent />
     </LocaleProvider>
   );

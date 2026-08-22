@@ -11,6 +11,11 @@ export async function GET(request: Request) {
   const token_hash = searchParams.get("token_hash");
   const type = searchParams.get("type");
   const next = resolveNextPath(searchParams.get("next"), "/");
+  // app/signup·app/ko/signup(components/auth/SignupPageContent.tsx)이 이메일 인증
+  // 링크에 함께 실어 보낸 값. next와 달리 URL이 아니라 "ja"/"ko" 둘 중 하나로만
+  // 취급한다("ko"가 아니면 전부 ja) — 아래에서 고정된 두 경로 중 하나를 고르는 데만
+  // 쓰이고 그 자체가 redirect 목적지 문자열이 되지 않으므로 open redirect 표면이 아니다.
+  const requestedLocale = searchParams.get("locale") === "ko" ? "ko" : "ja";
 
   if (token_hash && ALLOWED_EMAIL_OTP_TYPES.includes(type as EmailOtpType)) {
     const supabase = await createClient();
@@ -23,18 +28,31 @@ export async function GET(request: Request) {
       if (type === "email") {
         // verifyOtp() 성공 시 세션이 이미 생성되지만, /auth/confirmed는 곧바로 signOut한 뒤
         // 사용자가 직접 로그인하게 한다(아래 참고) — 그래서 여기서 바로 next로 보내지 않고,
-        // next(이미 위에서 resolveNextPath로 검증됨)를 /auth/confirmed에 그대로 넘겨 그
-        // 페이지가 최종적으로 /login?next=...으로 이어가게 한다. next가 없으면(기본값 "/")
-        // 쿼리 자체를 붙이지 않아 기존 동작(그냥 /auth/confirmed)과 완전히 동일하다.
-        const confirmedUrl = new URL("/auth/confirmed", origin);
+        // next(이미 위에서 resolveNextPath로 검증됨)를 /auth/confirmed(또는 가입이
+        // 한국어로 시작됐다면 /ko/auth/confirmed — 고정된 두 경로 중 하나로만 분기, next처럼
+        // 임의 경로를 받지 않는다)에 그대로 넘겨 그 페이지가 최종적으로
+        // /login?next=...(또는 /ko/login?next=...)으로 이어가게 한다. next가 없으면
+        // (기본값 "/") 쿼리 자체를 붙이지 않아 기존 동작과 완전히 동일하다.
+        const confirmedPath = requestedLocale === "ko" ? "/ko/auth/confirmed" : "/auth/confirmed";
+        const confirmedUrl = new URL(confirmedPath, origin);
         if (next !== "/") confirmedUrl.searchParams.set("next", next);
         return NextResponse.redirect(confirmedUrl);
       }
+      // 비밀번호 재설정은 resetPasswordForEmail의 redirectTo(=next, 이미 요청 locale의
+      // /update-password를 가리키도록 구성됨)를 그대로 신뢰해 이동한다 — 별도 locale
+      // 분기가 필요 없다.
       return NextResponse.redirect(`${origin}${next}`);
     }
   }
 
+  // 실패 시에도 원래 시작한 언어로 돌려보낸다. recovery는 next(이미 검증된
+  // /update-password 또는 /ko/update-password)의 접두사로 판단하고, email 확인은 signup이
+  // 보낸 locale 파라미터로 판단한다 — 두 경우 모두 "/forgot-password"·"/login" 중 고정된
+  // 하나를 고르는 데만 쓰여 여기서도 open redirect 표면이 생기지 않는다.
+  const isKoRecovery = type === "recovery" && next.startsWith("/ko/");
   const failureRedirect =
-    type === "recovery" ? "/forgot-password?error=reset_failed" : "/login?error=confirm_failed";
+    type === "recovery"
+      ? `${isKoRecovery ? "/ko" : ""}/forgot-password?error=reset_failed`
+      : `${requestedLocale === "ko" ? "/ko" : ""}/login?error=confirm_failed`;
   return NextResponse.redirect(`${origin}${failureRedirect}`);
 }

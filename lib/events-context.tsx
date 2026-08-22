@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { handleSupabaseError } from "@/lib/supabase/errorHandling";
+import { useHandleSupabaseError } from "@/lib/supabase/errorHandling";
 import {
   rowToEvent,
   eventFormValuesToRow,
@@ -28,6 +28,7 @@ interface EventsContextValue {
 const EventsContext = createContext<EventsContextValue | null>(null);
 
 export function EventsProvider({ children }: { children: ReactNode }) {
+  const handleSupabaseError = useHandleSupabaseError();
   const supabase = useMemo(() => createClient(), []);
   const [events, setEvents] = useState<AppEvent[]>([]);
   const [loading, setLoading] = useState(true);

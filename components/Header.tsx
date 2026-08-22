@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { useT } from "@/lib/locale-context";
+import { useLocale, useT } from "@/lib/locale-context";
+import { toPublicPageHref } from "@/lib/i18n/publicLocalePaths";
 import MaterialIcon from "@/components/ui/MaterialIcon";
 import AiOnboardingHint from "@/components/AiOnboardingHint";
 import { VIDEO_SRC as AI_ONBOARDING_STEP2_VIDEO_SRC } from "@/components/AiOnboardingStep2";
@@ -39,6 +40,7 @@ function getInitials(name: string) {
 // 아바타 클릭 시 열리는 드롭다운으로 옮겨 연결한다(Sidebar.tsx 참고).
 export default function Header({ aiDrawerOpen, onOpenAiDrawer, onStartAiOnboardingStep2 }: HeaderProps) {
   const t = useT();
+  const { locale } = useLocale();
   const router = useRouter();
   const pathname = usePathname();
   const [profile, setProfile] = useState<{ primaryLine: string; email: string | null } | null>(
@@ -202,7 +204,7 @@ export default function Header({ aiDrawerOpen, onOpenAiDrawer, onStartAiOnboardi
   async function handleLogout() {
     const supabase = createClient();
     await supabase.auth.signOut();
-    router.push("/login");
+    router.push(toPublicPageHref(locale, "/login"));
     router.refresh();
   }
 

@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { handleSupabaseError } from "@/lib/supabase/errorHandling";
+import { useHandleSupabaseError } from "@/lib/supabase/errorHandling";
 import {
   rowToCompanyNote,
   noteFormValuesToRow,
@@ -24,6 +24,7 @@ interface CompanyNotesContextValue {
 const CompanyNotesContext = createContext<CompanyNotesContextValue | null>(null);
 
 export function CompanyNotesProvider({ children }: { children: ReactNode }) {
+  const handleSupabaseError = useHandleSupabaseError();
   const supabase = useMemo(() => createClient(), []);
   const [notes, setNotes] = useState<CompanyNote[]>([]);
   const [loading, setLoading] = useState(true);

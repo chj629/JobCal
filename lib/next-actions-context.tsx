@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { handleSupabaseError } from "@/lib/supabase/errorHandling";
+import { useHandleSupabaseError } from "@/lib/supabase/errorHandling";
 import { rowToNextAction, type NextAction, type NextActionRow } from "@/lib/nextActions";
 
 interface NextActionsContextValue {
@@ -19,6 +19,7 @@ interface NextActionsContextValue {
 const NextActionsContext = createContext<NextActionsContextValue | null>(null);
 
 export function NextActionsProvider({ children }: { children: ReactNode }) {
+  const handleSupabaseError = useHandleSupabaseError();
   const supabase = useMemo(() => createClient(), []);
   const [actions, setActions] = useState<NextAction[]>([]);
   const [loading, setLoading] = useState(true);

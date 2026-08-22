@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Globe, Lock, Sparkles, User, type LucideIcon } from "lucide-react";
 import { translate, useLocale, useT } from "@/lib/locale-context";
 import type { Locale } from "@/lib/i18n/messages";
+import { toPublicPageHref } from "@/lib/i18n/publicLocalePaths";
 import { createClient } from "@/lib/supabase/client";
 import {
   getUserSubscriptionSummary,
@@ -357,7 +358,7 @@ export default function SettingsPage() {
       // 별도로 정리해야 한다.
       const supabase = createClient();
       await supabase.auth.signOut();
-      router.push("/login");
+      router.push(toPublicPageHref(locale, "/login"));
       router.refresh();
     } catch {
       showToast(t("settings.account.deleteSection.error"), "error");
@@ -725,21 +726,21 @@ export default function SettingsPage() {
                   </p>
                   <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] leading-[1.5]">
                     <Link
-                      href="/terms"
+                      href={toPublicPageHref(locale, "/terms")}
                       className="text-[var(--color-settings-ink)] underline underline-offset-2 hover:opacity-70"
                     >
                       {t("settings.plan.termsLinkText")}
                     </Link>
                     <span className="text-[var(--color-settings-secondary)]">・</span>
                     <Link
-                      href="/refund-policy"
+                      href={toPublicPageHref(locale, "/refund-policy")}
                       className="text-[var(--color-settings-ink)] underline underline-offset-2 hover:opacity-70"
                     >
                       {t("settings.plan.refundPolicyLinkText")}
                     </Link>
                     <span className="text-[var(--color-settings-secondary)]">・</span>
                     <Link
-                      href="/tokushoho"
+                      href={toPublicPageHref(locale, "/tokushoho")}
                       className="text-[var(--color-settings-ink)] underline underline-offset-2 hover:opacity-70"
                     >
                       {t("settings.plan.tokushohoLinkText")}

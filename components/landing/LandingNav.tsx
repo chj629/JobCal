@@ -32,6 +32,8 @@ export default function LandingNav() {
   const languageHrefs = usePublicPageLanguageHrefs();
   const homeHref = toPublicPageHref(locale, "/");
   const pricingHref = toPublicPageHref(locale, "/pricing");
+  const loginHref = toPublicPageHref(locale, "/login");
+  const signupHref = toPublicPageHref(locale, "/signup");
 
   return (
     <SiteHeader compactOnMobile languageHrefs={languageHrefs} homeHref={homeHref}>
@@ -44,14 +46,14 @@ export default function LandingNav() {
         </Link>
         <button
           type="button"
-          onClick={() => router.push("/login")}
+          onClick={() => router.push(loginHref)}
           className="whitespace-nowrap text-[12px] font-[400] text-neutral-900 transition-colors hover:text-primary-navy sm:text-[13px]"
         >
           {t("landing.nav.login")}
         </button>
         <button
           type="button"
-          onClick={() => router.push("/signup")}
+          onClick={() => router.push(signupHref)}
           className="whitespace-nowrap rounded-stitch-2xl bg-primary-navy px-3 py-1.5 text-[12px] font-[400] text-white shadow-[0_2px_10px_rgba(30,58,138,0.15)] transition-colors hover:bg-[#152c6e] sm:px-5 sm:py-2 sm:text-[13px]"
         >
           {t("landing.nav.getStarted")}

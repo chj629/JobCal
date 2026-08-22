@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useT } from "@/lib/locale-context";
+import { useLocale, useT } from "@/lib/locale-context";
+import { toPublicPageHref } from "@/lib/i18n/publicLocalePaths";
 import MaterialIcon from "@/components/ui/MaterialIcon";
 import LandingHeroDemo, { rampIn } from "@/components/landing/LandingHeroDemo";
 import LandingHeroMobileDemo from "@/components/landing/LandingHeroMobileDemo";
@@ -83,6 +84,7 @@ const SECTION_GRADIENT = [
 export default function LandingHero() {
   const t = useT();
   const router = useRouter();
+  const { locale } = useLocale();
 
   const [smoothProgress, setSmoothProgress] = useState(0);
   const [reducedMotion, setReducedMotion] = useState(
@@ -243,7 +245,7 @@ export default function LandingHero() {
         <div className="mb-10 flex flex-col justify-center gap-3 sm:flex-row">
           <button
             type="button"
-            onClick={() => router.push("/signup")}
+            onClick={() => router.push(toPublicPageHref(locale, "/signup"))}
             className="flex items-center justify-center gap-2 rounded-stitch-2xl bg-primary-navy px-6 py-3 text-[14px] font-[400] text-white shadow-[0_2px_10px_rgba(30,58,138,0.15)] transition-all hover:bg-[#152c6e]"
           >
             {t("landing.hero.getStarted")}
@@ -251,7 +253,7 @@ export default function LandingHero() {
           </button>
           <button
             type="button"
-            onClick={() => router.push("/login")}
+            onClick={() => router.push(toPublicPageHref(locale, "/login"))}
             className="rounded-stitch-2xl border border-neutral-200 bg-white px-6 py-3 text-[14px] font-[400] text-neutral-800 transition-all hover:border-neutral-300 hover:bg-neutral-50"
           >
             {t("landing.hero.login")}

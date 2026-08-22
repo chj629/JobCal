@@ -1,7 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useT } from "@/lib/locale-context";
+import { useLocale, useT } from "@/lib/locale-context";
+import { toPublicPageHref } from "@/lib/i18n/publicLocalePaths";
 import MaterialIcon from "@/components/ui/MaterialIcon";
 
 // 랜딩페이지 전면 리뉴얼(2026-08). 56차: Dashboard/Calendar/Companies showcase로 이미
@@ -12,6 +13,7 @@ import MaterialIcon from "@/components/ui/MaterialIcon";
 export default function LandingCtaBanner() {
   const t = useT();
   const router = useRouter();
+  const { locale } = useLocale();
 
   return (
     <section className="mx-auto mb-12 max-w-4xl border-t border-neutral-100 px-6 py-24 text-center md:px-12">
@@ -24,7 +26,7 @@ export default function LandingCtaBanner() {
 
       <button
         type="button"
-        onClick={() => router.push("/signup")}
+        onClick={() => router.push(toPublicPageHref(locale, "/signup"))}
         className="mx-auto flex items-center justify-center gap-2 rounded-stitch-2xl bg-primary-navy px-8 py-3 text-[15px] font-[400] text-white shadow-[0_2px_10px_rgba(30,58,138,0.15)] transition-all hover:bg-[#152c6e]"
       >
         {t("landing.finalCta.getStarted")}

@@ -86,10 +86,19 @@ export async function updateSession(request: NextRequest) {
   // /dashboard로 보낸다. login/signup과 동일한 이유(이미 로그인된 사용자에게 보일
   // 필요 없는 화면)라 같은 분기에 합쳤다 — app/page.tsx·app/ko/page.tsx(랜딩) 자체는
   // 건드리지 않고, 서버 미들웨어 단계에서 리다이렉트하므로 클라이언트에 랜딩이 잠깐
-  // 그려졌다 넘어가는 flash가 없다.
+  // 그려졌다 넘어가는 flash가 없다. /login·/signup의 /ko 짝(/ko/login, /ko/signup)도
+  // 같은 이유로 동일하게 취급한다 — startsWith("/login")이 "/ko/login"까지 잡아주진
+  // 않아 별도로 나열해야 한다. /forgot-password·/update-password는 로그인 상태에서도
+  // (비밀번호 변경 등으로) 접근할 수 있어야 하므로 기존처럼 이 목록에 넣지 않는다 —
+  // /ko 짝을 추가해도 이 범위를 넓히지 않는다.
   if (
     user &&
-    (pathname === "/" || pathname === "/ko" || pathname.startsWith("/login") || pathname.startsWith("/signup"))
+    (pathname === "/" ||
+      pathname === "/ko" ||
+      pathname.startsWith("/login") ||
+      pathname.startsWith("/signup") ||
+      pathname.startsWith("/ko/login") ||
+      pathname.startsWith("/ko/signup"))
   ) {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";

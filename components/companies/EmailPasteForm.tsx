@@ -3,7 +3,8 @@
 import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
-import { useT } from "@/lib/locale-context";
+import { useLocale, useT } from "@/lib/locale-context";
+import { toPublicPageHref } from "@/lib/i18n/publicLocalePaths";
 import MaterialIcon from "@/components/ui/MaterialIcon";
 import AiOnboardingStep2 from "@/components/AiOnboardingStep2";
 
@@ -54,6 +55,7 @@ export default function EmailPasteForm({
   onOnboardingStep2Dismiss,
 }: EmailPasteFormProps) {
   const t = useT();
+  const { locale } = useLocale();
   const [emailText, setEmailText] = useState("");
   const hasText = emailText.trim().length > 0;
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -125,7 +127,7 @@ export default function EmailPasteForm({
               <p className="mt-1 whitespace-pre-line text-[12px] text-error">{error}</p>
               {isSessionExpired && (
                 <Link
-                  href="/login"
+                  href={toPublicPageHref(locale, "/login")}
                   className="mt-2 inline-block text-[12px] font-[500] text-error underline underline-offset-2 hover:opacity-80"
                 >
                   {t("common.loginAgain")}
