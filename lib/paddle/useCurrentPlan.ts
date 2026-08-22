@@ -37,7 +37,22 @@ export function useCurrentPlan(): UseCurrentPlanResult {
     // 응답하므로(node_modules/@supabase/auth-js의 GoTrueClient.getSession() 구현 확인),
     // 이 한 줄을 먼저 await하는 것만으로 hydration 완료를 보장할 수 있다 — 별도의 전역
     // auth state나 onAuthStateChange 구독을 새로 만들지 않는다.
-    supabase.auth.getSession().then(() => getUserPlan(supabase)).then(setPlan);
+    //
+    // hydration을 기다린 뒤에도 session이 없다면(비로그인 방문자 — 랜딩/ /pricing은
+    // 로그인 없이도 열람 가능) getUserPlan()을 아예 호출하지 않는다. paddle_subscriptions는
+    // authenticated 롤에만 select가 부여돼 있어(0017 마이그레이션) anon 세션으로 조회하면
+    // RLS 이전에 GRANT 단계에서 "permission denied"가 나는데, 이 값은 없다는게 확실하므로
+    // 그 결과를 다시 free로 캐치하나 로컬에서 곧바로 free로 두나 최종 판정은 동일하다
+    // (Production에서 실제로 이 permission denied만 콘솔에 남고 화면/판정에는 영향이
+    // 없었음을 확인) — 불필요한 조회만 건너뛴다. getUserPlan 자체와 그 안의 Pro 판정
+    // 로직은 손대지 않는다.
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) {
+        setPlan("free");
+        return;
+      }
+      return getUserPlan(supabase).then(setPlan);
+    });
   }, []);
 
   return { plan, refetch };
