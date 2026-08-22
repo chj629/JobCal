@@ -11,6 +11,7 @@ import {
 } from "@/lib/applicationSteps";
 import { useEvents } from "@/lib/events-context";
 import { createEmptyEventFormValues, eventToFormValues, getRepresentativeEvent } from "@/lib/events";
+import { formatTimeOfDay } from "@/lib/date";
 import { useT } from "@/lib/locale-context";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import MaterialIcon from "@/components/ui/MaterialIcon";
@@ -22,6 +23,20 @@ interface StepDetailPanelProps {
 }
 
 type FormatChoice = "online" | "offline" | "undecided";
+
+// 온라인 일정의 참가 링크 hostname으로 서비스를 간단히 판별해 라벨을 고른다("Teams リンク" 등).
+// 매칭되지 않거나(URL 형식이 아닌 값 포함) 알 수 없는 서비스면 중립 라벨(default)로 폴백한다.
+function getMeetingLinkKey(url: string): "teams" | "zoom" | "googleMeet" | "default" {
+  try {
+    const hostname = new URL(url).hostname;
+    if (hostname.includes("teams.microsoft.com")) return "teams";
+    if (hostname.includes("zoom.us")) return "zoom";
+    if (hostname.includes("meet.google.com")) return "googleMeet";
+  } catch {
+    // URL 파싱 실패 시 default로 폴백
+  }
+  return "default";
+}
 
 // docs/stitch/메인페이지 5개/jobcal_company_detail_refined_information_ia의 "選考詳細" 섹션.
 // Stitch는 항상 보이는 카드 하나로 "선택된 전형(없으면 현재 전형)"의 상태/일시/형식을
@@ -53,6 +68,12 @@ export default function StepDetailPanel({ companyId, selectedStepId }: StepDetai
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [isEditingDateTime, setIsEditingDateTime] = useState(false);
   const [dateTimeDraft, setDateTimeDraft] = useState("");
+  // 종료시간은 시작 날짜와 조합해 endsAt으로 저장되므로 "HH:MM" 시간만 따로 들고 있는다.
+  // showEndTime은 "종료시간 입력칸을 보여줄지"만 담당 — endTimeDraft가 비어 있어도
+  // showEndTime이 true면 입력칸 자체는 계속 보인다(사용자가 아직 입력 중일 수 있음).
+  const [endTimeDraft, setEndTimeDraft] = useState("");
+  const [showEndTime, setShowEndTime] = useState(false);
+  const [dateTimeError, setDateTimeError] = useState("");
   const [isEditingFormat, setIsEditingFormat] = useState(false);
   const [formatChoiceDraft, setFormatChoiceDraft] = useState<FormatChoice>("undecided");
   const [formatValueDraft, setFormatValueDraft] = useState("");
@@ -68,6 +89,9 @@ export default function StepDetailPanel({ companyId, selectedStepId }: StepDetai
   const skipRenameBlurRef = useRef(false);
   const skipDateTimeBlurRef = useRef(false);
   const skipFormatBlurRef = useRef(false);
+  // ×(종료시간 제거) 클릭 시 그 버튼 자신이 사라지므로, 미리 시작 시간 입력으로 포커스를
+  // 되돌려 "그룹 밖으로 포커스가 나갔다"는 blur 오탐(조기 confirmDateTime 호출)을 막는다.
+  const startDateTimeInputRef = useRef<HTMLInputElement | null>(null);
 
   const companySteps = steps
     .filter((step) => step.companyId === companyId)
@@ -87,6 +111,10 @@ export default function StepDetailPanel({ companyId, selectedStepId }: StepDetai
   const primaryEvent = getRepresentativeEvent(stepEvents);
   const primaryEventAt = primaryEvent ? (primaryEvent.startsAt ?? primaryEvent.dueAt) : null;
   const otherEventsCount = stepEvents.length - (primaryEvent ? 1 : 0);
+  // deadline/result_announcement는 dueAt 하나만 쓰고 endsAt 자체가 없는 타입이라(lib/events.ts
+  // eventFormValuesToRow 참고) 종료시간 UI를 아예 보여주지 않는다. 아직 이벤트가 없는
+  // 전형(primaryEvent === null)은 confirmDateTime이 항상 schedule 타입으로 새로 만들므로 지원한다.
+  const supportsEndTime = !primaryEvent || primaryEvent.eventType === "schedule";
 
   function startRename() {
     skipRenameBlurRef.current = false;
@@ -132,16 +160,26 @@ export default function StepDetailPanel({ companyId, selectedStepId }: StepDetai
     const base = `${date.getFullYear()}年${pad(date.getMonth() + 1)}月${pad(date.getDate())}日 ${pad(date.getHours())}:${pad(date.getMinutes())}`;
     if (!endsAt) return base;
     const end = new Date(endsAt);
-    return `${base}-${pad(end.getHours())}:${pad(end.getMinutes())}`;
+    return `${base}〜${pad(end.getHours())}:${pad(end.getMinutes())}`;
   }
 
   function startEditDateTime() {
     skipDateTimeBlurRef.current = false;
+    setDateTimeError("");
     if (primaryEvent) {
       const values = eventToFormValues(primaryEvent);
       setDateTimeDraft(primaryEvent.eventType === "schedule" ? values.startsAt : values.dueAt);
+      if (primaryEvent.eventType === "schedule" && primaryEvent.endsAt) {
+        setEndTimeDraft(formatTimeOfDay(primaryEvent.endsAt));
+        setShowEndTime(true);
+      } else {
+        setEndTimeDraft("");
+        setShowEndTime(false);
+      }
     } else {
       setDateTimeDraft("");
+      setEndTimeDraft("");
+      setShowEndTime(false);
     }
     setIsEditingDateTime(true);
   }
@@ -156,10 +194,27 @@ export default function StepDetailPanel({ companyId, selectedStepId }: StepDetai
       setIsEditingDateTime(false);
       return;
     }
+    // 종료시간은 시작 "날짜"와 조합해서 만든다 — datetime-local(dateTimeDraft)의 앞 10자리
+    // ("YYYY-MM-DD")에 time 인풋 값("HH:MM")을 이어 붙이면 eventFormValuesToRow가 그대로
+    // 받는 datetime-local 형식이 된다. showEndTime이 꺼져 있거나 시간이 비어 있으면 ""로
+    // 둬서(= endsAt null) 종료시간 없는 상태로 저장한다.
+    const endsAtDraft =
+      supportsEndTime && showEndTime && endTimeDraft
+        ? `${dateTimeDraft.slice(0, 10)}T${endTimeDraft}`
+        : "";
+    if (endsAtDraft && new Date(endsAtDraft).getTime() <= new Date(dateTimeDraft).getTime()) {
+      setDateTimeError(t("companies.events.endsAtBeforeStartsAt"));
+      return;
+    }
+    setDateTimeError("");
     if (primaryEvent) {
       const values = eventToFormValues(primaryEvent);
-      if (primaryEvent.eventType === "schedule") values.startsAt = dateTimeDraft;
-      else values.dueAt = dateTimeDraft;
+      if (primaryEvent.eventType === "schedule") {
+        values.startsAt = dateTimeDraft;
+        values.endsAt = endsAtDraft;
+      } else {
+        values.dueAt = dateTimeDraft;
+      }
       await updateEvent(primaryEvent.id, values);
     } else {
       // 실제 일시가 입력된 지금이 이벤트를 만드는 유일한 시점이다. 그 전에 형식만 먼저
@@ -167,6 +222,7 @@ export default function StepDetailPanel({ companyId, selectedStepId }: StepDetai
       const values = createEmptyEventFormValues("schedule");
       values.title = getStepDisplayName(step!, t);
       values.startsAt = dateTimeDraft;
+      values.endsAt = endsAtDraft;
       if (activePendingFormat?.choice === "online") values.onlineUrl = activePendingFormat.value;
       else if (activePendingFormat?.choice === "offline") values.location = activePendingFormat.value;
       const ok = await addEvent(companyId, step!.id, values);
@@ -361,24 +417,93 @@ export default function StepDetailPanel({ companyId, selectedStepId }: StepDetai
             {t("companies.detail.selectionDetail.datetime")}
           </span>
           {isEditingDateTime ? (
-            <input
-              type="datetime-local"
-              autoFocus
-              value={dateTimeDraft}
-              onChange={(e) => setDateTimeDraft(e.target.value)}
-              onBlur={confirmDateTime}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  e.currentTarget.blur();
-                }
-                if (e.key === "Escape") {
-                  skipDateTimeBlurRef.current = true;
-                  setIsEditingDateTime(false);
-                }
-              }}
-              className="rounded-stitch-md border border-primary-navy bg-white px-2 py-1 text-[13px] text-stitch-ink outline-none"
-            />
+            <div className="flex flex-1 flex-col gap-1">
+              {/* 그룹 blur: 시작/종료 두 필드와 +/× 버튼이 모두 이 컨테이너 안에 있어,
+                  그 사이를 오가는 포커스 이동(relatedTarget이 컨테이너 내부)에서는 저장하지
+                  않고, 포커스가 컨테이너 밖으로 완전히 나갈 때만 confirmDateTime을 부른다. */}
+              <div
+                className="flex flex-wrap items-center gap-2"
+                onBlur={(e) => {
+                  if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
+                    confirmDateTime();
+                  }
+                }}
+              >
+                <input
+                  ref={startDateTimeInputRef}
+                  type="datetime-local"
+                  autoFocus
+                  value={dateTimeDraft}
+                  onChange={(e) => {
+                    setDateTimeDraft(e.target.value);
+                    setDateTimeError("");
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      e.currentTarget.blur();
+                    }
+                    if (e.key === "Escape") {
+                      skipDateTimeBlurRef.current = true;
+                      setIsEditingDateTime(false);
+                    }
+                  }}
+                  className="rounded-stitch-md border border-primary-navy bg-white px-2 py-1 text-[13px] text-stitch-ink outline-none"
+                />
+                {supportsEndTime &&
+                  (showEndTime ? (
+                    <>
+                      <span className="text-[13px] text-secondary">〜</span>
+                      <input
+                        type="time"
+                        value={endTimeDraft}
+                        onChange={(e) => {
+                          setEndTimeDraft(e.target.value);
+                          setDateTimeError("");
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            e.currentTarget.blur();
+                          }
+                          if (e.key === "Escape") {
+                            skipDateTimeBlurRef.current = true;
+                            setIsEditingDateTime(false);
+                          }
+                        }}
+                        className="rounded-stitch-md border border-primary-navy bg-white px-2 py-1 text-[13px] text-stitch-ink outline-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          // 이 버튼 자신이 사라지기 전에 먼저 시작 시간 입력으로 포커스를
+                          // 옮겨둔다 — 그러지 않으면 언마운트가 유발하는 blur의 relatedTarget이
+                          // 컨테이너 밖(null/body)이 되어 그룹이 확정된 것으로 오인, 아직
+                          // 편집 중인데도 조기에 confirmDateTime이 실행된다.
+                          startDateTimeInputRef.current?.focus();
+                          setEndTimeDraft("");
+                          setShowEndTime(false);
+                          setDateTimeError("");
+                        }}
+                        aria-label={t("common.delete")}
+                        className="flex h-6 w-6 items-center justify-center text-secondary transition-colors hover:text-error"
+                      >
+                        <MaterialIcon name="close" size={14} />
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setShowEndTime(true)}
+                      className="inline-flex items-center gap-0.5 text-[12px] font-[400] text-primary-navy hover:underline"
+                    >
+                      <MaterialIcon name="add" size={12} />
+                      {t("companies.detail.selectionDetail.addEndTime")}
+                    </button>
+                  ))}
+              </div>
+              {dateTimeError && <p className="text-[11px] text-error">{dateTimeError}</p>}
+            </div>
           ) : (
             <button
               type="button"
@@ -429,21 +554,40 @@ export default function StepDetailPanel({ companyId, selectedStepId }: StepDetai
               )}
             </div>
           ) : (
-            <button
-              type="button"
-              onClick={startEditFormat}
-              className="-mx-1.5 -my-0.5 rounded-stitch-md border border-transparent bg-[#f8f9ff] px-1.5 py-0.5 text-left text-[13px] font-[400] text-stitch-ink transition-colors hover:border-stitch-border"
-            >
-              {primaryEvent
-                ? primaryEvent.onlineUrl
-                  ? t("companies.detail.selectionDetail.online")
-                  : (primaryEvent.location ?? t("companies.detail.selectionDetail.noDateSet"))
-                : activePendingFormat?.choice === "online"
-                  ? t("companies.detail.selectionDetail.online")
-                  : activePendingFormat?.choice === "offline"
-                    ? activePendingFormat.value || t("companies.detail.selectionDetail.noDateSet")
-                    : t("companies.detail.selectionDetail.noDateSet")}
-            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={startEditFormat}
+                className="-mx-1.5 -my-0.5 rounded-stitch-md border border-transparent bg-[#f8f9ff] px-1.5 py-0.5 text-left text-[13px] font-[400] text-stitch-ink transition-colors hover:border-stitch-border"
+              >
+                {primaryEvent
+                  ? primaryEvent.onlineUrl
+                    ? t("companies.detail.selectionDetail.online")
+                    : (primaryEvent.location ?? t("companies.detail.selectionDetail.noDateSet"))
+                  : activePendingFormat?.choice === "online"
+                    ? t("companies.detail.selectionDetail.online")
+                    : activePendingFormat?.choice === "offline"
+                      ? activePendingFormat.value || t("companies.detail.selectionDetail.noDateSet")
+                      : t("companies.detail.selectionDetail.noDateSet")}
+              </button>
+              {/* 형식 버튼(클릭 시 인라인 편집 진입)과 같은 줄에 별도 링크로 둔다 — <a>를
+                  버튼 안에 중첩하면 안 되고(무효한 HTML), stopPropagation으로 편집 진입 클릭과
+                  분리해야 링크 클릭이 startEditFormat을 함께 트리거하지 않는다. */}
+              {primaryEvent?.onlineUrl && (
+                <a
+                  href={primaryEvent.onlineUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="inline-flex items-center gap-0.5 text-[12px] font-[400] text-primary-navy hover:underline"
+                >
+                  {t(
+                    `companies.detail.selectionDetail.meetingLink.${getMeetingLinkKey(primaryEvent.onlineUrl)}`
+                  )}
+                  <MaterialIcon name="open_in_new" size={13} />
+                </a>
+              )}
+            </div>
           )}
         </div>
 

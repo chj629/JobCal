@@ -794,10 +794,17 @@
       "selectionDetail": {
         "status": "ステータス",
         "datetime": "日時",
+        "addEndTime": "終了時間",
         "format": "形式",
         "noDateSet": "未定",
         "online": "オンライン形式",
         "offline": "対面",
+        "meetingLink": {
+          "teams": "Teams リンク",
+          "zoom": "Zoom リンク",
+          "googleMeet": "Google Meet リンク",
+          "default": "面接リンク"
+        },
         "otherEventsNotice": "他に{count}件の予定があります",
         "waitingStepStatusBlocked": "まだ順番が来ていない選考は合格/不合格に変更できません。",
         "stepNotFound": "選考が見つかりません。更新して再度お試しください。"
@@ -871,6 +878,7 @@
       "titleRequired": "タイトルを入力してください。",
       "startsAtRequired": "開始日時を入力してください。",
       "dueAtRequired": "日時を入力してください。",
+      "endsAtBeforeStartsAt": "終了時間は開始時間より後に設定してください。",
       "deleteConfirm": "「{title}」を削除しますか?",
       "startsAt": "開始日時",
       "endsAt": "終了日時",

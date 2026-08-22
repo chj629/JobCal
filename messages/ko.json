@@ -794,10 +794,17 @@
       "selectionDetail": {
         "status": "상태",
         "datetime": "일시",
+        "addEndTime": "종료 시간",
         "format": "형식",
         "noDateSet": "미정",
         "online": "온라인 형식",
         "offline": "대면",
+        "meetingLink": {
+          "teams": "Teams 링크",
+          "zoom": "Zoom 링크",
+          "googleMeet": "Google Meet 링크",
+          "default": "면접 링크"
+        },
         "otherEventsNotice": "그 외 {count}개 일정이 있습니다",
         "waitingStepStatusBlocked": "아직 순서가 오지 않은 전형은 합격/불합격으로 바꿀 수 없습니다.",
         "stepNotFound": "전형을 찾을 수 없습니다. 새로고침 후 다시 시도해 주세요."
@@ -871,6 +878,7 @@
       "titleRequired": "제목을 입력해 주세요.",
       "startsAtRequired": "시작 일시를 입력해 주세요.",
       "dueAtRequired": "일시를 입력해 주세요.",
+      "endsAtBeforeStartsAt": "종료 시간은 시작 시간보다 뒤로 설정해 주세요.",
       "deleteConfirm": "'{title}'을(를) 삭제하시겠습니까?",
       "startsAt": "시작 일시",
       "endsAt": "종료 일시",
