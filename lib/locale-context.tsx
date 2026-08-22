@@ -14,6 +14,12 @@ type TranslateVars = Record<string, string | number>;
 
 interface LocaleContextValue {
   locale: Locale;
+  // 현재 로그인 사용자 기준으로 locale 초기화(localStorage 확인 + user_metadata.language
+  // 조회)가 끝났는지. false인 동안의 locale은 기본값("ja")이거나 localStorage의 임시값일
+  // 뿐 아직 확정이 아니므로, 온보딩처럼 "처음 딱 한 번만 보여줘야 하는" 화면은 이 값이
+  // true가 되기 전에는 렌더링을 시작하면 안 된다(components/Header.tsx 참고). locked
+  // Provider는 애초에 기다릴 비동기 확정이 없어 처음부터 true다.
+  ready: boolean;
   setLocale: (locale: Locale) => void;
   t: (key: string, vars?: TranslateVars) => string;
 }
@@ -59,6 +65,10 @@ export function LocaleProvider({ children, initialLocale = "ja", locked = false 
   // 시작하고(기본값 "ja", 지금까지와 동일), 실제 저장된 값은 마운트 이후에만 반영해
   // hydration mismatch를 피한다.
   const [locale, setLocaleState] = useState<Locale>(initialLocale);
+  // locked Provider(랜딩/인증 등 URL이 곧 언어인 트리)는 localStorage/user_metadata를
+  // 아예 읽지 않으므로 기다릴 것 없이 처음부터 ready다. 일반 Provider는 아래 두 확인이
+  // 모두 끝나야(특히 user_metadata 조회는 네트워크 왕복) ready가 true로 바뀐다.
+  const [ready, setReady] = useState(locked);
 
   useEffect(() => {
     if (!locked) return;
@@ -97,6 +107,9 @@ export function LocaleProvider({ children, initialLocale = "ja", locked = false 
         setLocaleState(savedLocale);
         window.localStorage.setItem(LOCALE_STORAGE_KEY, savedLocale);
       }
+      // 사용자가 없거나 user_metadata에 language가 없어도, 확인 자체는 끝났으므로 ready로
+      // 넘어간다 — 이 시점 이후의 locale이 이번 로그인 사용자 기준 최종값이다.
+      setReady(true);
     });
   }, [locked]);
 
@@ -129,7 +142,9 @@ export function LocaleProvider({ children, initialLocale = "ja", locked = false 
     [locale]
   );
 
-  return <LocaleContext.Provider value={{ locale, setLocale, t }}>{children}</LocaleContext.Provider>;
+  return (
+    <LocaleContext.Provider value={{ locale, ready, setLocale, t }}>{children}</LocaleContext.Provider>
+  );
 }
 
 export function useLocale() {
@@ -137,7 +152,7 @@ export function useLocale() {
   if (!context) {
     throw new Error("useLocale must be used within a LocaleProvider");
   }
-  return { locale: context.locale, setLocale: context.setLocale };
+  return { locale: context.locale, ready: context.ready, setLocale: context.setLocale };
 }
 
 export function useT() {

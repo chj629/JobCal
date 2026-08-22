@@ -10,22 +10,6 @@ function resolveOAuthLocale(searchParams: URLSearchParams): "ja" | "ko" {
   return searchParams.get("locale") === "ko" ? "ko" : "ja";
 }
 
-// Google로 처음 가입하는 사용자인지 판단한다. Supabase JS SDK에는 "신규 가입"을 바로
-// 알려주는 필드가 없어(email/password의 identities.length===0 트릭과 달리 OAuth는
-// 애초에 "이미 있으면 로그인, 없으면 가입"이 한 동작이라 그 신호 자체가 없다), created_at과
-// last_sign_in_at을 비교한다 — OAuth는 신규 가입과 최초 로그인이 동시에 일어나므로 두
-// 값이 사실상 같은 순간에 기록된다. 반대로 "이미 있던 사용자"는 last_sign_in_at이 이전
-// 로그인 때 이미 갱신돼 있어 created_at보다 항상 뒤(오차 범위보다 훨씬 큰 차이)이므로,
-// 이 비교가 기존 사용자를 신규로 잘못 판단할 방법은 구조적으로 없다 — 반대 방향(신규
-// 사용자를 놓치는 것)으로만 실패할 수 있고, 그 경우 그냥 language를 안 쓰는 것뿐이라
-// 안전하다.
-function isLikelyNewOAuthUser(user: { created_at: string; last_sign_in_at?: string | null }): boolean {
-  if (!user.last_sign_in_at) return false;
-  const createdAt = new Date(user.created_at).getTime();
-  const lastSignInAt = new Date(user.last_sign_in_at).getTime();
-  return Math.abs(lastSignInAt - createdAt) < 5000;
-}
-
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
@@ -36,10 +20,13 @@ export async function GET(request: Request) {
     const supabase = await createClient();
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
-      // 신규 가입이 확실하고(위 isLikelyNewOAuthUser) 아직 language가 없을 때만 기록한다
-      // — 이미 값이 있으면(기존 계정 로그인) 절대 덮어쓰지 않는다. 이 호출이 실패해도
-      // 로그인 자체는 이미 성공했으므로 흐름을 막지 않는다(로그만 남김).
-      if (!data.user.user_metadata?.language && isLikelyNewOAuthUser(data.user)) {
+      // "신규 가입인지"를 created_at/last_sign_in_at 시간차로 추측하지 않는다 — 이 계정에
+      // language가 아직 없을 때만 기록한다. 신규 가입이든, 예전에 language 없이 가입해
+      // 아직 한 번도 저장된 적 없는 기존 계정이든 동일하게 취급한다(둘 다 "아직 확정된
+      // 언어가 없다"는 점은 같다). 이미 값이 있으면(다른 화면에서 로그인) 절대 덮어쓰지
+      // 않는다. 이 호출이 실패해도 로그인 자체는 이미 성공했으므로 흐름을 막지 않는다(로그만
+      // 남김).
+      if (!data.user.user_metadata?.language) {
         const { error: updateError } = await supabase.auth.updateUser({ data: { language: locale } });
         if (updateError && process.env.NODE_ENV === "development") {
           console.error("[auth/callback] language metadata 저장 실패:", {

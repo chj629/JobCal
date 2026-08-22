@@ -40,7 +40,7 @@ function getInitials(name: string) {
 // 아바타 클릭 시 열리는 드롭다운으로 옮겨 연결한다(Sidebar.tsx 참고).
 export default function Header({ aiDrawerOpen, onOpenAiDrawer, onStartAiOnboardingStep2 }: HeaderProps) {
   const t = useT();
-  const { locale } = useLocale();
+  const { locale, ready: localeReady } = useLocale();
   const router = useRouter();
   const pathname = usePathname();
   const [profile, setProfile] = useState<{ primaryLine: string; email: string | null } | null>(
@@ -106,15 +106,21 @@ export default function Header({ aiDrawerOpen, onOpenAiDrawer, onStartAiOnboardi
   // "신규 사용자가 처음 Dashboard에 진입했을 때만" — Header는 (app) 레이아웃
   // 전체에서 공유되므로, /dashboard일 때만 자동 표시 여부를 확인한다. 이미 본
   // 사용자는 user_metadata에 플래그가 저장되어 있어 다시 뜨지 않는다.
+  // localeReady를 기다리는 이유: 이 effect는 자기만의 getUser() 호출로 온보딩 표시
+  // 여부만 판단하고, LocaleProvider의 user_metadata.language 확정은 별개의 독립적인
+  // getUser() 호출이라 어느 쪽이 먼저 끝날지 보장이 없다. localeReady=false인 동안 먼저
+  // 표시해버리면 AiOnboardingHint가 아직 확정 전인 locale(기본값 "ja" 또는 localStorage
+  // 잔재)로 렌더링될 수 있다 — locale이 이번 로그인 사용자 기준으로 확정된 뒤에만 이
+  // effect가 실행되도록 dependency에도 localeReady를 넣는다.
   useEffect(() => {
-    if (pathname !== "/dashboard" || aiDrawerOpen) return;
+    if (pathname !== "/dashboard" || aiDrawerOpen || !localeReady) return;
 
     const supabase = createClient();
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user || user.user_metadata?.[AI_ONBOARDING_SEEN_KEY]) return;
       setShowAiOnboarding(true);
     });
-  }, [pathname, aiDrawerOpen]);
+  }, [pathname, aiDrawerOpen, localeReady]);
 
   // Step 1 hint가 뜨는 시점에 Step 2 영상을 미리 preload해둔다 — CTA를 누르고 실제로
   // Drawer가 열려 영상이 재생되기까지는 수 초의 여유가 있어, 그 사이 네트워크로 받아두면
