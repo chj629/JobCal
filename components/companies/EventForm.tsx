@@ -1,7 +1,14 @@
 "use client";
 
-import { useState, type FormEvent, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from "react";
-import { EVENT_TYPES, type EventFormValues, type EventType } from "@/lib/events";
+import { useRef, useState, type FormEvent, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from "react";
+import {
+  EVENT_TYPES,
+  applyExplicitEventFormat,
+  deriveEventFormat,
+  type EventFormat,
+  type EventFormValues,
+  type EventType,
+} from "@/lib/events";
 import { useT } from "@/lib/locale-context";
 import Modal from "@/components/ui/Modal";
 import MaterialIcon from "@/components/ui/MaterialIcon";
@@ -81,6 +88,17 @@ const EVENT_TYPE_LABEL_KEYS: Record<EventType, string> = {
 export default function EventForm({ title, initialValues, onCancel, onSubmit }: EventFormProps) {
   const t = useT();
   const [values, setValues] = useState<EventFormValues>(initialValues);
+  // 형식(온라인/대면/미정)은 location/online_url 두 컬럼에서 파생한 표시값이다 — 열었을
+  // 때는 StepDetailPanel/EmailAnalysisReview와 같은 lib/events.ts의 deriveEventFormat으로
+  // 온라인 우선 규칙을 그대로 따른다(둘 다 값이 있는 레거시·AI 추출 데이터도 이 시점엔
+  // 아무 것도 지우지 않는다).
+  const [formatChoice, setFormatChoice] = useState<EventFormat>(() => deriveEventFormat(initialValues));
+  // 형식 select를 실제로 바꾸거나 지금 보이는 값 입력칸을 직접 편집했을 때만 true가 된다.
+  // 폼을 열어 다른 필드만 고치고 저장(제출)한 경우에는 이 값이 false로 남아, submit
+  // 시점에도 location/online_url을 단일 형식 규칙으로 정리하지 않고 원래 값 그대로
+  // 제출한다 — "형식을 명시적으로 확정했을 때만" 반대쪽을 지운다는 원칙을 지킨다. 취소는
+  // onSubmit 자체를 호출하지 않으므로(requestClose → onCancel) 따로 다룰 필요가 없다.
+  const formatTouchedRef = useRef(false);
   const [error, setError] = useState("");
   // 저장 요청이 진행 중일 때 버튼을 비활성화해 더블클릭으로 같은 요청이 중복 실행되는
   // 것을 막는다. onSubmit이 끝나면(성공/실패 상관없이) 다시 눌러볼 수 있게 되돌린다.
@@ -91,6 +109,11 @@ export default function EventForm({ title, initialValues, onCancel, onSubmit }: 
   const [closing, setClosing] = useState(false);
   function requestClose() {
     setClosing(true);
+  }
+
+  function handleFormatChoiceChange(next: EventFormat) {
+    formatTouchedRef.current = true;
+    setFormatChoice(next);
   }
 
   async function handleSubmit(event: FormEvent) {
@@ -113,7 +136,16 @@ export default function EventForm({ title, initialValues, onCancel, onSubmit }: 
     }
     setIsSaving(true);
     try {
-      await onSubmit(values);
+      // 형식을 실제로 만졌을 때만 단일 형식 규칙(선택한 필드만 남기고 반대쪽 삭제)을
+      // 적용한다 — 안 만졌으면 values(둘 다 원래 값 그대로)를 그대로 제출한다.
+      const submitValues = formatTouchedRef.current
+        ? applyExplicitEventFormat(
+            values,
+            formatChoice,
+            formatChoice === "online" ? values.onlineUrl : formatChoice === "offline" ? values.location : ""
+          )
+        : values;
+      await onSubmit(submitValues);
     } finally {
       setIsSaving(false);
     }
@@ -208,38 +240,63 @@ export default function EventForm({ title, initialValues, onCancel, onSubmit }: 
                 />
               </FormField>
             </div>
-            <FormField
-              label={
-                <>
-                  {t("companies.events.location")}{" "}
-                  <span className="text-secondary">{t("common.optional")}</span>
-                </>
-              }
-              htmlFor="event-form-location"
-            >
-              <TextField
-                id="event-form-location"
-                type="text"
-                value={values.location}
-                onChange={(e) => setValues({ ...values, location: e.target.value })}
-              />
+            {/* 형식(온라인/대면/미정)은 location/online_url 두 컬럼에서 파생한 단일 선택지다
+                (StepDetailPanel/EmailAnalysisReview와 동일한 lib/events.ts 헬퍼 공유) — 선택에
+                따라 그에 맞는 입력칸 하나만 보여준다. 실제로 반대쪽을 지우는 시점은 여기가
+                아니라 handleSubmit(형식을 만졌을 때만)이다. */}
+            <FormField label={t("companies.detail.selectionDetail.format")} htmlFor="event-form-format">
+              <SelectField
+                id="event-form-format"
+                value={formatChoice}
+                onChange={(e) => handleFormatChoiceChange(e.target.value as EventFormat)}
+              >
+                <option value="online">{t("companies.detail.selectionDetail.online")}</option>
+                <option value="offline">{t("companies.detail.selectionDetail.offline")}</option>
+                <option value="undecided">{t("companies.detail.selectionDetail.noDateSet")}</option>
+              </SelectField>
             </FormField>
-            <FormField
-              label={
-                <>
-                  {t("companies.events.onlineLink")}{" "}
-                  <span className="text-secondary">{t("common.optional")}</span>
-                </>
-              }
-              htmlFor="event-form-onlineUrl"
-            >
-              <TextField
-                id="event-form-onlineUrl"
-                type="text"
-                value={values.onlineUrl}
-                onChange={(e) => setValues({ ...values, onlineUrl: e.target.value })}
-              />
-            </FormField>
+            {formatChoice === "online" && (
+              <FormField
+                label={
+                  <>
+                    {t("companies.events.onlineLink")}{" "}
+                    <span className="text-secondary">{t("common.optional")}</span>
+                  </>
+                }
+                htmlFor="event-form-onlineUrl"
+              >
+                <TextField
+                  id="event-form-onlineUrl"
+                  type="text"
+                  value={values.onlineUrl}
+                  onChange={(e) => {
+                    formatTouchedRef.current = true;
+                    setValues({ ...values, onlineUrl: e.target.value });
+                  }}
+                />
+              </FormField>
+            )}
+            {formatChoice === "offline" && (
+              <FormField
+                label={
+                  <>
+                    {t("companies.events.location")}{" "}
+                    <span className="text-secondary">{t("common.optional")}</span>
+                  </>
+                }
+                htmlFor="event-form-location"
+              >
+                <TextField
+                  id="event-form-location"
+                  type="text"
+                  value={values.location}
+                  onChange={(e) => {
+                    formatTouchedRef.current = true;
+                    setValues({ ...values, location: e.target.value });
+                  }}
+                />
+              </FormField>
+            )}
           </>
         )}
 

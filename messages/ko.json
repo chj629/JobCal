@@ -808,7 +808,7 @@
           "teams": "Teams 링크",
           "zoom": "Zoom 링크",
           "googleMeet": "Google Meet 링크",
-          "default": "면접 링크"
+          "default": "링크"
         },
         "otherEventsNotice": "그 외 {count}개 일정이 있습니다",
         "waitingStepStatusBlocked": "아직 순서가 오지 않은 전형은 합격/불합격으로 바꿀 수 없습니다.",

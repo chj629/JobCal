@@ -25,8 +25,11 @@ import {
 } from "@/lib/applicationSteps";
 import {
   EVENT_TYPES,
+  applyExplicitEventFormat,
   createEmptyEventFormValues,
+  deriveEventFormat,
   isoToDatetimeLocal,
+  type EventFormat,
   type EventFormValues,
   type EventType,
 } from "@/lib/events";
@@ -160,7 +163,12 @@ export default function EmailAnalysisReview({
   const [resultOption, setResultOption] = useState<(typeof RESULT_OPTION_KEYS)[number]>(
     analysis.resultOption
   );
-  const [formatOption, setFormatOption] = useState<(typeof FORMAT_OPTION_KEYS)[number]>("online");
+  // AI가 뽑아낸 첫 일정의 location/online_url로부터 초기 표시값만 파생한다(온라인 우선,
+  // lib/events.ts의 deriveEventFormat과 StepDetailPanel이 공유하는 규칙) — 이 시점엔 아직
+  // 아무 것도 저장하지 않으므로 AI가 둘 다 추출했어도 그대로 보존된다.
+  const [formatOption, setFormatOption] = useState<EventFormat>(() =>
+    events.length === 1 ? deriveEventFormat(events[0]) : "undecided"
+  );
 
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -210,14 +218,18 @@ export default function EmailAnalysisReview({
 
   // 形式: events.location/online_url로 이미 저장 가능하지만, 이 선택지는 화면 전체에 1개뿐이라
   // 일정이 여러 개면 어느 일정에 적용할지 정할 수 없다. 일정이 정확히 1개일 때만, 선택한
-  // 형식에 맞지 않는 반대쪽 필드(온라인 선택 시 場所, 대면 선택 시 URL)를 비워
-  // 실제 저장되는 데이터가 선택값과 일치하게 한다. 일정이 0개나 2개 이상이면 아무 것도
-  // 바꾸지 않는다(어느 일정을 바꿔야 할지 알 수 없으므로).
-  function handleFormatChange(next: (typeof FORMAT_OPTION_KEYS)[number]) {
+  // 형식에 해당하는 필드는 지금 값 그대로 유지하고 반대쪽만 비운다 — StepDetailPanel과
+  // 같은 lib/events.ts의 applyExplicitEventFormat을 그대로 써서 두 화면의 규칙이 어긋나지
+  // 않게 한다. 이 select의 onChange 자체가 이미 사용자의 명시적 선택이므로(같은 값으로는
+  // 브라우저가 onChange를 쏘지 않는다) StepDetailPanel처럼 "만졌는지" 여부를 따로 추적할
+  // 필요가 없다. 일정이 0개나 2개 이상이면 아무 것도 바꾸지 않는다(어느 일정을 바꿔야
+  // 할지 알 수 없으므로) — 이 경우 원문 그대로(location/online_url 둘 다) 보존된다.
+  function handleFormatChange(next: EventFormat) {
     setFormatOption(next);
     if (events.length !== 1) return;
-    if (next === "online") updateEvent(0, { location: "" });
-    else if (next === "offline") updateEvent(0, { onlineUrl: "" });
+    const current = events[0];
+    const fieldValue = next === "online" ? current.onlineUrl : next === "offline" ? current.location : "";
+    updateEvent(0, applyExplicitEventFormat(current, next, fieldValue));
   }
 
   function removeContact(index: number) {

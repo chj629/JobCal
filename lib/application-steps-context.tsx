@@ -183,8 +183,26 @@ export function ApplicationStepsProvider({ children }: { children: ReactNode }) 
     return created;
   }
 
+  // 삭제 대상이 in_progress였다면 그 자리를 대신할 전형이 하나도 없어진다 — getCurrentStep은
+  // in_progress/failed가 전혀 없고 아직 passed도 아닌 전형만 남으면 null을 반환하도록
+  // 고쳐졌으므로(예전처럼 그중 마지막 전형을 진행 중인 것처럼 잘못 표시하지 않는다), 삭제
+  // 자체가 뒤쪽 waiting을 승격해 이 상태를 만들지 않게 한다. updateStepStatus의 "in_progress
+  // → passed" 승격과 정확히 같은 규칙(step_order가 더 크면서 step_status가 waiting인 것 중
+  // 가장 가까운 것 하나)을 그대로 쓴다. 대상이 waiting/passed/failed였으면 다른 전형은
+  // 전혀 건드리지 않는다 — 기업당 in_progress는 항상 최대 1개라는 불변식이 그대로 유지된다.
   async function deleteStep(id: string) {
     if (!userId) return false;
+
+    const { data: targetRow, error: targetError } = await supabase
+      .from("application_steps")
+      .select("company_id, step_order, step_status")
+      .eq("id", id)
+      .single();
+
+    if (targetError || !targetRow) {
+      await handleSupabaseError(targetError?.message ?? t("companies.detail.selectionDetail.stepNotFound"), setError);
+      return false;
+    }
 
     const { error: deleteError } = await supabase.from("application_steps").delete().eq("id", id);
 
@@ -193,8 +211,43 @@ export function ApplicationStepsProvider({ children }: { children: ReactNode }) 
       return false;
     }
 
+    let promotedId: string | null = null;
+    if (targetRow.step_status === "in_progress") {
+      const { data: nextWaitingRows, error: nextWaitingError } = await supabase
+        .from("application_steps")
+        .select("id")
+        .eq("company_id", targetRow.company_id)
+        .gt("step_order", targetRow.step_order as number)
+        .eq("step_status", "waiting")
+        .order("step_order", { ascending: true })
+        .limit(1);
+
+      if (nextWaitingError) {
+        await handleSupabaseError(nextWaitingError.message, setError);
+        return false;
+      }
+
+      promotedId = nextWaitingRows?.[0]?.id ?? null;
+
+      if (promotedId) {
+        const { error: promoteError } = await supabase
+          .from("application_steps")
+          .update({ step_status: "in_progress" })
+          .eq("id", promotedId);
+
+        if (promoteError) {
+          await handleSupabaseError(promoteError.message, setError);
+          return false;
+        }
+      }
+    }
+
     setError(null);
-    setSteps((prev) => prev.filter((step) => step.id !== id));
+    setSteps((prev) =>
+      prev
+        .filter((step) => step.id !== id)
+        .map((step) => (step.id === promotedId ? { ...step, stepStatus: "in_progress" } : step))
+    );
     return true;
   }
 

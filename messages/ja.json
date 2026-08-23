@@ -808,7 +808,7 @@
           "teams": "Teams リンク",
           "zoom": "Zoom リンク",
           "googleMeet": "Google Meet リンク",
-          "default": "面接リンク"
+          "default": "リンク"
         },
         "otherEventsNotice": "他に{count}件の予定があります",
         "waitingStepStatusBlocked": "まだ順番が来ていない選考は合格/不合格に変更できません。",

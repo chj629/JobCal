@@ -123,7 +123,14 @@ export function matchDefaultStepKey(candidateText: string): DefaultStepKey | nul
 // - in_progress가 있으면 그 전형이 현재 전형이다.
 // - in_progress가 없고 failed가 있으면(뒤 단계로 넘어가지 않고 멈춘 상태) 그 failed 전형이
 //   현재 전형이다.
-// - 둘 다 없으면(전부 passed) 가장 마지막 전형을 현재 전형으로 표시한다. 전형이 없으면 null.
+// - 나머지 전형이 전부 passed면(정상 종료) 가장 마지막 전형을 현재 전형으로 표시한다.
+// - in_progress도 failed도 없는데 아직 passed가 아닌(=waiting인) 전형이 하나라도 남아있으면
+//   null을 반환한다 — 예전엔 이 경우도 "가장 마지막 전형"을 현재 전형으로 잘못 반환해서,
+//   한 번도 승격된 적 없는 waiting 전형(전형 추가로 새로 생겼거나, in_progress였던 전형이
+//   삭제된 뒤 아직 아무것도 승격되지 않은 경우)이 StepTimeline에 "진행 중"인 것처럼(파란
+//   원으로) 표시되는 버그가 있었다. null은 "지금 진행 중이라고 부를 만한 전형이 없다"는
+//   뜻이므로, 호출부는 이 경우 무언가를 진행 중처럼 표시해서는 안 된다.
+// 전형이 없으면(steps.length === 0) 당연히 null.
 // stepOrder/stepStatus만 있으면 계산할 수 있어 제네릭으로 뒀다 — application-steps-context의
 // updateStepStatus가 "미래 waiting" 판정에 Supabase에서 막 조회한 snake_case 행을 그대로
 // (필드명만 매핑해) 넘겨 StepDetailPanel의 isFutureWaitingStep과 완전히 같은 함수를 쓴다.
@@ -132,9 +139,13 @@ export function getCurrentStep<T extends Pick<ApplicationStep, "stepOrder" | "st
 ): T | null {
   if (steps.length === 0) return null;
   const sorted = [...steps].sort((a, b) => a.stepOrder - b.stepOrder);
-  return (
-    sorted.find((step) => step.stepStatus === "in_progress") ??
-    sorted.find((step) => step.stepStatus === "failed") ??
-    sorted[sorted.length - 1]
-  );
+
+  const inProgress = sorted.find((step) => step.stepStatus === "in_progress");
+  if (inProgress) return inProgress;
+
+  const failed = sorted.find((step) => step.stepStatus === "failed");
+  if (failed) return failed;
+
+  const allPassed = sorted.every((step) => step.stepStatus === "passed");
+  return allPassed ? sorted[sorted.length - 1] : null;
 }

@@ -10,7 +10,14 @@ import {
   type StepStatus,
 } from "@/lib/applicationSteps";
 import { useEvents } from "@/lib/events-context";
-import { createEmptyEventFormValues, eventToFormValues, getRepresentativeEvent } from "@/lib/events";
+import {
+  applyExplicitEventFormat,
+  createEmptyEventFormValues,
+  deriveEventFormat,
+  eventToFormValues,
+  getRepresentativeEvent,
+  type EventFormat,
+} from "@/lib/events";
 import { formatTimeOfDay } from "@/lib/date";
 import { useT } from "@/lib/locale-context";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
@@ -21,8 +28,6 @@ interface StepDetailPanelProps {
   selectedStepId: string | null;
   onClose: () => void;
 }
-
-type FormatChoice = "online" | "offline" | "undecided";
 
 // 온라인 일정의 참가 링크 hostname으로 서비스를 간단히 판별해 라벨을 고른다("Teams リンク" 등).
 // 매칭되지 않거나(URL 형식이 아닌 값 포함) 알 수 없는 서비스면 중립 라벨(default)로 폴백한다.
@@ -75,20 +80,26 @@ export default function StepDetailPanel({ companyId, selectedStepId }: StepDetai
   const [showEndTime, setShowEndTime] = useState(false);
   const [dateTimeError, setDateTimeError] = useState("");
   const [isEditingFormat, setIsEditingFormat] = useState(false);
-  const [formatChoiceDraft, setFormatChoiceDraft] = useState<FormatChoice>("undecided");
+  const [formatChoiceDraft, setFormatChoiceDraft] = useState<EventFormat>("undecided");
   const [formatValueDraft, setFormatValueDraft] = useState("");
   // primaryEvent가 없는 상태에서 형식만 먼저 저장했을 때만 채워진다 — DB에는 아직 아무것도
   // 쓰지 않고, 일시를 입력해 이벤트가 만들어지는 순간 함께 반영한 뒤 비운다. stepId를
   // 함께 저장해두고 읽을 때 현재 선택된 전형과 다르면 무시한다 — 전형을 바꿔도 이전
   // 전형의 임시 값이 새 전형에 잘못 노출되지 않는다(effect로 초기화할 필요가 없다).
   const [pendingFormat, setPendingFormat] = useState<
-    { stepId: string; choice: FormatChoice; value: string } | null
+    { stepId: string; choice: EventFormat; value: string } | null
   >(null);
   // Escape로 닫을 때 언마운트가 유발하는 blur가 각 confirm 함수를 한 번 더 부르지 않도록 막는
   // 표시. 필드별로 독립적인 편집 상태라 각각 별도 ref로 둔다.
   const skipRenameBlurRef = useRef(false);
   const skipDateTimeBlurRef = useRef(false);
   const skipFormatBlurRef = useRef(false);
+  // confirmFormat이 blur로 항상 호출되므로(값 입력칸이 autoFocus라 열자마자 포커스를 받아,
+  // 아무 것도 안 바꾸고 다른 곳을 클릭해도 blur가 뜬다), "정말 사용자가 형식을 바꿨는지"를
+  // 별도로 기록해둔다. select를 바꾸거나 값 입력칸을 직접 편집했을 때만 true가 되고,
+  // startEditFormat이 열릴 때마다 초기화된다. false인 채로 confirmFormat이 실행되면
+  // location/online_url 어느 쪽도 저장하지 않고 그대로 둔다(단순 열기/닫기는 변경이 아니다).
+  const formatTouchedRef = useRef(false);
   // ×(종료시간 제거) 클릭 시 그 버튼 자신이 사라지므로, 미리 시작 시간 입력으로 포커스를
   // 되돌려 "그룹 밖으로 포커스가 나갔다"는 blur 오탐(조기 confirmDateTime 호출)을 막는다.
   const startDateTimeInputRef = useRef<HTMLInputElement | null>(null);
@@ -96,8 +107,14 @@ export default function StepDetailPanel({ companyId, selectedStepId }: StepDetai
   const companySteps = steps
     .filter((step) => step.companyId === companyId)
     .sort((a, b) => a.stepOrder - b.stepOrder);
+  // currentStep은 "지금 진행 중이라고 부를 만한 전형"만 가리킨다(getCurrentStep 참고) —
+  // in_progress/failed가 전혀 없고 아직 passed도 아닌 waiting 전형만 남아있으면 null이다.
+  // 이 null은 isFutureWaitingStep 계산에 그대로 써야 정확하므로 별도 변수로 유지하고,
+  // 패널에 "무엇을 보여줄지"만 companySteps의 마지막 전형으로 한 번 더 폴백한다 — 그래야
+  // 선택된 전형이 없을 때 currentStep이 null이라고 패널 전체가 비어버리지 않는다.
   const currentStep = getCurrentStep(companySteps);
-  const step = companySteps.find((s) => s.id === selectedStepId) ?? currentStep;
+  const displayFallbackStep = currentStep ?? companySteps[companySteps.length - 1] ?? null;
+  const step = companySteps.find((s) => s.id === selectedStepId) ?? displayFallbackStep;
 
   if (!step) return null;
 
@@ -238,15 +255,22 @@ export default function StepDetailPanel({ companyId, selectedStepId }: StepDetai
     setIsEditingDateTime(false);
   }
 
+  // events.location과 events.online_url은 DB상 서로 독립된 컬럼이라 둘 다 값을 가질 수
+  // 있다(AI 메일 분석이 이메일 원문에서 장소·온라인 링크를 둘 다 추출하는 경우 등) —
+  // 하지만 제품 결정상 사용자가 이 패널에서 형식을 "명시적으로" 확정하는 순간에는 항상
+  // 온라인/대면/미정 중 하나만 남는다. lib/events.ts의 deriveEventFormat(표시 파생)과
+  // applyExplicitEventFormat(확정 시 반대쪽 정리)을 EmailAnalysisReview의 형식 select와
+  // 공유해 두 화면의 규칙이 어긋나지 않게 한다. 반대로 형식 편집을 열었다 아무 것도
+  // 바꾸지 않고 닫는 것은 확정이 아니므로 둘 다 그대로 보존해야 한다 — formatTouchedRef가
+  // "select를 바꿨거나 값 입력칸을 직접 고쳤는지"를 표시해 이 둘을 구분한다.
   function startEditFormat() {
     skipFormatBlurRef.current = false;
+    formatTouchedRef.current = false;
     if (primaryEvent) {
-      const isOnline = !!primaryEvent.onlineUrl;
-      const isOffline = !!primaryEvent.location;
-      setFormatChoiceDraft(isOnline ? "online" : isOffline ? "offline" : "undecided");
-      setFormatValueDraft(
-        isOnline ? (primaryEvent.onlineUrl ?? "") : isOffline ? (primaryEvent.location ?? "") : ""
-      );
+      const values = eventToFormValues(primaryEvent);
+      const choice = deriveEventFormat(values);
+      setFormatChoiceDraft(choice);
+      setFormatValueDraft(choice === "online" ? values.onlineUrl : choice === "offline" ? values.location : "");
     } else if (activePendingFormat) {
       setFormatChoiceDraft(activePendingFormat.choice);
       setFormatValueDraft(activePendingFormat.value);
@@ -257,45 +281,53 @@ export default function StepDetailPanel({ companyId, selectedStepId }: StepDetai
     setIsEditingFormat(true);
   }
 
-  // 형식 select는 값을 바꾸는 즉시 저장한다(다른 select들과 동일한 규칙) — 온라인/대면을
-  // 고르면 값 입력칸이 비어있는 채로 먼저 반영되고, 이어서 그 칸에 실제 URL/장소를 입력해
-  // blur/Enter로 한 번 더 저장한다. 미정으로 바꾸면 더 채울 값이 없으므로 바로 편집을 닫는다.
-  async function handleFormatChoiceChange(newChoice: FormatChoice) {
+  // select를 바꾸는 것 자체가 이미 명시적 선택이다(브라우저는 같은 값으로 다시 골라도
+  // onChange를 쏘지 않는다). 온라인/대면으로 바꾸면 아직 저장하지 않고 그 필드에 이미
+  // 저장돼 있던 실제 값만 입력칸에 채워 보여준다 — 실제 확정은 blur/Enter(confirmFormat)
+  // 에서 일어난다. "미정"만 예외다 — 값 입력칸이 없어(아래 JSX에서
+  // formatChoiceDraft !== "undecided"일 때만 렌더링됨) confirmFormat이 실행될 기회가
+  // 없으므로 여기서 즉시 확정(둘 다 삭제)한다.
+  async function handleFormatChoiceChange(newChoice: EventFormat) {
+    formatTouchedRef.current = true;
     setFormatChoiceDraft(newChoice);
-    setFormatValueDraft("");
-    if (primaryEvent) {
-      const values = eventToFormValues(primaryEvent);
-      values.onlineUrl = "";
-      values.location = "";
-      await updateEvent(primaryEvent.id, values);
-    } else {
+
+    if (!primaryEvent) {
+      setFormatValueDraft("");
       setPendingFormat({ stepId: step!.id, choice: newChoice, value: "" });
+      return;
     }
+
     if (newChoice === "undecided") {
+      const values = applyExplicitEventFormat(eventToFormValues(primaryEvent), "undecided", "");
+      setFormatValueDraft("");
+      await updateEvent(primaryEvent.id, values);
       setIsEditingFormat(false);
+      return;
     }
+
+    setFormatValueDraft(
+      newChoice === "online" ? (primaryEvent.onlineUrl ?? "") : (primaryEvent.location ?? "")
+    );
   }
 
-  // EmailAnalysisReview.tsx의 handleFormatChange와 동일한 상호배타 규칙: 온라인이면
-  // onlineUrl만, 대면이면 location만 남기고 반대쪽은 비운다.
   async function confirmFormat() {
     if (skipFormatBlurRef.current) {
       skipFormatBlurRef.current = false;
       setIsEditingFormat(false);
       return;
     }
+    if (!formatTouchedRef.current) {
+      // select도 안 바꾸고 값도 안 고쳤다 — 그냥 열었다 닫힌 것이므로 아무 것도 저장하지
+      // 않는다(location/online_url 둘 다 그대로 유지된다).
+      setIsEditingFormat(false);
+      return;
+    }
     if (primaryEvent) {
-      const values = eventToFormValues(primaryEvent);
-      if (formatChoiceDraft === "online") {
-        values.onlineUrl = formatValueDraft;
-        values.location = "";
-      } else if (formatChoiceDraft === "offline") {
-        values.location = formatValueDraft;
-        values.onlineUrl = "";
-      } else {
-        values.onlineUrl = "";
-        values.location = "";
-      }
+      const values = applyExplicitEventFormat(
+        eventToFormValues(primaryEvent),
+        formatChoiceDraft,
+        formatValueDraft
+      );
       await updateEvent(primaryEvent.id, values);
     } else {
       // 일정이 아직 없는 상태에서 형식만 저장하면 실제 일정이 아닌데도 이벤트가 생겨
@@ -537,10 +569,23 @@ export default function StepDetailPanel({ companyId, selectedStepId }: StepDetai
             {t("companies.detail.selectionDetail.format")}
           </span>
           {isEditingFormat ? (
-            <div className="flex flex-1 flex-wrap items-center gap-2">
+            // 그룹 blur: select와 값 입력칸이 모두 이 컨테이너 안에 있어, 그 사이를 오가는
+            // 포커스 이동(relatedTarget이 컨테이너 내부)에서는 저장하지 않고, 포커스가
+            // 컨테이너 밖으로 완전히 나갈 때만 confirmFormat을 부른다(위 datetime 편집
+            // 그룹과 동일한 패턴). 예전에는 값 입력칸 자신의 onBlur가 confirmFormat을
+            // 직접 불렀는데, select로 포커스를 옮기는 것도 "편집 종료"로 취급해 select의
+            // onChange가 반영되기 전에 편집 상태가 먼저 닫혀버리는 버그가 있었다.
+            <div
+              className="flex flex-1 flex-wrap items-center gap-2"
+              onBlur={(e) => {
+                if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
+                  confirmFormat();
+                }
+              }}
+            >
               <select
                 value={formatChoiceDraft}
-                onChange={(e) => handleFormatChoiceChange(e.target.value as FormatChoice)}
+                onChange={(e) => handleFormatChoiceChange(e.target.value as EventFormat)}
                 className="rounded-stitch-md border border-stitch-border bg-[#f8f9ff] px-2 py-1 text-[13px] text-stitch-ink outline-none"
               >
                 <option value="online">{t("companies.detail.selectionDetail.online")}</option>
@@ -552,8 +597,10 @@ export default function StepDetailPanel({ companyId, selectedStepId }: StepDetai
                   type="text"
                   autoFocus
                   value={formatValueDraft}
-                  onChange={(e) => setFormatValueDraft(e.target.value)}
-                  onBlur={confirmFormat}
+                  onChange={(e) => {
+                    formatTouchedRef.current = true;
+                    setFormatValueDraft(e.target.value);
+                  }}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
                       e.preventDefault();

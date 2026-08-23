@@ -120,6 +120,43 @@ export function eventToFormValues(event: AppEvent): EventFormValues {
   };
 }
 
+// location/online_url은 DB 컬럼상 서로 독립이라 둘 다 값을 가질 수 있다(예: AI 메일
+// 분석이 이메일 원문에서 장소와 온라인 링크를 둘 다 추출한 경우) — 하지만 제품 결정상
+// 사용자가 화면에서 "형식"을 확정하는 순간에는 항상 온라인/대면/미정 중 하나만 남는다.
+// StepDetailPanel과 EmailAnalysisReview의 형식 select가 이 두 함수를 공유해, 화면마다
+// "무엇을 온라인으로 볼지"·"확정 시 무엇을 지울지" 규칙이 어긋나지 않게 한다.
+export type EventFormat = "online" | "offline" | "undecided";
+
+// 표시 전용 파생: 실제로 저장된 값을 보고 지금 어떤 형식으로 "보여줘야" 하는지만 판단한다.
+// 이 함수를 호출한다고 해서 DB나 로컬 상태가 바뀌지 않는다 — 온라인/대면 둘 다 값이 있는
+// (레거시 또는 AI 추출 직후) 데이터도 그대로 두고 "일단 온라인으로 보여준다"는 우선순위만
+// 정한다.
+export function deriveEventFormat(values: Pick<EventFormValues, "location" | "onlineUrl">): EventFormat {
+  if (values.onlineUrl) return "online";
+  if (values.location) return "offline";
+  return "undecided";
+}
+
+// 사용자가 형식을 "명시적으로" 확정했을 때만 호출해야 한다 — 선택한 형식에 해당하는
+// 필드만 fieldValue로 남기고 반대쪽은 강제로 비운다(온라인→location 삭제, 대면→
+// onlineUrl 삭제, 미정→둘 다 삭제). 단순히 형식 편집 화면을 열었다가 아무 것도 바꾸지
+// 않고 닫는 경우에는 이 함수를 아예 호출하지 않는 것이 호출부의 책임이다 — 그래야
+// location/online_url이 둘 다 있는 레거시·AI 추출 데이터가 사용자의 명시적 선택 전까지
+// 그대로 보존된다.
+export function applyExplicitEventFormat(
+  values: EventFormValues,
+  format: EventFormat,
+  fieldValue: string
+): EventFormValues {
+  if (format === "online") {
+    return { ...values, onlineUrl: fieldValue, location: "" };
+  }
+  if (format === "offline") {
+    return { ...values, location: fieldValue, onlineUrl: "" };
+  }
+  return { ...values, onlineUrl: "", location: "" };
+}
+
 // docs/database.md 필드 사용 규칙: event_type에 따라 사용하는 필드만 채우고 나머지는 null로 저장한다.
 // online_url은 예외적으로 모든 타입에 허용한다 (마감 제출 링크, 결과 확인 링크 등).
 export function eventFormValuesToRow(values: EventFormValues) {
