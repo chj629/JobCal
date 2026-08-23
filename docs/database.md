@@ -13,6 +13,7 @@
 9. `event_completions`
 10. `ai_analysis_usage`
 11. `notification_reads`
+12. `push_tokens`
 
 별도 `profiles` 테이블은 없습니다. 이메일/표시 이름(display_name)은 Supabase Auth의
 `user_metadata`에 저장됩니다(`app/signup/page.tsx`의 `signUp({ options: { data: {
@@ -331,6 +332,32 @@ Dashboard "오늘 해야 할 일"의 현재 체크 상태 저장 테이블(이�
 `increment_ai_analysis_usage(p_usage_date)` 함수(SECURITY DEFINER)가 `auth.uid()` 기준으로만
 원자적으로 카운트를 증가시키며, Route Handler가 반환된 횟수를 보고 일일 한도 초과 여부를
 판정합니다.
+
+---
+
+## push_tokens
+
+모바일 앱(jobcal-mobile)이 로그인 후 등록하는 Expo Push Token 저장 테이블입니다. 이
+단계에서는 토큰을 저장하는 기반만 만들고, 실제 push 발송은 하지 않습니다(다음 단계에서
+`push_notifications_sent`와 발송 Cron을 추가할 예정).
+
+- id
+- user_id
+- expo_push_token
+- platform (`ios` | `android`)
+- created_at
+- updated_at
+
+`unique(expo_push_token)`만 두고 `unique(user_id, expo_push_token)`은 두지 않습니다 —
+Expo Push Token은 (앱 설치, 기기) 조합 하나에 대응하는 값이라 같은 토큰이 동시에 두
+사용자 소유일 수 없기 때문입니다. 모바일 앱은 로그인 후 자신의 세션으로 `upsert(onConflict:
+"expo_push_token")`만 호출하고, 로그아웃 시 현재 기기의 토큰 row만 삭제합니다(다른 기기의
+토큰은 건드리지 않음) — 같은 기기에서 다른 계정으로 다시 로그인해도 이전 사용자의 row와
+충돌하지 않습니다.
+
+RLS는 `auth.uid() = user_id` 기준 select/insert/update/delete만 허용하며, service role
+전용 정책은 두지 않습니다(다음 단계의 발송 Cron은 service role로 RLS를 우회해 전체
+사용자 토큰을 읽습니다 — 클라이언트에는 이 권한이 노출되지 않습니다).
 
 ---
 

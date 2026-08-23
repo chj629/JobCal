@@ -210,8 +210,12 @@ export default function Header({ aiDrawerOpen, onOpenAiDrawer, onStartAiOnboardi
   async function handleLogout() {
     const supabase = createClient();
     await supabase.auth.signOut();
-    router.push(toPublicPageHref(locale, "/login"));
-    router.refresh();
+    // replace(push가 아니라): 로그아웃 전 보호 페이지(예: /companies/[id]) 기록을 히스토리에서
+    // 지워, 로그아웃 후 뒤로가기를 눌러도 그 보호 페이지로 돌아가지 않는다. refresh()는
+    // 더 이상 필요 없다 — (app) 레이아웃 아래 페이지는 전부 클라이언트 컴포넌트라 무효화할
+    // 서버 컴포넌트 캐시가 없고, replace 자체가 /login으로의 새 네비게이션이라
+    // middleware(lib/supabase/proxy.ts)가 이 요청에서 이미 세션을 다시 검증한다.
+    router.replace(toPublicPageHref(locale, "/login"));
   }
 
   const initials = profile ? getInitials(profile.primaryLine) : "";

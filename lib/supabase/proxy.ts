@@ -28,6 +28,23 @@ function isProtectedPath(pathname: string) {
   return PROTECTED_PATH_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 }
 
+// 모바일 앱(jobcal-mobile)은 쿠키가 없으므로 Authorization: Bearer <access_token>으로
+// 인증한다. 모바일이 실제로 호출하는 API 경로들에만 정확히 일치하는 좁은 예외를 두어
+// 미들웨어의 쿠키 기반 /login 리다이렉트를 건너뛰고 각 route.ts까지 도달하게 하며, 실제
+// 토큰 검증은 여기가 아니라 그 route.ts들(app/api/ai/analyze-email,
+// app/api/account/delete)이 수행한다 — 이 함수는 "Bearer 헤더가 있으니 route.ts에게 검증을
+// 맡긴다"는 판단만 하고, 헤더가 없거나 이 목록 밖의 경로면 기존 쿠키 전용 동작 그대로다.
+// 새 모바일 전용 API를 추가할 때만 이 목록에 그 경로를 추가한다 — 목록에 없는 경로는
+// 이 예외의 영향을 전혀 받지 않는다.
+const BEARER_EXEMPT_API_PATHS = new Set(["/api/ai/analyze-email", "/api/account/delete"]);
+
+function hasBearerAuthForExemptApiPath(request: NextRequest) {
+  return (
+    BEARER_EXEMPT_API_PATHS.has(request.nextUrl.pathname) &&
+    !!request.headers.get("authorization")?.startsWith("Bearer ")
+  );
+}
+
 // 세션 토큰 갱신 + 로그인 여부에 따른 접근 제어를 함께 수행한다.
 export async function updateSession(request: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -76,7 +93,7 @@ export async function updateSession(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname;
 
-  if (!user && isProtectedPath(pathname)) {
+  if (!user && isProtectedPath(pathname) && !hasBearerAuthForExemptApiPath(request)) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);

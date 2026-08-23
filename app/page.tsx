@@ -6,10 +6,8 @@ import LandingCompaniesShowcase from "@/components/landing/LandingCompaniesShowc
 import LandingPricing from "@/components/landing/LandingPricing";
 import LandingCtaBanner from "@/components/landing/LandingCtaBanner";
 import LandingFooter from "@/components/landing/LandingFooter";
-import Script from "next/script";
 import { ToastProvider } from "@/components/ui/Toast";
 import { LocaleProvider } from "@/lib/locale-context";
-import { buildBrowserLocaleRedirectScript } from "@/lib/i18n/browserLocaleRedirectScript";
 
 // docs/stitch/랜딩페이지/screen.png 기준 공개 Landing 페이지. 인증이 필요한 (app)
 // 레이아웃(Sidebar, Companies/Events 등 Provider)을 쓰지 않고 루트 레이아웃(LocaleProvider만
@@ -26,9 +24,6 @@ import { buildBrowserLocaleRedirectScript } from "@/lib/i18n/browserLocaleRedire
 export default function LandingPage() {
   return (
     <LocaleProvider initialLocale="ja" locked>
-      <Script id="browser-locale-redirect" strategy="beforeInteractive">
-        {buildBrowserLocaleRedirectScript("/ko")}
-      </Script>
       <ToastProvider>
         <div className="min-h-screen bg-white font-[350] font-[family-name:var(--font-hanken-grotesk)] tracking-[-0.025em] text-neutral-900">
           <LandingNav />

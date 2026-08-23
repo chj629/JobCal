@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { createClient as createBearerClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { getUserPlan } from "@/lib/paddle/getUserPlan";
 import {
@@ -25,7 +26,22 @@ const PRO_DAILY_ANALYSIS_LIMIT = 50;
 const MAX_OUTPUT_TOKENS = 1200;
 
 export async function POST(request: Request) {
-  const supabase = await createClient();
+  // 모바일 앱(jobcal-mobile)은 쿠키가 없으므로 Authorization: Bearer <access_token>을
+  // 대신 보낸다. lib/supabase/proxy.ts가 이 경로 하나에만 좁게 예외를 두어 여기까지
+  // 통과시키므로, 실제 토큰 검증은 이 함수가 담당한다. anon/publishable key + 그
+  // Authorization 헤더로 만든 클라이언트는 PostgREST/GoTrue가 헤더의 JWT로 auth.uid()를
+  // 판정하므로, 아래 getUserPlan/increment_ai_analysis_usage/OpenAI 호출/파싱 로직은
+  // 어느 클라이언트가 들어오든 전혀 수정 없이 동일하게 동작한다. service role은 여기서도
+  // 쓰지 않는다 — Bearer 클라이언트도 기존 쿠키 클라이언트와 동일하게 anon key + RLS다.
+  const authHeader = request.headers.get("authorization");
+  const supabase = authHeader?.startsWith("Bearer ")
+    ? createBearerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+        { global: { headers: { Authorization: authHeader } } }
+      )
+    : await createClient();
+
   const {
     data: { user },
   } = await supabase.auth.getUser();

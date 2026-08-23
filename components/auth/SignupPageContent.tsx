@@ -55,6 +55,19 @@ function GoogleIcon() {
   );
 }
 
+// AppleIcon.tsx(공용, /login이 사용)와 동일한 path — signup은 기존 GoogleIcon과 같은
+// 이유로 로컬 버전을 둔다(이번 범위에서 signup을 공용 컴포넌트로 옮기지 않음).
+function AppleIcon() {
+  return (
+    <svg width="16" height="18" viewBox="0 0 814 1000" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <path
+        d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76.5 0-103.7 40.8-165.9 40.8s-105.6-57-155.5-127C46.7 790.7 0 663 0 541.8c0-194.4 126.4-297.5 250.8-297.5 66.1 0 121.2 43.4 162.7 43.4 39.5 0 101.1-46 176.3-46 28.5 0 130.9 2.6 198.3 99.2zM554.1 159.4c31.1-36.9 53.1-88.1 53.1-139.3 0-7.1-.6-14.3-1.9-20.1-50.6 1.9-110.8 33.7-147.1 75.8-28.5 32.4-55.1 83.6-55.1 135.5 0 7.8 1.3 15.6 1.9 18.1 3.2.6 8.4 1.3 13.6 1.3 45.4 0 102.5-30.4 135.5-71.3z"
+        fill="#000000"
+      />
+    </svg>
+  );
+}
+
 // screen.png의 pill 입력창(label + rounded-full input, 필요시 우측 눈 아이콘). 공용
 // Input(components/ui/Input.tsx)은 좌측 아이콘 + rounded-lg 스타일이라 이 화면과 달라
 // 전역 컴포넌트는 바꾸지 않고 이 페이지 전용 로컬 마크업으로 처리한다.
@@ -104,6 +117,7 @@ export default function SignupPageContent() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [isAppleLoading, setIsAppleLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [confirmationSent, setConfirmationSent] = useState(false);
   // /pricing?checkout=pro에서 비로그인 상태로 Pro CTA를 눌러 여기로 왔을 때, 가입 즉시
@@ -159,6 +173,31 @@ export default function SignupPageContent() {
     if (error) {
       setErrorMessage(t("auth.errors.googleStartFailed"));
       setIsGoogleLoading(false);
+    }
+  }
+
+  // handleGoogleSignup과 완전히 동일한 로직 — provider만 "apple"로 바꾼다.
+  async function handleAppleSignup() {
+    setIsAppleLoading(true);
+    setErrorMessage("");
+
+    const params = new URLSearchParams(window.location.search);
+    const checkoutNext = buildCheckoutNext(params.get("next"), params.get("checkout"));
+    const callbackUrl = new URL("/auth/callback", window.location.origin);
+    callbackUrl.searchParams.set("locale", locale);
+    if (checkoutNext) callbackUrl.searchParams.set("next", checkoutNext);
+
+    const supabase = createClient();
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "apple",
+      options: {
+        redirectTo: callbackUrl.toString(),
+      },
+    });
+
+    if (error) {
+      setErrorMessage(t("auth.errors.appleStartFailed"));
+      setIsAppleLoading(false);
     }
   }
 
@@ -251,7 +290,7 @@ export default function SignupPageContent() {
     setIsLoading(false);
   }
 
-  const busy = isLoading || isGoogleLoading;
+  const busy = isLoading || isGoogleLoading || isAppleLoading;
 
   return (
     <div className="min-h-screen bg-white font-[350] font-[family-name:var(--font-hanken-grotesk)] tracking-[-0.025em] text-neutral-900">
@@ -319,6 +358,20 @@ export default function SignupPageContent() {
                     <GoogleIcon />
                   )}
                   <span>{isGoogleLoading ? t("auth.signup.googleLoading") : t("auth.signup.google")}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleAppleSignup}
+                  disabled={busy}
+                  className="flex w-full items-center justify-center gap-3 rounded-full border border-neutral-300 bg-white px-6 py-3.5 text-[15px] font-[400] text-neutral-900 transition-all duration-200 hover:bg-[#f3f4f6] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isAppleLoading ? (
+                    <MaterialIcon name="progress_activity" size={18} className="animate-spin" />
+                  ) : (
+                    <AppleIcon />
+                  )}
+                  <span>{isAppleLoading ? t("auth.signup.appleLoading") : t("auth.signup.apple")}</span>
                 </button>
 
                 <div className="relative flex items-center py-2">

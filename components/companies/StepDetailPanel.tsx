@@ -104,6 +104,13 @@ export default function StepDetailPanel({ companyId, selectedStepId }: StepDetai
   const stepIndex = companySteps.findIndex((s) => s.id === step.id);
   const isFirstStep = stepIndex <= 0;
   const isLastStep = stepIndex === companySteps.length - 1;
+  // 순서 변경(드래그/위아래 이동) 자체는 step_status와 무관하게 항상 허용한다 — passed/
+  // failed/in_progress 전형도 자유롭게 옮길 수 있다. step_status는 순서 변경으로 자동
+  // 변경되지 않으며(updateStepStatus의 캐스케이드만이 여전히 유일한 변경 경로), 대신
+  // "현재 진행 단계보다 뒤에 있는 waiting 전형만 상태 select를 막는다"는 규칙으로
+  // 아래 isFutureWaitingStep이 그 정합성을 보장한다.
+  const isFutureWaitingStep =
+    step.stepStatus === "waiting" && !!currentStep && step.stepOrder > currentStep.stepOrder;
 
   const activePendingFormat = pendingFormat && pendingFormat.stepId === step.id ? pendingFormat : null;
 
@@ -379,11 +386,13 @@ export default function StepDetailPanel({ companyId, selectedStepId }: StepDetai
             {t("companies.detail.selectionDetail.status")}
           </span>
           <div className="relative">
-            {/* waiting은 시스템이 자동으로만 부여하는 상태라(캐스케이드 규칙상 이 전형보다
-                앞선 전형이 아직 진행 중), 아직 순서가 오지 않은 전형은 상태를 직접 바꾸지
-                못하게 select 자체를 비활성으로 둔다. 선택 가능한 3개(진행 중/통과/불합격)는
-                이미 순서가 온(waiting이 아닌) 전형에서만 노출한다. */}
-            {step.stepStatus === "waiting" ? (
+            {/* waiting은 기본적으로 시스템이 자동으로만 부여하는 상태지만, 순서 변경으로
+                현재 진행 단계보다 앞으로 옮겨진 waiting 전형은 이미 지나간 순서로 봐서 상태를
+                직접 바꿀 수 있게 한다. 저장된 step_status 값 자체가 아니라 "현재 정렬된
+                step_order가 currentStep보다 뒤인가"로 판단해야, 순서만 바꾸고 상태는 그대로
+                둔 경우에도(reorderSteps/moveStep은 step_status를 건드리지 않는다) 올바르게
+                활성화된다 — isFutureWaitingStep만 select를 비활성으로 둔다. */}
+            {isFutureWaitingStep ? (
               <select
                 value="waiting"
                 disabled
@@ -397,7 +406,13 @@ export default function StepDetailPanel({ companyId, selectedStepId }: StepDetai
                 onChange={(e) => updateStepStatus(step!.id, e.target.value as StepStatus)}
                 className="cursor-pointer appearance-none rounded-stitch-md border border-stitch-border bg-[#f8f9ff] py-1 pl-3 pr-8 text-[13px] text-stitch-ink outline-none focus:ring-1 focus:ring-primary-navy/50"
               >
-                {STEP_STATUSES.filter((status) => status !== "waiting").map((status) => (
+                {/* 현재 진행 단계보다 앞으로 옮겨졌지만 아직 waiting인 전형은 select 값이
+                    "waiting"이라 그 옵션도 함께 보여줘야 실제 상태와 표시가 일치한다(다른
+                    3개 중 하나로 바꾸면 updateStepStatus가 캐스케이드로 반영). */}
+                {(step.stepStatus === "waiting"
+                  ? STEP_STATUSES
+                  : STEP_STATUSES.filter((status) => status !== "waiting")
+                ).map((status) => (
                   <option key={status} value={status}>
                     {t(STEP_STATUS_LABEL_KEYS[status])}
                   </option>

@@ -6,11 +6,19 @@ import { resolveNextPath } from "@/lib/auth/nextPath";
 // 이 앱은 이메일 회원가입 확인(email)과 비밀번호 재설정(recovery)만 처리한다.
 const ALLOWED_EMAIL_OTP_TYPES: EmailOtpType[] = ["email", "recovery"];
 
+// jobcal-mobile(Expo, app.json의 scheme: "jobcalmobile")의 비밀번호 재설정 화면 딥링크.
+// mobile의 Linking.createURL("update-password")가 프로덕션/개발 빌드에서 만드는 값과
+// 정확히 동일한 문자열이며, 아래에서 "완전 일치"할 때만 통과시킨다(다른 next 값은 전부
+// 기존 resolveNextPath 검증 그대로) — 임의의 커스텀 스킴을 허용하는 오픈 리다이렉트가
+// 되지 않도록 하기 위함이다.
+const MOBILE_RECOVERY_REDIRECT = "jobcalmobile://update-password";
+
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const token_hash = searchParams.get("token_hash");
   const type = searchParams.get("type");
-  const next = resolveNextPath(searchParams.get("next"), "/");
+  const rawNext = searchParams.get("next");
+  const next = resolveNextPath(rawNext, "/");
   // app/signup·app/ko/signup(components/auth/SignupPageContent.tsx)이 이메일 인증
   // 링크에 함께 실어 보낸 값. next와 달리 URL이 아니라 "ja"/"ko" 둘 중 하나로만
   // 취급한다("ko"가 아니면 전부 ja) — 아래에서 고정된 두 경로 중 하나를 고르는 데만
@@ -18,6 +26,17 @@ export async function GET(request: Request) {
   const requestedLocale = searchParams.get("locale") === "ko" ? "ko" : "ja";
 
   if (token_hash && ALLOWED_EMAIL_OTP_TYPES.includes(type as EmailOtpType)) {
+    // 모바일 앱은 쿠키 세션을 쓸 수 없으므로, 여기서 verifyOtp(서버/쿠키 세션)를 호출하지
+    // 않고 token_hash를 그대로 앱 딥링크에 실어 넘긴다 — 실제 검증은
+    // jobcal-mobile의 update-password 화면이 AsyncStorage 기반 클라이언트로 직접
+    // supabase.auth.verifyOtp()를 호출해 수행한다.
+    if (type === "recovery" && rawNext === MOBILE_RECOVERY_REDIRECT) {
+      const mobileUrl = new URL(MOBILE_RECOVERY_REDIRECT);
+      mobileUrl.searchParams.set("token_hash", token_hash);
+      mobileUrl.searchParams.set("type", "recovery");
+      return NextResponse.redirect(mobileUrl.toString());
+    }
+
     const supabase = await createClient();
     const { error } = await supabase.auth.verifyOtp({
       type: type as EmailOtpType,

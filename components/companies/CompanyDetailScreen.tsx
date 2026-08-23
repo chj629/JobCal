@@ -1,8 +1,9 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { notFound, useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 import StepTimeline from "@/components/companies/StepTimeline";
 import StepDetailPanel from "@/components/companies/StepDetailPanel";
 import SelectionMemo from "@/components/companies/SelectionMemo";
@@ -53,6 +54,25 @@ export default function CompanyDetailScreen({ companyId }: CompanyDetailScreenPr
   const { refresh: refreshNextActions } = useNextActions();
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  // 로그아웃 시 companies-context 등 여러 Context가 각자 독립적으로 onAuthStateChange를
+  // 구독하고 있어(lib/companies-context.tsx 등), signOut() 직후 companies가 빈 배열로
+  // 바뀌는 시점과 이 페이지가 실제로 /login으로 옮겨가는 시점 사이에 "loading=false인데
+  // company가 없는" 렌더가 잠깐 낄 수 있다 — 예전엔 이걸 진짜 404로 오인해 notFound()를
+  // 불렀다. 이 컴포넌트만을 위한 별도 세션 감시를 둬서(companies-context 등 데이터
+  // context에는 인증 책임을 얹지 않는다) "!company"가 인증 상실 때문인지 진짜 404인지
+  // 구분한다. 이 라우트는 애초에 middleware(lib/supabase/proxy.ts)가 보호하는 경로라
+  // 최초 진입 시엔 세션이 있었다고 봐도 안전하므로 true로 시작한다.
+  const [hasSession, setHasSession] = useState(true);
+
+  useEffect(() => {
+    const supabase = createClient();
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setHasSession(!!session);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
 
   const loading = companiesLoading || stepsLoading || eventsLoading;
   const company = companies.find((c) => c.id === companyId);
@@ -73,6 +93,9 @@ export default function CompanyDetailScreen({ companyId }: CompanyDetailScreenPr
     // company === undefined인 채로 재렌더링될 수 있다. isDeleting이 true인 동안은 이
     // 과도기 렌더로 보고 notFound() 대신 아무것도 보여주지 않은 채 페이지 이동을 기다린다.
     if (isDeleting) return null;
+    // 세션이 없다면(로그아웃 직후) companies가 비어 있는 게 당연하다 — 진짜 404가 아니라
+    // /login으로의 이동을 기다리는 중이므로 notFound() 없이 아무것도 그리지 않는다.
+    if (!hasSession) return null;
     notFound();
   }
 

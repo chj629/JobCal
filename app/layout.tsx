@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { Inter, Hanken_Grotesk, DM_Sans } from "next/font/google";
 import { LocaleProvider } from "@/lib/locale-context";
+import { buildBrowserLocaleRedirectScript } from "@/lib/i18n/browserLocaleRedirectScript";
 import "./globals.css";
 
 const inter = Inter({
@@ -76,6 +78,14 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-full bg-background text-foreground">
+        {/* lib/i18n/browserLocaleRedirectScript.ts 참고: beforeInteractive는 최초 문서
+            로드에서만 유효해 루트 레이아웃(클라이언트 사이드 네비게이션에서 다시
+            마운트되지 않는 유일한 지점)에 정확히 한 번만 둔다. 이 레이아웃은 /ko/*와
+            로그인 후 보호 페이지를 포함한 모든 경로를 감싸므로, 대상이 아닌 경로에서
+            아무 것도 하지 않는 책임은 스크립트 자신(현재 pathname 확인)에게 있다. */}
+        <Script id="browser-locale-redirect" strategy="beforeInteractive">
+          {buildBrowserLocaleRedirectScript()}
+        </Script>
         <LocaleProvider>{children}</LocaleProvider>
       </body>
     </html>

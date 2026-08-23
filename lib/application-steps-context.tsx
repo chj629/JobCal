@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useHandleSupabaseError } from "@/lib/supabase/errorHandling";
 import { useT } from "@/lib/locale-context";
 import {
+  getCurrentStep,
   rowToApplicationStep,
   type ApplicationStep,
   type ApplicationStepRow,
@@ -220,25 +221,33 @@ export function ApplicationStepsProvider({ children }: { children: ReactNode }) 
     return true;
   }
 
-  // 캐스케이드 규칙: 이 전형보다 뒤(step_order가 큰) 전형은 먼저 전부 waiting으로 되돌린다.
-  // 그 다음 status가 "passed"면 방금 waiting이 된 전형 중 가장 앞선 것 하나만 in_progress로
-  // 승격한다("failed"나 "in_progress"로 바꾸는 경우는 승격하지 않는다 — 진행이 멈추거나,
-  // 이미 지나간 전형으로 되돌리는 것이므로 뒤 단계는 그냥 waiting으로 남는다).
-  // passed/failed였던 전형을 in_progress로 되돌리는 경우도 뒤 단계를 먼저 waiting으로
-  // 정리하는 동일한 규칙을 그대로 타므로 별도 분기가 필요 없다.
-  // 기업당 in_progress는 항상 최대 1개: status가 "in_progress"면, 뒤 단계 리셋(step_order가
-  // 큰 경우)과 별개로 step_order가 더 앞선 다른 in_progress 전형도 waiting으로 되돌린다
-  // (뒤 단계 리셋만으로는 대상보다 앞선 전형을 잡지 못한다 — 예: AI Drawer가 이미 다른
-  // 전형이 in_progress인 상태에서 그보다 뒤 단계를 in_progress로 지정하는 경우).
-  // status가 "passed"/"failed"면 target이 현재 in_progress일 때만 허용한다(아래 가드 참고) —
-  // waiting인 전형을 곧바로 passed/failed로 바꾸는 호출은 DB를 건드리지 않고 실패로 끝난다.
+  // step_order는 사용자가 reorderSteps/moveStep으로 자유롭게 바꿀 수 있어 더 이상 "이미
+  // 진행했는지"의 근거가 될 수 없다 — 예전에는 "이 전형보다 order가 큰 전형은 전부 아직
+  // waiting"이라는 전제로 order 기준 downstream을 통째로 waiting 리셋했지만, 재정렬 후에는
+  // order가 큰 자리에 이미 확정된(passed/failed) 전형이 올 수 있어 그 기록을 지워버리는
+  // 데이터 손실 버그가 있었다(order만 보고 상태를 건드리면 안 된다). 지금은 각 전이가 정확히
+  // 무엇을 바꿔야 하는지 상태 기준으로만 명시한다 — order는 passed 승격 대상을 찾을 때만
+  // "다음"의 방향을 판단하는 용도로 쓰고, 그 상태(step_status)가 waiting인지도 함께 확인한다.
+  // - waiting → in_progress: 기존에 in_progress였던 다른 전형만 waiting으로 되돌린다
+  //   (order 무관, 상태 기준 — passed/failed는 절대 건드리지 않는다).
+  // - in_progress → passed: order가 더 크면서 현재 step_status가 waiting인 것 중 가장
+  //   앞선 것 하나만 in_progress로 승격한다. 중간에 이미 확정된 전형이 있으면 건너뛴다.
+  // - waiting → passed(재정렬로 currentStep보다 앞으로 옮겨진 전형을 직접 확정하는 경우):
+  //   target 자신만 passed로 바뀌고 승격은 일어나지 않는다 — 이미 다른 in_progress(진짜
+  //   현재 진행 지점)가 있을 수 있는 상태라, 여기서도 승격하면 in_progress가 2개가 된다.
+  // - in_progress → failed, passed↔failed 결과 정정, passed/failed → in_progress로 되돌리는
+  //   경우 모두 다른 전형의 상태를 자동으로 바꾸지 않는다("결과 정정 시 뒤 전형을 자동으로
+  //   waiting으로 되돌리는" 기존 리플 기능은 재정렬 기능과 양립할 수 없어 의도적으로 뺐다 —
+  //   필요하면 사용자가 영향받는 전형을 직접 하나씩 되돌린다).
+  // status가 "passed"/"failed"면 target이 "미래 waiting"(현재 진행 지점보다 뒤)일 때만
+  // 막는다(아래 가드 참고) — StepDetailPanel의 isFutureWaitingStep과 완전히 같은 기준.
   async function updateStepStatus(id: string, status: StepStatus) {
     if (!userId) return false;
 
     // steps(이 컨텍스트의 로컬 state)로 target을 찾으면, 같은 함수 호출 안에서 방금
     // addStep/기업 생성으로 만들어진 전형처럼 아직 이 클로저에 반영되지 않은 행은 찾지
     // 못해 조용히 실패한다(EmailAnalysisReview의 handleRegister가 정확히 이 순서로 호출함).
-    // target/downstream 모두 Supabase에서 직접 다시 조회해 항상 최신 상태를 기준으로 한다.
+    // target은 Supabase에서 직접 다시 조회해 항상 최신 상태를 기준으로 한다.
     const { data: targetRow, error: targetError } = await supabase
       .from("application_steps")
       .select("company_id, step_order, step_status")
@@ -250,49 +259,46 @@ export function ApplicationStepsProvider({ children }: { children: ReactNode }) 
       return false;
     }
 
-    // waiting 전형을 건너뛰어 곧바로 passed/failed로 만드는 것만 막는다. Company Detail의
-    // select는 waiting 전형 자체를 비활성으로 막아두지만, AI Drawer처럼 stepId를 직접
-    // 지정해 이 함수를 호출하는 경로는 그 UI 가드를 거치지 않는다 — 여기서 한 번 더
-    // 막아두지 않으면 앞의 전형은 그대로 waiting인데 뒤의 전형만 passed/failed가 되는
-    // "순서에 구멍이 뚫린" 조합이 생긴다(실제로 이런 데이터가 만들어진 적이 있다).
-    // in_progress/passed/failed 상태에서 passed/failed로 바꾸는 것은 모두 허용한다 —
-    // 결과 정정(passed↔failed 직접 전환, passed/failed → in_progress 복귀)은 아래
-    // 캐스케이드 규칙이 그대로 처리한다(뒤 단계 리셋, passed일 때만 재승격).
-    if ((status === "passed" || status === "failed") && targetRow.step_status === "waiting") {
-      setError(t("companies.detail.selectionDetail.waitingStepStatusBlocked"));
-      return false;
-    }
-
     const targetCompanyId = targetRow.company_id as string;
     const targetStepOrder = targetRow.step_order as number;
+    // 아래 두 곳(가드/승격 조건)에서 "변경 전 상태"로 계속 참조하므로 먼저 이름을 붙여둔다.
+    const targetPreviousStatus = targetRow.step_status as StepStatus;
 
-    const { data: downstreamRows, error: downstreamFetchError } = await supabase
-      .from("application_steps")
-      .select("id, step_order")
-      .eq("company_id", targetCompanyId)
-      .gt("step_order", targetStepOrder)
-      .order("step_order", { ascending: true });
-
-    if (downstreamFetchError) {
-      await handleSupabaseError(downstreamFetchError.message, setError);
-      return false;
-    }
-
-    const downstreamSteps = downstreamRows ?? [];
-
-    if (downstreamSteps.length > 0) {
-      const { error: resetError } = await supabase
+    // waiting 전형을 곧바로 passed/failed로 만드는 것 중 "진짜 미래(아직 순서가 오지 않은)"
+    // 전형만 막는다 — currentStep(getCurrentStep)보다 step_order가 큰 waiting만 차단 대상이고,
+    // 재정렬로 currentStep보다 앞으로 옮겨진 waiting은 이미 지나간 순서로 보아 허용한다.
+    // Company Detail의 select(isFutureWaitingStep)는 이 조건을 UI에서 미리 막아두지만,
+    // AI Drawer처럼 stepId를 직접 지정해 이 함수를 호출하는 경로는 그 UI 가드를 거치지
+    // 않으므로 여기서 같은 기준으로 다시 검증한다(getCurrentStep을 그대로 재사용해 두 계층의
+    // "미래 전형" 정의가 어긋나지 않게 한다).
+    if ((status === "passed" || status === "failed") && targetPreviousStatus === "waiting") {
+      const { data: companyStepRows, error: companyStepsError } = await supabase
         .from("application_steps")
-        .update({ step_status: "waiting" })
-        .eq("company_id", targetCompanyId)
-        .gt("step_order", targetStepOrder);
+        .select("step_order, step_status")
+        .eq("company_id", targetCompanyId);
 
-      if (resetError) {
-        await handleSupabaseError(resetError.message, setError);
+      if (companyStepsError) {
+        await handleSupabaseError(companyStepsError.message, setError);
+        return false;
+      }
+
+      const currentStep = getCurrentStep(
+        (companyStepRows ?? []).map((row) => ({
+          stepOrder: row.step_order as number,
+          stepStatus: row.step_status as StepStatus,
+        }))
+      );
+      const isFutureWaitingStep = !!currentStep && targetStepOrder > currentStep.stepOrder;
+
+      if (isFutureWaitingStep) {
+        setError(t("companies.detail.selectionDetail.waitingStepStatusBlocked"));
         return false;
       }
     }
 
+    // in_progress로 바꿀 때만: 기존에 in_progress였던 "다른" 전형을 waiting으로 되돌린다.
+    // order와 무관하게 step_status만으로 찾으므로 passed/failed는 대상이 될 수 없다 —
+    // 기업당 in_progress는 항상 최대 1개라는 불변식은 이 블록만으로 유지된다.
     let clearedOtherInProgressIds: string[] = [];
     if (status === "in_progress") {
       const { data: clearedRows, error: clearOtherError } = await supabase
@@ -320,17 +326,42 @@ export function ApplicationStepsProvider({ children }: { children: ReactNode }) 
       return false;
     }
 
-    const promotedId = status === "passed" && downstreamSteps.length > 0 ? downstreamSteps[0].id : null;
-
-    if (promotedId) {
-      const { error: promoteError } = await supabase
+    // passed로 바뀔 때만, 그리고 target의 변경 전 상태가 in_progress였을 때만: order가
+    // 더 크면서 지금 step_status가 waiting인 것 중 가장 앞선 것 하나만 조회해 승격한다.
+    // "변경 전 in_progress"로 제한하는 이유: waiting → passed(재배치된 과거 전형을 곧바로
+    // 확정하는 경우)까지 승격을 트리거하면, 이미 다른 in_progress(진짜 현재 진행 지점)가
+    // 있는 상태에서 승격이 또 하나의 in_progress를 만들어 "기업당 in_progress 최대 1개"
+    // 불변식이 깨진다 — 승격은 오직 "지금 진행 중이던 전형이 방금 통과했다"는 경우에만
+    // 의미가 있다. 중간에 이미 확정된(passed/failed) 전형이 있어도 이 쿼리는
+    // step_status='waiting' 조건 덕분에 자동으로 건너뛴다 — 그 전형의 상태는 건드리지 않는다.
+    let promotedId: string | null = null;
+    if (status === "passed" && targetPreviousStatus === "in_progress") {
+      const { data: nextWaitingRows, error: nextWaitingError } = await supabase
         .from("application_steps")
-        .update({ step_status: "in_progress" })
-        .eq("id", promotedId);
+        .select("id")
+        .eq("company_id", targetCompanyId)
+        .gt("step_order", targetStepOrder)
+        .eq("step_status", "waiting")
+        .order("step_order", { ascending: true })
+        .limit(1);
 
-      if (promoteError) {
-        await handleSupabaseError(promoteError.message, setError);
+      if (nextWaitingError) {
+        await handleSupabaseError(nextWaitingError.message, setError);
         return false;
+      }
+
+      promotedId = nextWaitingRows?.[0]?.id ?? null;
+
+      if (promotedId) {
+        const { error: promoteError } = await supabase
+          .from("application_steps")
+          .update({ step_status: "in_progress" })
+          .eq("id", promotedId);
+
+        if (promoteError) {
+          await handleSupabaseError(promoteError.message, setError);
+          return false;
+        }
       }
     }
 
@@ -338,15 +369,14 @@ export function ApplicationStepsProvider({ children }: { children: ReactNode }) 
     // 이 steps context를 구독하는 페이지(예: Company Detail의 최상단 `if (loading) ...`
     // 로딩 게이트)가 통째로 언마운트/리마운트되어 StepDetailPanel의 로컬 state(선택된
     // 전형, overallStatus 자동 제안 다이얼로그 등)가 날아간다. moveStep과 동일하게, 이미
-    // 알고 있는 변경분(대상 전형/뒤 단계 리셋/승격된 다음 전형)만 로컬에 직접 반영한다.
-    const downstreamIds = new Set(downstreamSteps.map((s) => s.id));
+    // 알고 있는 변경분(대상 전형/정리된 다른 in_progress/승격된 다음 전형)만 로컬에 직접
+    // 반영한다.
     const clearedOtherIds = new Set(clearedOtherInProgressIds);
     setError(null);
     setSteps((prev) =>
       prev.map((s) => {
         if (s.id === id) return { ...s, stepStatus: status };
         if (s.id === promotedId) return { ...s, stepStatus: "in_progress" };
-        if (downstreamIds.has(s.id)) return { ...s, stepStatus: "waiting" };
         if (clearedOtherIds.has(s.id)) return { ...s, stepStatus: "waiting" };
         return s;
       })

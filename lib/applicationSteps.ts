@@ -115,13 +115,21 @@ export function matchDefaultStepKey(candidateText: string): DefaultStepKey | nul
   return null;
 }
 
-// application-steps-context.tsx의 updateStepStatus가 캐스케이드(뒤 단계 waiting 정리 + 다음
-// 단계 in_progress 승격)를 보장하므로, 기업당 in_progress는 항상 0개 또는 1개다.
+// application-steps-context.tsx의 updateStepStatus가 in_progress로 바뀔 때마다 기존
+// 다른 in_progress를 waiting으로 정리하므로, 기업당 in_progress는 항상 0개 또는 1개다.
+// step_order는 사용자가 자유롭게 재정렬할 수 있어 "currentStep보다 뒤는 전부 waiting"이라는
+// 보장은 없다(재정렬로 이미 확정된 passed/failed 전형이 currentStep보다 뒤에 남을 수 있다) —
+// 아래는 어디까지나 order로 정렬한 뒤 상태만으로 "현재 전형"을 고르는 규칙이다.
 // - in_progress가 있으면 그 전형이 현재 전형이다.
 // - in_progress가 없고 failed가 있으면(뒤 단계로 넘어가지 않고 멈춘 상태) 그 failed 전형이
 //   현재 전형이다.
 // - 둘 다 없으면(전부 passed) 가장 마지막 전형을 현재 전형으로 표시한다. 전형이 없으면 null.
-export function getCurrentStep(steps: ApplicationStep[]): ApplicationStep | null {
+// stepOrder/stepStatus만 있으면 계산할 수 있어 제네릭으로 뒀다 — application-steps-context의
+// updateStepStatus가 "미래 waiting" 판정에 Supabase에서 막 조회한 snake_case 행을 그대로
+// (필드명만 매핑해) 넘겨 StepDetailPanel의 isFutureWaitingStep과 완전히 같은 함수를 쓴다.
+export function getCurrentStep<T extends Pick<ApplicationStep, "stepOrder" | "stepStatus">>(
+  steps: T[]
+): T | null {
   if (steps.length === 0) return null;
   const sorted = [...steps].sort((a, b) => a.stepOrder - b.stepOrder);
   return (

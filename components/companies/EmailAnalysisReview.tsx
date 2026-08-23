@@ -472,10 +472,11 @@ export default function EmailAnalysisReview({
   }
 
   // holeConfirm 확인: 대상 전형보다 앞선 waiting 전형들을 step_order 순서대로 passed 처리한다.
-  // updateStepStatus 한 번이 "이 전형보다 뒤는 waiting으로 리셋 + 다음 waiting을 in_progress로
-  // 승격"까지 이미 처리하므로, 앞 단계를 순서대로 passed 호출만 반복하면 별도 캐스케이드 없이도
-  // 자연스럽게 대상 전형까지 승격된다. 마지막에 대상 전형을 다시 in_progress로 명시 설정해
-  // 정확히 그 전형에서 멈추게 한다(이미 승격되어 있어도 멱등이라 안전하다).
+  // updateStepStatus 한 번이 "passed로 바뀔 때 order가 더 크면서 step_status가 waiting인
+  // 가장 가까운 전형을 in_progress로 승격"까지 이미 처리하므로, 앞 단계를 순서대로 passed
+  // 호출만 반복하면 별도 캐스케이드 없이도 자연스럽게 대상 전형까지 승격된다. 마지막에 대상
+  // 전형을 다시 in_progress로 명시 설정해 정확히 그 전형에서 멈추게 한다(이미 승격되어
+  // 있어도 멱등이라 안전하다).
   async function confirmHole() {
     if (!holeConfirm) return;
     const { companyId, stepId, waitingStepIds, currentInProgressId } = holeConfirm;

@@ -11,6 +11,7 @@ import AuthHeader from "@/components/auth/AuthHeader";
 import AuthHeroPanel from "@/components/auth/AuthHeroPanel";
 import AuthPillField from "@/components/auth/AuthPillField";
 import GoogleIcon from "@/components/auth/GoogleIcon";
+import AppleIcon from "@/components/auth/AppleIcon";
 import MaterialIcon from "@/components/ui/MaterialIcon";
 
 function mapSignInError(t: (key: string) => string, message: string): string {
@@ -102,6 +103,32 @@ export default function LoginPageContent() {
     }
   }
 
+  // handleGoogleLogin과 완전히 동일한 로직 — provider만 "apple"로 바꾼다. /auth/callback은
+  // provider를 분기하지 않으므로 이 흐름도 그대로 재사용된다.
+  async function handleAppleLogin() {
+    setIsLoading(true);
+    setErrorMessage("");
+
+    const params = new URLSearchParams(window.location.search);
+    const checkoutNext = buildCheckoutNext(params.get("next"), params.get("checkout"));
+    const callbackUrl = new URL("/auth/callback", window.location.origin);
+    callbackUrl.searchParams.set("locale", locale);
+    if (checkoutNext) callbackUrl.searchParams.set("next", checkoutNext);
+
+    const supabase = createClient();
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "apple",
+      options: {
+        redirectTo: callbackUrl.toString(),
+      },
+    });
+
+    if (error) {
+      setErrorMessage(t("auth.errors.appleStartFailed"));
+      setIsLoading(false);
+    }
+  }
+
   async function handleEmailLogin(event: FormEvent) {
     event.preventDefault();
     setErrorMessage("");
@@ -158,6 +185,20 @@ export default function LoginPageContent() {
                   <GoogleIcon />
                 )}
                 <span>{isLoading ? t("auth.login.googleLoading") : t("auth.login.google")}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleAppleLogin}
+                disabled={isLoading}
+                className="flex w-full items-center justify-center gap-3 rounded-full border border-neutral-300 bg-white px-6 py-3.5 text-[15px] font-[400] text-neutral-900 transition-all duration-200 hover:bg-[#f3f4f6] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isLoading ? (
+                  <MaterialIcon name="progress_activity" size={18} className="animate-spin" />
+                ) : (
+                  <AppleIcon />
+                )}
+                <span>{isLoading ? t("auth.login.appleLoading") : t("auth.login.apple")}</span>
               </button>
 
               <div className="relative flex items-center py-2">

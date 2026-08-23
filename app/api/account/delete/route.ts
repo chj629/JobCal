@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { createClient as createBearerClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getPaddleInstance } from "@/lib/paddle/paddleClient";
@@ -24,8 +25,24 @@ const BILLABLE_STATUSES = ["active", "trialing", "past_due"];
 // 반대 순서(계정 먼저 삭제)로 하면 Paddle 구독이 계정 삭제 이후에도 계속 청구될 수
 // 있는데, 계정이 없으면 사용자가 로그인해서 Customer Portal로 직접 취소할 방법이
 // 없어진다. Paddle 취소가 하나라도 실패하면 계정 삭제 자체를 진행하지 않는다.
-export async function POST() {
-  const supabase = await createClient();
+export async function POST(request: Request) {
+  // 모바일 앱(jobcal-mobile)은 쿠키가 없으므로 Authorization: Bearer <access_token>을
+  // 대신 보낸다. lib/supabase/proxy.ts가 이 경로에만 좁게 예외를 두어 여기까지 통과시키므로,
+  // 실제 토큰 검증은 이 함수가 담당한다 — app/api/ai/analyze-email/route.ts와 동일한 패턴.
+  // anon/publishable key + 그 Authorization 헤더로 만든 클라이언트는 PostgREST/GoTrue가
+  // 헤더의 JWT로 auth.uid()를 판정하므로, 아래 paddle_subscriptions 조회/Paddle 취소/계정
+  // 삭제 로직은 어느 클라이언트가 들어오든 전혀 수정 없이 동일하게 동작한다. admin(service
+  // role) 클라이언트는 기존과 동일하게 createAdminClient()로만 별도로 만들며, 이 Bearer
+  // 클라이언트는 여기서도 anon key + RLS일 뿐이다.
+  const authHeader = request.headers.get("authorization");
+  const supabase = authHeader?.startsWith("Bearer ")
+    ? createBearerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+        { global: { headers: { Authorization: authHeader } } }
+      )
+    : await createClient();
+
   const {
     data: { user },
   } = await supabase.auth.getUser();
