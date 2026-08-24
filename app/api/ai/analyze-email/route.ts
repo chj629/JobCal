@@ -7,6 +7,7 @@ import {
   buildEmailAnalysisPrompt,
   parseEmailAnalysisResult,
 } from "@/lib/ai/emailAnalysis";
+import { DEFAULT_LOCALE, type Locale } from "@/lib/i18n/messages";
 
 export const runtime = "nodejs";
 
@@ -49,6 +50,14 @@ export async function POST(request: Request) {
   if (!user) {
     return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
   }
+
+  // 클라이언트가 body로 locale을 보내게 하지 않는다 — user_metadata.language는 signup/
+  // 로그인 시점에 이미 서버(auth/callback, SignupPageContent)가 채워두므로, 방금 조회한
+  // 이 user에서 그대로 읽으면 클라이언트를 신뢰하지 않고도 "JobCal 현재 언어"를 알 수 있다.
+  // 값이 없거나 ko/ja가 아니면 lib/locale-context.tsx의 LocaleProvider와 동일한 기본값으로
+  // 폴백한다.
+  const rawLanguage = user.user_metadata?.language;
+  const locale: Locale = rawLanguage === "ko" || rawLanguage === "ja" ? rawLanguage : DEFAULT_LOCALE;
 
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
@@ -111,7 +120,7 @@ export async function POST(request: Request) {
   }
 
   const nowIso = new Date().toISOString();
-  const { system, user: userPrompt } = buildEmailAnalysisPrompt(emailText.trim(), nowIso);
+  const { system, user: userPrompt } = buildEmailAnalysisPrompt(emailText.trim(), nowIso, locale);
 
   let completionResponse: Response;
   try {

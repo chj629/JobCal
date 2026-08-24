@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { createClient } from "@/lib/supabase/client";
-import type { Locale } from "@/lib/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@/lib/i18n/messages";
 import { translate } from "@/lib/i18n/translate";
 
 // 기존 호출부(app/(app)/settings/page.tsx 등)가 "@/lib/locale-context"에서 translate를
@@ -60,7 +60,11 @@ interface LocaleProviderProps {
   locked?: boolean;
 }
 
-export function LocaleProvider({ children, initialLocale = "ja", locked = false }: LocaleProviderProps) {
+export function LocaleProvider({
+  children,
+  initialLocale = DEFAULT_LOCALE,
+  locked = false,
+}: LocaleProviderProps) {
   // 서버 프리렌더와 클라이언트 최초 렌더를 동일하게 유지하기 위해 항상 initialLocale로
   // 시작하고(기본값 "ja", 지금까지와 동일), 실제 저장된 값은 마운트 이후에만 반영해
   // hydration mismatch를 피한다.

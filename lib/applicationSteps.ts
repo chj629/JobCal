@@ -1,4 +1,9 @@
-import { translate } from "@/lib/locale-context";
+// lib/locale-context.tsx(use client)가 아니라 순수 함수 모듈인 여기서 translate를 가져온다
+// — getDefaultStepNames가 app/api/ai/analyze-email/route.ts(서버 전용)에서도 호출되는데,
+// "use client" 모듈의 export는 서버 코드에서 호출할 수 없다(lib/i18n/translate.ts 상단 주석
+// 참고). matchDefaultStepKey처럼 클라이언트에서만 쓰이던 기존 호출부는 동일한 함수를 가져오는
+// 것이므로 동작이 바뀌지 않는다.
+import { translate } from "@/lib/i18n/translate";
 import type { Locale } from "@/lib/i18n/messages";
 
 // docs/database.md: application_steps.step_status
@@ -40,6 +45,14 @@ export const DEFAULT_STEP_KEYS = [
 ] as const;
 
 export type DefaultStepKey = (typeof DEFAULT_STEP_KEYS)[number];
+
+// lib/ai/emailAnalysis.ts가 "기본 전형과 의미가 같으면 이 이름을 그대로 쓰라"고 LLM에게
+// 안내할 때 쓰는, locale에 맞는 정규 표시명 목록. DEFAULT_STEP_NAMES(한국어 고정값, DB
+// 시드 문서화용)와 달리 매개변수로 받은 locale의 번역을 그대로 반환해, JobCal UI가 실제로
+// 보여주는 이름(getStepDisplayName)과 항상 일치한다.
+export function getDefaultStepNames(locale: Locale): string[] {
+  return DEFAULT_STEP_KEYS.map((key) => translate(locale, `applicationSteps.default.${key}`));
+}
 
 export interface ApplicationStep {
   id: string;
