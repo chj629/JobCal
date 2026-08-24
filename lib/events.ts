@@ -216,3 +216,44 @@ export function getRepresentativeEvent(events: AppEvent[]): AppEvent | null {
   past.sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
   return past[0]?.event ?? null;
 }
+
+// starts_at/due_at이 둘 다 없는 이벤트 — "날짜 미정" 일정. getNextEvent/getRepresentativeEvent가
+// 이미 날짜가 있는 이벤트만 다루는 것과 정반대 조건이라, 그 판단 기준(entry.at !== null)을
+// 그대로 뒤집어 하나로 공유한다. AI 메일 분석처럼 형식/URL/장소는 알지만 실시 일시는 아직
+// 모르는 이벤트가 여기 해당한다. Calendar/Dashboard/getNextEvent는 이 이벤트를 계속 제외해야
+// 하므로(정상 일정처럼 취급하면 안 됨) 그 필터들은 건드리지 않는다.
+export function isUndatedEvent(event: Pick<AppEvent, "startsAt" | "dueAt">): boolean {
+  return event.startsAt === null && event.dueAt === null;
+}
+
+// 한 전형에 날짜 미정 이벤트가 여러 개 쌓이는 경우는 드물다(수동 등록은 EventForm이 날짜를
+// 필수로 요구해 애초에 만들 수 없고, AI 등록도 같은 전형·타입·제목의 날짜 미정 이벤트가 이미
+// 있으면 EmailAnalysisReview가 새로 만들지 않고 그 이벤트를 채운다) — 있더라도 대표로 하나만
+// 보여주면 충분하므로 첫 번째 항목을 쓴다.
+export function getUndatedEvent(events: AppEvent[]): AppEvent | null {
+  return events.find(isUndatedEvent) ?? null;
+}
+
+// formEventTimeIso(EventFormValues용)의 AppEvent 버전. EmailAnalysisReview가 "이미 저장된
+// 이벤트와 이번에 새로 추출된 이벤트가 같은 일시를 가리키는지"를 비교할 때 양쪽에 동일한
+// 규칙을 적용하기 위해 쓴다.
+export function eventTimeIso(event: Pick<AppEvent, "eventType" | "startsAt" | "dueAt">): string | null {
+  const raw = event.eventType === "schedule" ? event.startsAt : event.dueAt;
+  return raw ? new Date(raw).toISOString() : null;
+}
+
+// 날짜 미정 이벤트에 새 분석 결과의 날짜가 확인됐을 때(EmailAnalysisReview) 새로 만들지 않고
+// 기존 이벤트를 채우는 용도. 날짜/제목/타입 등은 incoming(새 분석 결과)을 그대로 쓰되,
+// location/onlineUrl/memo는 이번에 비어 있으면(AI가 이번엔 못 뽑았거나 원래 없었으면) 기존
+// 이벤트에 있던 값을 그대로 보존해, 이전에 확인된 정보가 날짜 확정 과정에서 사라지지 않게 한다.
+export function mergeEventFormValues(
+  existing: AppEvent,
+  incoming: EventFormValues
+): EventFormValues {
+  return {
+    ...incoming,
+    location: incoming.location.trim() ? incoming.location : (existing.location ?? ""),
+    onlineUrl: incoming.onlineUrl.trim() ? incoming.onlineUrl : (existing.onlineUrl ?? ""),
+    memo: incoming.memo.trim() ? incoming.memo : (existing.memo ?? ""),
+  };
+}

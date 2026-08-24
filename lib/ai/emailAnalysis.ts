@@ -105,12 +105,14 @@ export function buildEmailAnalysisPrompt(emailText: string, nowIso: string) {
 
 - companyName: 발신 기업명. 알 수 없으면 null.
 - stepName: 이 이메일과 관련된 전형 단계 이름. 다음 기본 전형 중 의미가 같은 것이 있으면 그 이름을 그대로 사용하세요: ${stepNameList}. 해당하지 않으면 이메일 내용에 맞는 새 이름을 만드세요. 알 수 없으면 null.
-- resultOption: 이 전형 단계의 결과 상태. 다음 중 하나를 반드시 선택하세요.
-  - "passed": 합격/통과했다는 표현이 명확히 있는 경우 (예: 合格, 通過, 次の選考へ, 次回選考のご案内, 합격, 통과, 다음 전형).
-  - "failed": 불합격/탈락했다는 표현이 명확히 있는 경우 (예: 不合格, 見送り, 選考終了, 採用を見送る, 불합격, 탈락, 전형 종료).
+  이메일 하나에 "이전 단계의 결과"와 "다음 단계 안내"가 함께 나오는 경우가 많습니다(예: "論理的思考力チェックのご通過、おめでとうございます。次の選考としてAI一次面接をご案内します."). 이런 경우 stepName은 이전에 끝난 단계가 아니라, 이번에 새로 안내된(사용자가 이제 준비해야 할) 다음 단계 이름으로 정하세요.
+- resultOption: stepName으로 고른 바로 그 전형 단계 자체의 결과 상태입니다. 이메일에 있는 다른 단계의 결과를 stepName의 결과로 옮겨오면 안 됩니다. 다음 중 하나를 반드시 선택하세요.
+  - "passed": stepName 단계 자체에 대해 합격/통과했다는 표현이 명확히 있는 경우 (예: 合格, 通過, 합격, 통과).
+  - "failed": stepName 단계 자체에 대해 불합격/탈락했다는 표현이 명확히 있는 경우 (예: 不合格, 見送り, 選考終了, 採用を見送る, 불합격, 탈락, 전형 종료).
   - "withdrawn": 지원자 본인이 지원을 스스로 취소·사퇴한다는 내용인 경우.
-  - "inProgress": 위 세 가지에 해당하는 명확한 표현이 없는 경우(단순 안내, 일정 통보, 결과 대기 등). 애매하면 반드시 이 값을 사용하세요.
-  이메일에 합격/불합격 결과가 명확한 문장으로 적혀 있으면 절대 "inProgress"로 두지 말고 반드시 "passed" 또는 "failed"로 판단하세요. 단, "결과", "면접", "선고/選考" 같은 단어가 있다는 것만으로는 판단하지 말고, 실제로 결과를 알리는 문장이 있을 때만 판단하세요.
+  - "inProgress": 위 세 가지에 해당하는 명확한 표현이 stepName 단계 자체에 대해 없는 경우(단순 안내, 일정 통보, 결과 대기, 아직 실시되지 않은 다음 단계 안내 등). 애매하면 반드시 이 값을 사용하세요.
+  이메일에 합격/불합격 결과가 명확한 문장으로 적혀 있으면 절대 "inProgress"로 두지 말고 반드시 "passed" 또는 "failed"로 판단하세요. 단, "결과", "면접", "선고/選考" 같은 단어가 있다는 것만으로는 판단하지 말고, 실제로 결과를 알리는 문장이 있을 때만, 그리고 그 문장이 가리키는 단계가 stepName과 같은 단계일 때만 판단하세요.
+  특히 "次の選考", "次回選考", "ご案内", "お進みいただく", "面接をご案内" 등으로 소개되는 전형은 아직 실시되지 않은 미래 단계입니다. 이 표현과 함께 언급된 전형이 stepName이라면, 그 전형 앞에 다른 단계의 합격/통과 표현이 있더라도 그것은 그 다른(이전) 단계의 결과이지 stepName의 결과가 아니므로, stepName의 resultOption은 "inProgress"로 판단하세요. 단순 단어 매칭이 아니라 어떤 결과 표현이 어떤 단계를 가리키는지 문장 관계로 판단하세요.
 - events: 이 이메일에 포함된 일정을 모두 배열로 추출하세요. 각 항목은 다음 중 하나의 eventType을 가집니다.
   - "schedule": 설명회, 면접 등 특정 일시에 진행되는 일정. startsAt을 채우고, 알 수 있으면 endsAt/location/onlineUrl도 채우세요.
   - "deadline": ES 제출, 응시 마감 등. dueAt을 채우고, 제출 링크가 있으면 onlineUrl도 채우세요.
@@ -127,13 +129,35 @@ export function buildEmailAnalysisPrompt(emailText: string, nowIso: string) {
   return { system, user };
 }
 
-// LLM이 명확한 합격/불합격 문구가 있는데도 종종 "inProgress"를 반환하는 문제를 보정하기 위한
+// LLM이 명확한 불합격 문구가 있는데도 종종 "inProgress"를 반환하는 문제를 보정하기 위한
 // 결정적(deterministic) 후처리. "結果"・"面接"・"選考" 같은 일반 단어만으로는 판정하지 않고,
-// 실제로 결과를 알리는 표현이 이메일 원문에 있을 때만 적용한다. 한 쪽 표현만 있으면 그 결과로
-// 덮어쓰고, 양쪽이 다 있거나 둘 다 없으면(애매하면) LLM이 반환한 값을 그대로 유지한다.
+// 실제로 결과를 알리는 표현이 이메일 원문에 있을 때만 적용한다.
 // withdrawn은 이 후처리의 대상이 아니다(LLM이 withdrawn으로 판단했으면 그대로 둔다).
-const PASSED_KEYWORDS = ["合格", "通過", "次の選考へ", "次回選考のご案内", "합격", "통과", "다음 전형"];
-const FAILED_KEYWORDS = ["不合格", "見送り", "選考終了", "採用を見送る", "불합격", "탈락", "전형 종료"];
+// "passed"는 여기서 결정적으로 강제하지 않는다 — 일본 취업 메일은 "이전 단계 통과 + 다음
+// 단계 안내"가 한 이메일에 같이 오는 경우가 매우 흔하고, 그 안내 표현은 "ご参加ください",
+// "受けていただきます", "日程を調整させていただきます", "次回は〜です" 등 사실상 무한히
+// 다양해 특정 문구 목록으로는 일반화할 수 없다. 이메일 어딘가에 合格/通過가 있다는 이유만으로
+// stepName(이번 메일에서 새로 안내된 단계일 수 있다)을 passed로 만들면 안 되므로, passed
+// 판단은 buildEmailAnalysisPrompt의 관계 기반 지시를 따르는 LLM에게 전적으로 맡긴다.
+// 반면 불합격은 그 전형에서 절차가 종료되는 것이라 같은 이메일에 "다음 단계 안내"가 함께
+// 오는 경우가 사실상 없어, 키워드만으로 결정적으로 보정해도 안전하다.
+const PASSED_KEYWORDS = ["合格", "通過", "합격", "통과"];
+// "見送り"(명사형)만으로는 "見送らせていただきます"・"見送らせていただくこととなりました"
+// 같은 활용형을 놓친다. 見送る/見送り/見送ら/見送って/見送られ 등 모든 활용형이 공통으로
+// 갖는 어간 "見送"만 검사해 활용형 전체를 하드코딩 없이 포괄한다("採用を見送る"도 이 어간에
+// 포함되므로 별도 항목이 필요 없다).
+const FAILED_KEYWORDS = ["不合格", "見送", "選考終了", "불합격", "탈락", "전형 종료"];
+
+// "不合格/불합격"은 PASSED_KEYWORDS의 "合格/합격"을 부분 문자열로 포함하므로, 뒤 검사에서
+// 아래처럼 단순 includes로 both 매치시키면 정작 가장 명확해야 할 불합격 케이스에서
+// hasPassedKeyword도 true가 되어 강제 보정이 무력화된다. 不/불 부정 접두사가 바로 앞에
+// 붙은 경우는 합격 키워드로 세지 않는다.
+function hasPassedKeyword(emailText: string): boolean {
+  return PASSED_KEYWORDS.some((keyword) => {
+    const escaped = keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return new RegExp(`(?<![不불])${escaped}`).test(emailText);
+  });
+}
 
 function resolveResultOption(
   llmValue: EmailAnalysisResultOption,
@@ -141,11 +165,9 @@ function resolveResultOption(
 ): EmailAnalysisResultOption {
   if (llmValue === "withdrawn") return llmValue;
 
-  const hasPassedKeyword = PASSED_KEYWORDS.some((keyword) => emailText.includes(keyword));
   const hasFailedKeyword = FAILED_KEYWORDS.some((keyword) => emailText.includes(keyword));
 
-  if (hasPassedKeyword && !hasFailedKeyword) return "passed";
-  if (hasFailedKeyword && !hasPassedKeyword) return "failed";
+  if (hasFailedKeyword && !hasPassedKeyword(emailText)) return "failed";
   return llmValue;
 }
 

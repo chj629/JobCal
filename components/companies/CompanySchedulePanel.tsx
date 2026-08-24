@@ -7,6 +7,7 @@ import { useEvents } from "@/lib/events-context";
 import {
   createEmptyEventFormValues,
   eventToFormValues,
+  isUndatedEvent,
   type AppEvent,
 } from "@/lib/events";
 import { formatTimeOfDay } from "@/lib/date";
@@ -46,11 +47,18 @@ export default function CompanySchedulePanel({ companyId }: CompanySchedulePanel
     .sort((a, b) => a.stepOrder - b.stepOrder);
   const currentStep = getCurrentStep(companySteps);
 
-  const rows = events
-    .filter((event) => event.companyId === companyId)
+  const companyEvents = events.filter((event) => event.companyId === companyId);
+
+  const rows = companyEvents
     .map((event) => ({ event, at: event.startsAt ?? event.dueAt }))
     .filter((row): row is { event: AppEvent; at: string } => row.at !== null)
     .sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
+
+  // AI 메일 분석처럼 형식/URL/장소는 알지만 실시 일시는 아직 모르는 이벤트. 날짜 기준으로
+  // 정렬하는 위 rows에는 낄 자리가 없어(Calendar/Dashboard와 동일하게 날짜 없는 이벤트는
+  // 계속 제외한다) 별도 섹션으로 보여준다 — 숨기면 사용자가 저장된 URL/장소를 확인할 방법이
+  // 없어진다.
+  const undatedRows = companyEvents.filter(isUndatedEvent);
 
   function formatDate(iso: string) {
     const date = new Date(iso);
@@ -90,61 +98,112 @@ export default function CompanySchedulePanel({ companyId }: CompanySchedulePanel
         )}
       </div>
 
-      {rows.length === 0 ? (
+      {rows.length === 0 && undatedRows.length === 0 ? (
         <EmptyState icon="schedule" title={t("companies.detail.schedulePanel.empty")} />
       ) : (
-        <div className="space-y-1">
-          {rows.map(({ event, at }, index) => (
-            <div
-              key={event.id}
-              className="group -mx-2 flex items-start gap-3 rounded-stitch-xl px-2 py-1.5 transition-colors hover:bg-black/[0.015]"
-            >
-              <div className="flex w-10 shrink-0 flex-col items-end pt-0.5">
-                <p className="text-[12px] font-[400] leading-none tracking-tight text-stitch-ink">
-                  {formatDate(at)}
-                </p>
-                <p className="mt-1 text-[11px] leading-none tracking-tight text-secondary">
-                  {formatTimeOfDay(at)}
-                </p>
-              </div>
-              <div
-                className={
-                  "flex min-w-0 flex-1 flex-col gap-0.5 border-l-[3px] py-0.5 pl-3 " +
-                  (index === 0 ? "border-primary-navy" : "border-stitch-border")
-                }
-              >
-                <div className="relative flex items-center gap-1">
-                  <p className="min-w-0 flex-1 truncate text-[13px] font-[400] leading-tight text-stitch-ink">
-                    {event.title}
-                  </p>
-                  {/* md 이상에서는 이 버튼들이 opacity-0으로 평소엔 안 보이는데도 flex 자식으로
-                      계속 자리(약 60px)를 차지해 title의 truncate 가용폭을 불필요하게 줄이고
-                      있었다. md 이상에서만 absolute로 빼서 평소엔 title이 행 전체 폭을 쓰고,
-                      hover 시에만 원래 위치(우측 끝, 세로 중앙)에 겹쳐 나타나게 한다. 모바일은
-                      기존처럼 항상 보이는 in-flow 배치를 그대로 유지한다. */}
-                  <div className="flex shrink-0 gap-1 opacity-100 transition-opacity md:absolute md:top-1/2 md:right-0 md:-translate-y-1/2 md:opacity-0 md:group-hover:opacity-100">
-                    <button
-                      type="button"
-                      onClick={() => setEventFormState({ event })}
-                      className="rounded-stitch-md border border-stitch-border bg-white p-1.5 text-secondary shadow-sm hover:bg-[#f8f9ff]"
-                      aria-label={t("common.edit")}
-                    >
-                      <MaterialIcon name="edit" size={14} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setDeleteTarget(event)}
-                      className="rounded-stitch-md border border-stitch-border bg-white p-1.5 text-secondary shadow-sm hover:bg-[#f8f9ff] hover:text-error"
-                      aria-label={t("common.delete")}
-                    >
-                      <MaterialIcon name="delete" size={14} />
-                    </button>
+        <>
+          {rows.length > 0 && (
+            <div className="space-y-1">
+              {rows.map(({ event, at }, index) => (
+                <div
+                  key={event.id}
+                  className="group -mx-2 flex items-start gap-3 rounded-stitch-xl px-2 py-1.5 transition-colors hover:bg-black/[0.015]"
+                >
+                  <div className="flex w-10 shrink-0 flex-col items-end pt-0.5">
+                    <p className="text-[12px] font-[400] leading-none tracking-tight text-stitch-ink">
+                      {formatDate(at)}
+                    </p>
+                    <p className="mt-1 text-[11px] leading-none tracking-tight text-secondary">
+                      {formatTimeOfDay(at)}
+                    </p>
+                  </div>
+                  <div
+                    className={
+                      "flex min-w-0 flex-1 flex-col gap-0.5 border-l-[3px] py-0.5 pl-3 " +
+                      (index === 0 ? "border-primary-navy" : "border-stitch-border")
+                    }
+                  >
+                    <div className="relative flex items-center gap-1">
+                      <p className="min-w-0 flex-1 truncate text-[13px] font-[400] leading-tight text-stitch-ink">
+                        {event.title}
+                      </p>
+                      {/* md 이상에서는 이 버튼들이 opacity-0으로 평소엔 안 보이는데도 flex 자식으로
+                          계속 자리(약 60px)를 차지해 title의 truncate 가용폭을 불필요하게 줄이고
+                          있었다. md 이상에서만 absolute로 빼서 평소엔 title이 행 전체 폭을 쓰고,
+                          hover 시에만 원래 위치(우측 끝, 세로 중앙)에 겹쳐 나타나게 한다. 모바일은
+                          기존처럼 항상 보이는 in-flow 배치를 그대로 유지한다. */}
+                      <div className="flex shrink-0 gap-1 opacity-100 transition-opacity md:absolute md:top-1/2 md:right-0 md:-translate-y-1/2 md:opacity-0 md:group-hover:opacity-100">
+                        <button
+                          type="button"
+                          onClick={() => setEventFormState({ event })}
+                          className="rounded-stitch-md border border-stitch-border bg-white p-1.5 text-secondary shadow-sm hover:bg-[#f8f9ff]"
+                          aria-label={t("common.edit")}
+                        >
+                          <MaterialIcon name="edit" size={14} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDeleteTarget(event)}
+                          className="rounded-stitch-md border border-stitch-border bg-white p-1.5 text-secondary shadow-sm hover:bg-[#f8f9ff] hover:text-error"
+                          aria-label={t("common.delete")}
+                        >
+                          <MaterialIcon name="delete" size={14} />
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
+              ))}
             </div>
-          ))}
-        </div>
+          )}
+
+          {/* 날짜 미정 이벤트 섹션. 날짜가 있는 목록과 시각적으로 구분되도록 날짜 칸 자리에
+              "날짜 미정" 라벨만 표시하고, 정렬 강조(border-primary-navy)는 적용하지 않는다 —
+              날짜가 없어 "가장 가까운 일정"이라는 개념 자체가 성립하지 않기 때문이다. 수정/삭제는
+              위 목록과 동일한 EventForm/삭제 확인을 그대로 재사용해, onlineUrl/location도 같은
+              방식(편집 진입)으로 확인할 수 있다. */}
+          {undatedRows.length > 0 && (
+            <div className={rows.length > 0 ? "mt-4 space-y-1 border-t border-stitch-border pt-4" : "space-y-1"}>
+              {undatedRows.map((event) => (
+                <div
+                  key={event.id}
+                  className="group -mx-2 flex items-start gap-3 rounded-stitch-xl px-2 py-1.5 transition-colors hover:bg-black/[0.015]"
+                >
+                  <div className="flex w-10 shrink-0 flex-col items-end pt-0.5">
+                    <p className="text-[11px] font-[400] leading-none tracking-tight text-secondary">
+                      {t("companies.detail.schedulePanel.dateUndecided")}
+                    </p>
+                  </div>
+                  <div className="flex min-w-0 flex-1 flex-col gap-0.5 border-l-[3px] border-stitch-border py-0.5 pl-3">
+                    <div className="relative flex items-center gap-1">
+                      <p className="min-w-0 flex-1 truncate text-[13px] font-[400] leading-tight text-stitch-ink">
+                        {event.title}
+                      </p>
+                      <div className="flex shrink-0 gap-1 opacity-100 transition-opacity md:absolute md:top-1/2 md:right-0 md:-translate-y-1/2 md:opacity-0 md:group-hover:opacity-100">
+                        <button
+                          type="button"
+                          onClick={() => setEventFormState({ event })}
+                          className="rounded-stitch-md border border-stitch-border bg-white p-1.5 text-secondary shadow-sm hover:bg-[#f8f9ff]"
+                          aria-label={t("common.edit")}
+                        >
+                          <MaterialIcon name="edit" size={14} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDeleteTarget(event)}
+                          className="rounded-stitch-md border border-stitch-border bg-white p-1.5 text-secondary shadow-sm hover:bg-[#f8f9ff] hover:text-error"
+                          aria-label={t("common.delete")}
+                        >
+                          <MaterialIcon name="delete" size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
       )}
 
       {isSelectingStep && (

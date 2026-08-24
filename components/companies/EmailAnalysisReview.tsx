@@ -28,7 +28,9 @@ import {
   applyExplicitEventFormat,
   createEmptyEventFormValues,
   deriveEventFormat,
+  eventTimeIso,
   isoToDatetimeLocal,
+  mergeEventFormValues,
   type EventFormat,
   type EventFormValues,
   type EventType,
@@ -129,7 +131,9 @@ export default function EmailAnalysisReview({
   const { showToast } = useToast();
   const { addCompany, updateCompany } = useCompanies();
   const { steps, addStep, updateStepStatus, refresh: refreshSteps } = useApplicationSteps();
-  const { events: existingEvents, addEvent } = useEvents();
+  // updateEvent라는 이름은 이미 아래 로컬 함수(폼 배열의 index를 갱신)가 쓰고 있어, DB
+  // 갱신용은 다른 이름으로 구분한다.
+  const { events: existingEvents, addEvent, updateEvent: updateEventRecord } = useEvents();
   const { contacts: existingContacts, addContact } = useCompanyContacts();
   const { addNote } = useCompanyNotes();
 
@@ -295,23 +299,35 @@ export default function EmailAnalysisReview({
     // 같은 메일을 같은 기업에 다시 저장하는 경우(전형/타입/제목/시각이 기존 일정과 완전히
     // 같은 경우)도 중복 생성하지 않도록, 저장 전에 기존 일정과 정확히 일치하는지 확인한다.
     // 하나라도 다르면(예: AI가 제목을 조금 다르게 뽑은 경우) 별개의 새 일정으로 저장한다.
+    //
+    // 전형/타입/제목이 같은데 기존 쪽만 날짜 미정(existingTimeIso === null)이고 이번에는
+    // 날짜가 확인된 경우(toSaveTimeIso !== null)는 "완전히 같음"도 "완전히 다름"도 아니다 —
+    // 같은 일정에 날짜가 뒤늦게 확정된 것으로 보고 새로 만들지 않고 그 이벤트를 채운다
+    // (mergeEventFormValues로 기존 location/onlineUrl/memo도 이번 결과가 비어 있으면 보존).
+    // 그 외 경우(둘 다 날짜 미정 → existingTimeIso와 toSaveTimeIso 둘 다 null이라 이미 위
+    // "완전히 같음"에서 걸러짐, 또는 날짜가 서로 다름)는 기존 로직 그대로 새 일정으로 저장한다.
     for (let i = savedEventCount; i < eventsToSave.length; i++) {
       const toSave = eventsToSave[i];
       const toSaveTimeIso = formEventTimeIso(toSave);
-      const alreadyExists = existingEvents.some((existing) => {
+      const sameSlot = existingEvents.find((existing) => {
         if (existing.companyId !== companyId) return false;
         if (existing.applicationStepId !== stepId) return false;
         if (existing.eventType !== toSave.eventType) return false;
         if (existing.title.trim() !== toSave.title.trim()) return false;
-        // existing 쪽 시각은 DB에서 "+00:00" 형식으로 오고 toSaveTimeIso는
-        // Date.toISOString()이라 "Z" 형식이라, 같은 시각이어도 문자열이 달라 항상
-        // false가 되는 문제가 있었다. 양쪽 다 toISOString()으로 정규화해 비교한다.
-        const existingRaw = existing.eventType === "schedule" ? existing.startsAt : existing.dueAt;
-        const existingTimeIso = existingRaw ? new Date(existingRaw).toISOString() : null;
-        return existingTimeIso === toSaveTimeIso;
+        return true;
       });
+      const existingTimeIso = sameSlot ? eventTimeIso(sameSlot) : null;
 
-      if (!alreadyExists) {
+      if (sameSlot && existingTimeIso === toSaveTimeIso) {
+        // 완전히 동일한 일정(날짜까지 같거나, 둘 다 날짜 미정) — 아무 것도 하지 않는다.
+      } else if (sameSlot && existingTimeIso === null && toSaveTimeIso !== null) {
+        const ok = await updateEventRecord(sameSlot.id, mergeEventFormValues(sameSlot, toSave));
+        if (!ok) {
+          setSaveError(t("aiEmail.review.eventSaveFailed"));
+          setSaving(false);
+          return;
+        }
+      } else {
         const ok = await addEvent(companyId, stepId!, toSave);
         if (!ok) {
           setSaveError(t("aiEmail.review.eventSaveFailed"));

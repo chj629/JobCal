@@ -16,6 +16,7 @@ import {
   deriveEventFormat,
   eventToFormValues,
   getRepresentativeEvent,
+  getUndatedEvent,
   type EventFormat,
 } from "@/lib/events";
 import { formatTimeOfDay } from "@/lib/date";
@@ -134,11 +135,24 @@ export default function StepDetailPanel({ companyId, selectedStepId }: StepDetai
   const stepEvents = events.filter((event) => event.applicationStepId === step.id);
   const primaryEvent = getRepresentativeEvent(stepEvents);
   const primaryEventAt = primaryEvent ? (primaryEvent.startsAt ?? primaryEvent.dueAt) : null;
-  const otherEventsCount = stepEvents.length - (primaryEvent ? 1 : 0);
+  // 날짜 미정 이벤트(형식/URL/장소는 알지만 실시 일시를 아직 모르는 이벤트, lib/events.ts의
+  // isUndatedEvent 참고)는 primaryEvent(날짜가 있는 대표 일정)가 이미 있으면 굳이 이 패널에
+  // 함께 보여줄 필요가 없다 — 날짜가 있는 진짜 일정이 항상 우선이고, 그 외의 것은 아래
+  // otherEventsCount로만 안내한다(전체 확인은 CompanySchedulePanel의 "날짜 미정" 섹션에서).
+  // primaryEvent가 없을 때만 이 이벤트가 "형식/일시" 표시를 대신한다.
+  const undatedEvent = primaryEvent ? null : getUndatedEvent(stepEvents);
+  // "형식(온라인/대면/URL)" 표시·편집은 날짜 유무와 무관하게 같은 규칙을 쓴다 — primaryEvent가
+  // 없어도 날짜 미정 이벤트가 이미 형식/URL을 갖고 있으면 그것을 그대로 쓴다.
+  const formatSourceEvent = primaryEvent ?? undatedEvent;
+  // 이 패널이 실제로 보여주는 이벤트(대표 일정 또는 날짜 미정 이벤트) 개수를 뺀 나머지만
+  // "그 외 N개"로 안내한다 — 그래야 안내된 개수만큼 실제로 어딘가(이 패널 또는
+  // CompanySchedulePanel)에서 확인할 수 있다.
+  const shownEventCount = (primaryEvent ? 1 : 0) + (undatedEvent ? 1 : 0);
+  const otherEventsCount = stepEvents.length - shownEventCount;
   // deadline/result_announcement는 dueAt 하나만 쓰고 endsAt 자체가 없는 타입이라(lib/events.ts
   // eventFormValuesToRow 참고) 종료시간 UI를 아예 보여주지 않는다. 아직 이벤트가 없는
-  // 전형(primaryEvent === null)은 confirmDateTime이 항상 schedule 타입으로 새로 만들므로 지원한다.
-  const supportsEndTime = !primaryEvent || primaryEvent.eventType === "schedule";
+  // 전형(formatSourceEvent === null)은 confirmDateTime이 항상 schedule 타입으로 새로 만들므로 지원한다.
+  const supportsEndTime = !formatSourceEvent || formatSourceEvent.eventType === "schedule";
 
   function startRename() {
     skipRenameBlurRef.current = false;
@@ -240,6 +254,18 @@ export default function StepDetailPanel({ companyId, selectedStepId }: StepDetai
         values.dueAt = dateTimeDraft;
       }
       await updateEvent(primaryEvent.id, values);
+    } else if (undatedEvent) {
+      // 이미 형식/URL/장소는 아는 날짜 미정 이벤트가 있으면 새 이벤트를 만들지 않고 그
+      // 이벤트에 날짜만 채운다 — EmailAnalysisReview의 날짜 미정→확정 병합과 같은 원칙
+      // (기존 정보를 보존하면서 중복 생성을 피한다).
+      const values = eventToFormValues(undatedEvent);
+      if (undatedEvent.eventType === "schedule") {
+        values.startsAt = dateTimeDraft;
+        values.endsAt = endsAtDraft;
+      } else {
+        values.dueAt = dateTimeDraft;
+      }
+      await updateEvent(undatedEvent.id, values);
     } else {
       // 실제 일시가 입력된 지금이 이벤트를 만드는 유일한 시점이다. 그 전에 형식만 먼저
       // 골라뒀다면(pendingFormat) 여기서 함께 반영한다.
@@ -266,8 +292,8 @@ export default function StepDetailPanel({ companyId, selectedStepId }: StepDetai
   function startEditFormat() {
     skipFormatBlurRef.current = false;
     formatTouchedRef.current = false;
-    if (primaryEvent) {
-      const values = eventToFormValues(primaryEvent);
+    if (formatSourceEvent) {
+      const values = eventToFormValues(formatSourceEvent);
       const choice = deriveEventFormat(values);
       setFormatChoiceDraft(choice);
       setFormatValueDraft(choice === "online" ? values.onlineUrl : choice === "offline" ? values.location : "");
@@ -291,22 +317,22 @@ export default function StepDetailPanel({ companyId, selectedStepId }: StepDetai
     formatTouchedRef.current = true;
     setFormatChoiceDraft(newChoice);
 
-    if (!primaryEvent) {
+    if (!formatSourceEvent) {
       setFormatValueDraft("");
       setPendingFormat({ stepId: step!.id, choice: newChoice, value: "" });
       return;
     }
 
     if (newChoice === "undecided") {
-      const values = applyExplicitEventFormat(eventToFormValues(primaryEvent), "undecided", "");
+      const values = applyExplicitEventFormat(eventToFormValues(formatSourceEvent), "undecided", "");
       setFormatValueDraft("");
-      await updateEvent(primaryEvent.id, values);
+      await updateEvent(formatSourceEvent.id, values);
       setIsEditingFormat(false);
       return;
     }
 
     setFormatValueDraft(
-      newChoice === "online" ? (primaryEvent.onlineUrl ?? "") : (primaryEvent.location ?? "")
+      newChoice === "online" ? (formatSourceEvent.onlineUrl ?? "") : (formatSourceEvent.location ?? "")
     );
   }
 
@@ -322,15 +348,18 @@ export default function StepDetailPanel({ companyId, selectedStepId }: StepDetai
       setIsEditingFormat(false);
       return;
     }
-    if (primaryEvent) {
+    if (formatSourceEvent) {
+      // primaryEvent(날짜 있음)든 undatedEvent(날짜 미정)든 이미 존재하는 이벤트를 그대로
+      // updateEvent하면 된다 — 날짜 필드는 건드리지 않으므로(eventToFormValues가 그대로
+      // 옮겨온 startsAt/dueAt을 유지) undatedEvent는 형식만 바뀌고 계속 날짜 미정으로 남는다.
       const values = applyExplicitEventFormat(
-        eventToFormValues(primaryEvent),
+        eventToFormValues(formatSourceEvent),
         formatChoiceDraft,
         formatValueDraft
       );
-      await updateEvent(primaryEvent.id, values);
+      await updateEvent(formatSourceEvent.id, values);
     } else {
-      // 일정이 아직 없는 상태에서 형식만 저장하면 실제 일정이 아닌데도 이벤트가 생겨
+      // 일정이 전혀 없는 상태에서 형식만 저장하면 실제 일정이 아닌데도 이벤트가 생겨
       // Calendar/Dashboard/Analytics에 가짜 일정으로 노출된다. DB에는 쓰지 않고 로컬
       // state에만 담아둔다 — 실제 일시가 입력되어 이벤트가 만들어질 때(confirmDateTime)
       // 함께 반영된다.
@@ -559,7 +588,9 @@ export default function StepDetailPanel({ companyId, selectedStepId }: StepDetai
             >
               {primaryEvent && primaryEventAt
                 ? formatDateTime(primaryEventAt, primaryEvent.endsAt)
-                : t("companies.detail.selectionDetail.noDateSet")}
+                : undatedEvent
+                  ? t("companies.detail.selectionDetail.dateUndecided")
+                  : t("companies.detail.selectionDetail.noDateSet")}
             </button>
           )}
         </div>
@@ -622,10 +653,10 @@ export default function StepDetailPanel({ companyId, selectedStepId }: StepDetai
                 onClick={startEditFormat}
                 className="-mx-1.5 -my-0.5 rounded-stitch-md border border-transparent bg-[#f8f9ff] px-1.5 py-0.5 text-left text-[13px] font-[400] text-stitch-ink transition-colors hover:border-stitch-border"
               >
-                {primaryEvent
-                  ? primaryEvent.onlineUrl
+                {formatSourceEvent
+                  ? formatSourceEvent.onlineUrl
                     ? t("companies.detail.selectionDetail.online")
-                    : (primaryEvent.location ?? t("companies.detail.selectionDetail.noDateSet"))
+                    : (formatSourceEvent.location ?? t("companies.detail.selectionDetail.noDateSet"))
                   : activePendingFormat?.choice === "online"
                     ? t("companies.detail.selectionDetail.online")
                     : activePendingFormat?.choice === "offline"
@@ -635,16 +666,16 @@ export default function StepDetailPanel({ companyId, selectedStepId }: StepDetai
               {/* 형식 버튼(클릭 시 인라인 편집 진입)과 같은 줄에 별도 링크로 둔다 — <a>를
                   버튼 안에 중첩하면 안 되고(무효한 HTML), stopPropagation으로 편집 진입 클릭과
                   분리해야 링크 클릭이 startEditFormat을 함께 트리거하지 않는다. */}
-              {primaryEvent?.onlineUrl && (
+              {formatSourceEvent?.onlineUrl && (
                 <a
-                  href={primaryEvent.onlineUrl}
+                  href={formatSourceEvent.onlineUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={(e) => e.stopPropagation()}
                   className="inline-flex items-center gap-0.5 text-[12px] font-[400] text-primary-navy hover:underline"
                 >
                   {t(
-                    `companies.detail.selectionDetail.meetingLink.${getMeetingLinkKey(primaryEvent.onlineUrl)}`
+                    `companies.detail.selectionDetail.meetingLink.${getMeetingLinkKey(formatSourceEvent.onlineUrl)}`
                   )}
                   <MaterialIcon name="open_in_new" size={13} />
                 </a>

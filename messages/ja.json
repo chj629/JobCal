@@ -793,7 +793,8 @@
       "schedulePanel": {
         "title": "スケジュール",
         "empty": "登録された予定がありません。",
-        "dDay": "あと{days}日"
+        "dDay": "あと{days}日",
+        "dateUndecided": "日時未定"
       },
       "priorityPrefix": "優先度：",
       "selectionDetail": {
@@ -802,6 +803,7 @@
         "addEndTime": "終了時間",
         "format": "形式",
         "noDateSet": "未定",
+        "dateUndecided": "日時未定",
         "online": "オンライン形式",
         "offline": "対面",
         "meetingLink": {

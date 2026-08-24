@@ -793,7 +793,8 @@
       "schedulePanel": {
         "title": "일정",
         "empty": "등록된 일정이 없습니다.",
-        "dDay": "{days}일 후"
+        "dDay": "{days}일 후",
+        "dateUndecided": "날짜 미정"
       },
       "priorityPrefix": "우선도: ",
       "selectionDetail": {
@@ -802,6 +803,7 @@
         "addEndTime": "종료 시간",
         "format": "형식",
         "noDateSet": "미정",
+        "dateUndecided": "날짜 미정",
         "online": "온라인 형식",
         "offline": "대면",
         "meetingLink": {
