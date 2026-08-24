@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { isAuthRetryableFetchError } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import { useHandleSupabaseError } from "@/lib/supabase/errorHandling";
 import {
@@ -61,7 +62,25 @@ export function CompanyNotesProvider({ children }: { children: ReactNode }) {
 
     const {
       data: { user },
+      error: getUserError,
     } = await supabase.auth.getUser();
+
+    // getUser()는 "진짜 로그아웃/세션 무효"와 "Supabase Auth API에 순간적으로 접근하지
+    // 못한 것뿐인 retryable 오류"를 둘 다 user: null로 반환한다(lib/supabase/proxy.ts와
+    // 동일한 이유) — retryable이면 실제로 로그아웃된 게 아니므로 currentUserIdRef/
+    // userId/notes를 전혀 건드리지 않고 loading만 정리한다. 화면에 이미 있던 정상
+    // 데이터를 일시적 오류로 비우지 않기 위함이며, 인증 성공으로 간주하는 것도
+    // 아니다 — 다음 정상 호출에서 다시 검증된다.
+    if (!user && getUserError && isAuthRetryableFetchError(getUserError)) {
+      if (process.env.NODE_ENV === "development") {
+        console.warn(
+          "[auth] getUser() 확인이 일시적으로 실패해(retryable) 기존 notes를 유지합니다.",
+          { errorName: getUserError.name }
+        );
+      }
+      setLoading(false);
+      return;
+    }
 
     currentUserIdRef.current = user?.id ?? null;
 

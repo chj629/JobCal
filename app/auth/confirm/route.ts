@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { type EmailOtpType } from "@supabase/supabase-js";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createOneOffAuthClient } from "@/lib/supabase/server";
 import { resolveNextPath } from "@/lib/auth/nextPath";
 
 // 이 앱은 이메일 회원가입 확인(email)과 비밀번호 재설정(recovery)만 처리한다.
@@ -37,7 +37,13 @@ export async function GET(request: Request) {
       return NextResponse.redirect(mobileUrl.toString());
     }
 
-    const supabase = await createClient();
+    // 회원가입 이메일 확인(email)은 이 브라우저에 이미 다른(또는 같은) 계정의 정상 로그인
+    // 세션이 있을 수 있어, 검증 결과로 생기는 세션을 쿠키에 절대 쓰지 않는 일회성
+    // 클라이언트로 처리한다(lib/supabase/server.ts의 createOneOffAuthClient 참고) — 그래서
+    // /auth/confirmed가 더 이상 signOut을 호출할 필요가 없다. 비밀번호 재설정(recovery)은
+    // /update-password가 이 세션을 실제로 써야 하므로 기존과 동일하게 쿠키 기반 서버
+    // 클라이언트를 쓴다.
+    const supabase = type === "email" ? createOneOffAuthClient() : await createClient();
     const { error } = await supabase.auth.verifyOtp({
       type: type as EmailOtpType,
       token_hash,
@@ -45,11 +51,11 @@ export async function GET(request: Request) {
 
     if (!error) {
       if (type === "email") {
-        // verifyOtp() 성공 시 세션이 이미 생성되지만, /auth/confirmed는 곧바로 signOut한 뒤
-        // 사용자가 직접 로그인하게 한다(아래 참고) — 그래서 여기서 바로 next로 보내지 않고,
-        // next(이미 위에서 resolveNextPath로 검증됨)를 /auth/confirmed(또는 가입이
-        // 한국어로 시작됐다면 /ko/auth/confirmed — 고정된 두 경로 중 하나로만 분기, next처럼
-        // 임의 경로를 받지 않는다)에 그대로 넘겨 그 페이지가 최종적으로
+        // verifyOtp()가 일회성 클라이언트로 실행돼 이 브라우저에는 어떤 세션도 남지
+        // 않으므로, /auth/confirmed는 이제 signOut 없이 곧바로 로그인 화면으로 안내하면
+        // 된다 — next(이미 위에서 resolveNextPath로 검증됨)를 /auth/confirmed(또는
+        // 가입이 한국어로 시작됐다면 /ko/auth/confirmed — 고정된 두 경로 중 하나로만
+        // 분기, next처럼 임의 경로를 받지 않는다)에 그대로 넘겨 그 페이지가 최종적으로
         // /login?next=...(또는 /ko/login?next=...)으로 이어가게 한다. next가 없으면
         // (기본값 "/") 쿼리 자체를 붙이지 않아 기존 동작과 완전히 동일하다.
         const confirmedPath = requestedLocale === "ko" ? "/ko/auth/confirmed" : "/auth/confirmed";

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
+import { isAuthRetryableFetchError } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import { useLocale } from "@/lib/locale-context";
 import { toPublicPageHref } from "@/lib/i18n/publicLocalePaths";
@@ -24,7 +25,24 @@ export function useHandleSupabaseError() {
       const supabase = createClient();
       const {
         data: { user },
+        error: getUserError,
       } = await supabase.auth.getUser();
+
+      // proxy.ts와 동일한 이유: getUser()는 "진짜 세션 없음"과 "Supabase Auth API에
+      // 순간적으로 접근하지 못한 것뿐인 retryable 오류"를 둘 다 user: null로 반환한다.
+      // retryable이면 실제로 로그아웃된 게 아니므로 로그인 화면으로 보내지 않고, 애초에
+      // 실패했던 원래 DB 오류만 그대로 노출한다(재시도하면 다음 호출에서 정상 확인될
+      // 가능성이 높다).
+      if (!user && getUserError && isAuthRetryableFetchError(getUserError)) {
+        if (process.env.NODE_ENV === "development") {
+          console.warn(
+            "[auth] getUser() 확인이 일시적으로 실패해(retryable) 로그인 화면으로 보내지 않습니다.",
+            { errorName: getUserError.name }
+          );
+        }
+        setError(message);
+        return;
+      }
 
       if (!user) {
         window.location.href = toPublicPageHref(locale, "/login");

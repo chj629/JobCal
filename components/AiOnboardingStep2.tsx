@@ -27,12 +27,12 @@ export interface AiOnboardingStep2Props {
 // 클릭을 유도하는 단계 — 이 단계가 onboarding의 최종 단계다(실제 버튼 클릭이 종료 조건).
 type Phase = "video" | "fading" | "textareaSpotlight" | "buttonSpotlight";
 
-// docs/tutorial/tutorial2.mov(1306x1080)을 변환한 정적 사본. 원본은 건드리지 않고
+// docs/tutorial/tutorial2.mov(1302x1080)을 변환한 정적 사본. 원본은 건드리지 않고
 // public/tutorials에 h264/aac mp4로 복사해 Next.js가 정적으로 서빙한다.
 // Header.tsx가 Step 1 hint를 보여주는 시점에 미리 <link rel="preload">로 이 경로를
 // 프리페치해, Step 2 진입 시 영상 첫 프레임이 빈 화면으로 잠깐 보이는 것을 줄인다.
 export const VIDEO_SRC = "/tutorials/ai-onboarding-step2.mp4";
-const VIDEO_ASPECT_RATIO = "1306 / 1080";
+const VIDEO_ASPECT_RATIO = "1302 / 1080";
 // dim 전체(진입/퇴장), 영상 fade, hole이 대상 위치로 옮겨가는 애니메이션, 팝오버 fade/이동
 // 전부 같은 박자로 맞춰 하나의 자연스러운 전환처럼 보이게 한다.
 const TRANSITION_MS = 400;

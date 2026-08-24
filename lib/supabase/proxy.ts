@@ -1,4 +1,5 @@
 import { createServerClient } from "@supabase/ssr";
+import { isAuthRetryableFetchError } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
 
 // 배포 전 최종 체크 2차: "공개 경로 allowlist, 그 외 전부 보호"였던 이전 구조는 존재하지
@@ -89,11 +90,41 @@ export async function updateSession(request: NextRequest) {
   // getUser() 호출 자체가 만료된 세션 토큰을 갱신하고 쿠키에 반영한다.
   const {
     data: { user },
+    error: getUserError,
   } = await supabase.auth.getUser();
 
   const pathname = request.nextUrl.pathname;
 
   if (!user && isProtectedPath(pathname) && !hasBearerAuthForExemptApiPath(request)) {
+    // getUser()는 "진짜 로그아웃/세션 무효" 상태와 "Supabase Auth API에 순간적으로 접근하지
+    // 못한 상태(네트워크 타임아웃 등 재시도하면 되는 오류)"를 둘 다 { user: null }로 반환한다
+    // — GoTrueClient._getUser()의 catch가 AuthRetryableFetchError도 AuthError로 잡아
+    // throw 없이 { user: null, error }만 돌려주기 때문이다(세션을 실제로 지우는
+    // _removeSession()은 이보다 더 구체적인 isAuthSessionMissingError일 때만 호출된다).
+    // 이 둘을 구분하지 않고 무조건 /login으로 보내면, 쿠키(=실제 세션)는 멀쩡한데 그 순간의
+    // 네트워크 히크업 하나로 로그인 화면을 보게 된다. @supabase/supabase-js가 공개
+    // export하는 판별 함수를 그대로 써서(문자열/error.name 하드코딩 없이) retryable
+    // 오류일 때만 이번 요청의 리다이렉트를 건너뛴다 — 쿠키는 여기서도 전혀 건드리지
+    // 않고, 다음 요청에서 다시 검증된다. 이건 "인증 성공으로 간주"하는 것도, 보호 경로를
+    // 무조건 통과시키는 것도 아니다 — user는 여전히 null이라 이 요청에서 어떤 데이터
+    // 조회도 auth.uid() 기반 RLS를 그대로 통과해야 하고(진짜 세션이 없으면 빈 결과만
+    // 받는다), 다음 몇 요청 중 하나가 진짜 세션 없음(retryable이 아닌 에러 또는 에러
+    // 없이 user만 null)으로 확인되는 즉시 정상적으로 /login으로 보내진다.
+    if (getUserError && isAuthRetryableFetchError(getUserError)) {
+      console.warn(
+        "[auth] Supabase Auth 세션 확인이 일시적으로 실패해(retryable) 이번 요청은 리다이렉트하지 않고 통과시킵니다.",
+        { path: pathname, errorName: getUserError.name }
+      );
+      return supabaseResponse;
+    }
+
+    if (getUserError) {
+      console.warn("[auth] 세션이 유효하지 않아 로그인 화면으로 이동합니다.", {
+        path: pathname,
+        errorName: getUserError.name,
+      });
+    }
+
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);

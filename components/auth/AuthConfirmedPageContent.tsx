@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 import { useLocale, useT } from "@/lib/locale-context";
 import { toPublicPageHref } from "@/lib/i18n/publicLocalePaths";
 import { resolveNextPath } from "@/lib/auth/nextPath";
@@ -43,26 +42,15 @@ export default function AuthConfirmedPageContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function handleGoToLogin() {
+  function handleGoToLogin() {
     setIsLoading(true);
 
-    // verifyOtp() 성공 시 세션이 이미 생성되어 있으므로, 로그인 화면이 정상적으로
-    // 뜨도록(proxy.ts가 로그인 상태의 /login 접근을 /로 되돌리지 않도록) 먼저 로그아웃한다.
-    const supabase = createClient();
-    const { error } = await supabase.auth.signOut();
-
-    if (error && process.env.NODE_ENV === "development") {
-      console.error("[auth/confirmed] signOut 실패:", {
-        status: error.status,
-        code: error.code,
-        message: error.message,
-        name: error.name,
-      });
-    }
-
-    // 뒤로가기로 이 페이지에 다시 돌아오지 않도록 push 대신 replace를 사용한다.
+    // app/auth/confirm/route.ts가 회원가입 이메일 확인(verifyOtp)을 세션을 쿠키에 전혀
+    // 남기지 않는 일회성 클라이언트로 처리하므로, 이 화면에 도달한 시점엔 애초에 이
+    // 브라우저에 새로 생긴 세션이 없다 — signOut할 것이 없다(기존에 로그인 중이던
+    // 세션이 있었다면 그대로 유지된다). 뒤로가기로 이 페이지에 다시 돌아오지 않도록
+    // push 대신 replace만으로 로그인 화면으로 이동한다.
     router.replace(loginTarget);
-    router.refresh();
   }
 
   return (
