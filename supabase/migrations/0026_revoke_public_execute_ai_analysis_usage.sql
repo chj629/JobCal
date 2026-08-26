@@ -1,0 +1,13 @@
+-- 0025에서 increment_ai_analysis_usage()를 drop 후 create로 다시 만들면서, Postgres가 새로
+-- 만들어진 함수에 기본으로 부여하는 "EXECUTE to PUBLIC" 권한이 그대로 남아 있었다. 0025는
+-- authenticated에게 GRANT EXECUTE만 추가했을 뿐, PUBLIC 기본 권한을 REVOKE하지 않았다.
+--
+-- 실제로 이 프로젝트의 anon 키로 이 함수를 직접 호출해보면(RLS/GRANT를 우회하는 게 아니라
+-- 정상적인 PostgREST 호출) 함수 자체는 실행되고, 그 안의 "auth.uid() is null" 검사가
+-- "not authenticated" 예외를 던지는 것으로 확인됐다 — 즉 PUBLIC이 EXECUTE 권한을 갖고
+-- 있었다는 뜻이다. 함수 내부가 auth.uid()만 사용하고 파라미터로 user_id를 받지 않아 실제
+-- 데이터가 노출되거나 변조되는 취약점은 아니지만(다른 사용자 행을 조작할 방법 자체가 없음),
+-- SECURITY DEFINER 함수는 필요한 role에만 EXECUTE를 열어두는 것이 표준적인 안전 관행이므로
+-- anon/public의 실행 권한 자체를 명시적으로 제거한다. 함수 시그니처/로직/기존 authenticated
+-- 권한은 전혀 바꾸지 않는다.
+revoke execute on function public.increment_ai_analysis_usage(date, text, integer) from public;

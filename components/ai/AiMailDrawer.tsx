@@ -56,8 +56,15 @@ export function useEmailAnalysisFlow() {
   // 둬야 한다). new-from-email 페이지는 fromOnboarding 인자를 전혀 넘기지 않으므로
   // 항상 false로 남아 그 페이지에는 영향이 없다.
   const [analysisStartedFromOnboarding, setAnalysisStartedFromOnboarding] = useState(false);
+  // analyzing(state)는 렌더 이후에만 버튼을 disabled/unmount 처리하므로, 그 렌더가 커밋되기
+  // 전에 두 번째 호출이 끼어들 이론적 여지를 막기 위한 동기 가드. AI 분석은 호출당 사용량
+  // 1회(Free는 평생 10회 중 1)를 소모하고 OpenAI 비용도 발생시키므로, 중복 호출 시 사용자가
+  // 의도치 않게 2회분을 한 번에 잃을 수 있다 — ref는 setState와 달리 즉시(동기) 반영된다.
+  const analyzingRef = useRef(false);
 
   async function handleAnalyze(emailText: string, fromOnboarding = false) {
+    if (analyzingRef.current) return;
+    analyzingRef.current = true;
     if (fromOnboarding) setAnalysisStartedFromOnboarding(true);
     setAnalyzing(true);
     setAnalyzeError(null);
@@ -127,6 +134,8 @@ export function useEmailAnalysisFlow() {
       }
       setAnalyzeError(t("aiEmail.paste.networkError"));
       setAnalyzing(false);
+    } finally {
+      analyzingRef.current = false;
     }
   }
 
