@@ -8,6 +8,7 @@ import {
   parseEmailAnalysisResult,
   type EmailAnalysisResult,
 } from "@/lib/ai/emailAnalysis";
+import { formatDateKeyInAsiaTokyo, formatDateTimeInAsiaTokyo } from "@/lib/date";
 import { DEFAULT_LOCALE, type Locale } from "@/lib/i18n/messages";
 
 export const runtime = "nodejs";
@@ -30,23 +31,6 @@ const PRO_MONTHLY_ANALYSIS_LIMIT = 300;
 // 충분히 들어가는 수준의 출력 토큰 상한. 프롬프트/모델/응답 구조는 그대로 두고 비용
 // 상한선만 둔다.
 const MAX_OUTPUT_TOKENS = 1200;
-
-// Pro의 월간 한도가 실제 사용자(일본/한국, 둘 다 UTC+9) 체감 calendar month와 맞도록,
-// new Date().toISOString()(UTC) 대신 Asia/Tokyo 기준 "YYYY-MM-DD"를 계산한다. Free의
-// lifetime 합산은 날짜로 필터링하지 않으므로(전체 합계) 이 값의 기준 시간대와 무관하게
-// 그대로 동작한다 — 이 값이 바뀌는 건 오직 increment_ai_analysis_usage()의 month scope가
-// "이번 달 1일"을 계산하는 기준점뿐이다. formatToParts로 연/월/일을 직접 뽑아 조립해,
-// "en-CA" 같은 로케일 포맷 문자열의 구분자·순서에 기대지 않는다.
-function getUsageDateInAsiaTokyo(now: Date): string {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: "Asia/Tokyo",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(now);
-  const get = (type: string) => parts.find((part) => part.type === type)?.value ?? "";
-  return `${get("year")}-${get("month")}-${get("day")}`;
-}
 
 export async function POST(request: Request) {
   // 모바일 앱(jobcal-mobile)은 쿠키가 없으므로 Authorization: Bearer <access_token>을
@@ -120,7 +104,8 @@ export async function POST(request: Request) {
   const plan = await getUserPlan(supabase);
   const scope = plan === "pro" ? "month" : "lifetime";
   const limit = plan === "pro" ? PRO_MONTHLY_ANALYSIS_LIMIT : FREE_LIFETIME_ANALYSIS_LIMIT;
-  const usageDate = getUsageDateInAsiaTokyo(new Date());
+  const now = new Date();
+  const usageDate = formatDateKeyInAsiaTokyo(now);
 
   const { data: precheckRows, error: precheckError } =
     scope === "month"
@@ -154,7 +139,9 @@ export async function POST(request: Request) {
     );
   }
 
-  const nowIso = new Date().toISOString();
+  // UTC Z 문자열을 "한국 표준시"라고 설명하면 모델이 이메일의 현지 벽시계 값에 Z를
+  // 그대로 붙일 수 있다. 프롬프트의 기준 시각 자체를 명시적인 Asia/Tokyo +09:00로 준다.
+  const nowIso = formatDateTimeInAsiaTokyo(now);
   const { system, user: userPrompt } = buildEmailAnalysisPrompt(emailText.trim(), nowIso, locale);
 
   let completionResponse: Response;

@@ -21,6 +21,7 @@ import {
   DEFAULT_STEP_KEYS,
   getStepDisplayName,
   matchDefaultStepKey,
+  type ApplicationStep,
   type StepStatus,
 } from "@/lib/applicationSteps";
 import {
@@ -36,7 +37,7 @@ import {
   type EventType,
 } from "@/lib/events";
 import { createEmptyContactFormValues, type ContactFormValues } from "@/lib/companyContacts";
-import type { EmailAnalysisResult, ExtractedEvent } from "@/lib/ai/emailAnalysis";
+import type { EmailAnalysisResult, ExtractedEvent, StepUpdate } from "@/lib/ai/emailAnalysis";
 import { useT } from "@/lib/locale-context";
 import MaterialIcon from "@/components/ui/MaterialIcon";
 import { useToast } from "@/components/ui/Toast";
@@ -73,6 +74,139 @@ const EVENT_TYPE_LABEL_KEYS: Record<EventType, string> = {
 };
 const RESULT_OPTION_KEYS = ["inProgress", "passed", "failed", "withdrawn"] as const;
 const FORMAT_OPTION_KEYS = ["online", "offline", "undecided"] as const;
+
+interface ResolvedStepUpdate {
+  step: ApplicationStep;
+  resultOption: StepUpdate["resultOption"];
+}
+
+interface StepHoleCheck {
+  target: ApplicationStep;
+  failedIds: string[];
+  waitingIds: string[];
+  currentInProgressId: string | null;
+}
+
+type StepUpdateApplyResult =
+  | { type: "completed" }
+  | { type: "failed" }
+  | { type: "blockedByFailedStep" }
+  | {
+      type: "needsConfirmation";
+      update: ResolvedStepUpdate;
+      hole: StepHoleCheck;
+      remainingStepUpdates: ResolvedStepUpdate[];
+    };
+
+// Context 구현을 바꾸지 않고, 정렬된 업데이트를 기존 상태 전이 API에 순서대로 적용한다.
+// 별도 진행 cursor를 저장하지 않으며 재시도 시 처음부터 호출해 updateStepStatus의 멱등성을 쓴다.
+export async function applyStepUpdatesInOrder(
+  companyId: string,
+  resolvedUpdates: ResolvedStepUpdate[],
+  checkHole: (companyId: string, stepId: string) => Promise<StepHoleCheck | null>,
+  updateStatus: (stepId: string, status: StepStatus) => Promise<boolean>
+): Promise<StepUpdateApplyResult> {
+  for (let index = 0; index < resolvedUpdates.length; index++) {
+    const update = resolvedUpdates[index];
+    if (update.resultOption === "withdrawn") continue;
+    const newStepStatus: StepStatus =
+      update.resultOption === "passed"
+        ? "passed"
+        : update.resultOption === "failed"
+          ? "failed"
+          : "in_progress";
+
+    if (newStepStatus === "in_progress" || newStepStatus === "passed") {
+      const hole = await checkHole(companyId, update.step.id);
+      if (hole) {
+        if (hole.failedIds.length > 0) return { type: "blockedByFailedStep" };
+        const shouldConfirmHole =
+          hole.waitingIds.length > 0 ||
+          (newStepStatus === "passed" && !!hole.currentInProgressId);
+        if (shouldConfirmHole) {
+          return {
+            type: "needsConfirmation",
+            update,
+            hole,
+            remainingStepUpdates: resolvedUpdates.slice(index + 1),
+          };
+        }
+        // inProgress 업데이트만: 앞 단계의 결과가 이번 분석에 없으면 기존 in_progress를
+        // 보존한다. passed는 AI가 명시한 확정 결과이므로 위 확인을 거쳐 캐스케이드한다.
+        if (newStepStatus === "in_progress" && hole.currentInProgressId) continue;
+      }
+    }
+
+    if (!(await updateStatus(update.step.id, newStepStatus))) return { type: "failed" };
+  }
+
+  return { type: "completed" };
+}
+
+export function prepareResolvedStepUpdates(updates: ResolvedStepUpdate[]): ResolvedStepUpdate[] {
+  const byStepId = new Map<string, ResolvedStepUpdate>();
+  for (const update of updates) byStepId.set(update.step.id, update);
+  return [...byStepId.values()].sort((a, b) => a.step.stepOrder - b.step.stepOrder);
+}
+
+// 신규 기업은 기본 8단계가 먼저 생기므로 AI가 찾아낸 커스텀 전형이 무조건 맨 뒤에 붙는다.
+// 이 등록에서 상태가 명시된 커스텀 전형만 AI 배열의 가장 가까운 기본 전형 앞/뒤에 끼워 넣어
+// 실제 시간 순서를 복원한다. 기본 전형끼리의 순서와 AI가 건드리지 않은 커스텀 전형의 순서는
+// 그대로 유지하며, 기존 기업의 수동 정렬에는 이 함수를 사용하지 않는다.
+export function prepareNewCompanyStepOrder(
+  candidateSteps: ApplicationStep[],
+  resolvedUpdates: ResolvedStepUpdate[]
+): string[] {
+  const sortedSteps = [...candidateSteps].sort((a, b) => a.stepOrder - b.stepOrder);
+  const referencedCustomIds = new Set(
+    resolvedUpdates.filter((update) => !update.step.stepKey).map((update) => update.step.id)
+  );
+  if (referencedCustomIds.size === 0) return sortedSteps.map((step) => step.id);
+
+  const result = sortedSteps.filter((step) => !referencedCustomIds.has(step.id));
+  const uniqueUpdates = [...new Map(resolvedUpdates.map((update) => [update.step.id, update])).values()];
+
+  for (let index = 0; index < uniqueUpdates.length; index++) {
+    const customStep = uniqueUpdates[index].step;
+    if (customStep.stepKey || result.some((step) => step.id === customStep.id)) continue;
+
+    const nextDefault = uniqueUpdates.slice(index + 1).find((update) => update.step.stepKey)?.step;
+    if (nextDefault) {
+      const anchorIndex = result.findIndex((step) => step.id === nextDefault.id);
+      result.splice(anchorIndex < 0 ? result.length : anchorIndex, 0, customStep);
+      continue;
+    }
+
+    const previousDefault = [...uniqueUpdates.slice(0, index)]
+      .reverse()
+      .find((update) => update.step.stepKey)?.step;
+    if (previousDefault) {
+      let insertIndex = result.findIndex((step) => step.id === previousDefault.id) + 1;
+      while (insertIndex > 0 && referencedCustomIds.has(result[insertIndex]?.id)) insertIndex++;
+      result.splice(insertIndex <= 0 ? result.length : insertIndex, 0, customStep);
+      continue;
+    }
+
+    const firstDefaultIndex = result.findIndex((step) => !!step.stepKey);
+    result.splice(firstDefaultIndex < 0 ? result.length : firstDefaultIndex, 0, customStep);
+  }
+
+  return result.map((step) => step.id);
+}
+
+export function findMatchingApplicationStep(
+  rawName: string,
+  candidateSteps: ApplicationStep[],
+  translateLabel: (key: string) => string
+): ApplicationStep | undefined {
+  const name = rawName.trim();
+  const canonicalStepKey = matchDefaultStepKey(name);
+  return candidateSteps.find((step) =>
+    canonicalStepKey
+      ? step.stepKey === canonicalStepKey
+      : step.name === name || (step.stepKey && getStepDisplayName(step, translateLabel) === name)
+  );
+}
 
 // docs/stitch/AI Drawer/*의 공통 필드 스타일(rounded-full input, text-[12px] label). 공용
 // Input/Button 컴포넌트는 건드리지 않고 이 화면 전용 마크업으로만 쓴다.
@@ -130,7 +264,13 @@ export default function EmailAnalysisReview({
   const t = useT();
   const { showToast } = useToast();
   const { addCompany, updateCompany } = useCompanies();
-  const { steps, addStep, updateStepStatus, refresh: refreshSteps } = useApplicationSteps();
+  const {
+    steps,
+    addStep,
+    updateStepStatus,
+    reorderSteps,
+    refresh: refreshSteps,
+  } = useApplicationSteps();
   // updateEvent라는 이름은 이미 아래 로컬 함수(폼 배열의 index를 갱신)가 쓰고 있어, DB
   // 갱신용은 다른 이름으로 구분한다.
   const { events: existingEvents, addEvent, updateEvent: updateEventRecord } = useEvents();
@@ -141,9 +281,17 @@ export default function EmailAnalysisReview({
     ...createEmptyCompanyFormValues(),
     name: analysis.companyName ?? "",
   }));
-  const [stepName, setStepName] = useState(analysis.stepName ?? "");
+  // 리뷰와 저장의 source of truth는 AI가 반환하고 사용자가 수정한 전체 stepUpdates다.
+  const [stepUpdates, setStepUpdates] = useState<StepUpdate[]>(() =>
+    analysis.stepUpdates.map((stepUpdate) => ({ ...stepUpdate }))
+  );
   const [events, setEvents] = useState<EventFormValues[]>(() =>
     analysis.events.map(extractedEventToFormValues)
+  );
+  // EventFormValues에는 소속 전형 필드가 없으므로 같은 index의 별도 배열로 보관한다. UI에서는
+  // 읽기 전용으로 보여주고, 저장 시에는 이 이름을 실제 applicationStepId로 해석한다.
+  const [eventStepNames, setEventStepNames] = useState<(string | null)[]>(() =>
+    analysis.events.map((event) => event.stepName)
   );
   const [contacts, setContacts] = useState<ContactFormValues[]>(() =>
     analysis.contacts.map((contact) => ({
@@ -161,12 +309,6 @@ export default function EmailAnalysisReview({
   // withdrawn은 전형이 아니라 companies.overall_status="cancelled"로 저장하고, failed도 함께
   // overall_status="rejected"로 반영한다(Step3에서 고른 값을 명시적 의사로 본다). 마지막 전형
   // passed라고 임의로 offer 처리하지는 않는다.
-  // 기본값은 lib/ai/emailAnalysis.ts가 프롬프트 + 결정적 후처리로 판단한 analysis.resultOption을
-  // 그대로 쓴다(과거에는 항상 "inProgress"로 고정돼 있어 이메일에 合格/不合格이 명시돼 있어도
-  // 반영되지 않았다). 이 select는 여전히 사용자가 직접 바꿀 수 있어 최종 확인/수정 지점은 그대로다.
-  const [resultOption, setResultOption] = useState<(typeof RESULT_OPTION_KEYS)[number]>(
-    analysis.resultOption
-  );
   // AI가 뽑아낸 첫 일정의 location/online_url로부터 초기 표시값만 파생한다(온라인 우선,
   // lib/events.ts의 deriveEventFormat과 StepDetailPanel이 공유하는 규칙) — 이 시점엔 아직
   // 아무 것도 저장하지 않으므로 AI가 둘 다 추출했어도 그대로 보존된다.
@@ -190,9 +332,13 @@ export default function EmailAnalysisReview({
   const [holeConfirm, setHoleConfirm] = useState<{
     companyId: string;
     stepId: string;
+    targetStatus: StepStatus;
     stepDisplayName: string;
     waitingStepIds: string[];
     currentInProgressId: string | null;
+    remainingStepUpdates: ResolvedStepUpdate[];
+    eventStepIds: (string | null)[];
+    effectiveResultOption: StepUpdate["resultOption"];
   } | null>(null);
 
   // 표시는 항상 locale 번역(getStepDisplayName)을 쓰되, handleRegister의 매칭 로직이
@@ -214,6 +360,17 @@ export default function EmailAnalysisReview({
 
   function removeEvent(index: number) {
     setEvents((prev) => prev.filter((_, i) => i !== index));
+    setEventStepNames((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  function updateStepUpdate(index: number, patch: Partial<StepUpdate>) {
+    setStepUpdates((prev) =>
+      prev.map((stepUpdate, i) => (i === index ? { ...stepUpdate, ...patch } : stepUpdate))
+    );
+  }
+
+  function removeStepUpdate(index: number) {
+    setStepUpdates((prev) => prev.filter((_, i) => i !== index));
   }
 
   function updateContact(index: number, patch: Partial<ContactFormValues>) {
@@ -267,18 +424,22 @@ export default function EmailAnalysisReview({
     };
   }
 
-  // handleRegister의 전형 상태 반영 이후(기업 상태/일정/담당자/메모/완료 처리) 부분을 그대로
-  // 옮긴 것 — holeConfirm 확인/취소 양쪽에서 재사용하기 위해 분리했을 뿐 로직은 바뀌지 않았다.
-  async function finishAfterStepStatus(companyId: string, stepId: string | null) {
+  // 모든 전형 상태 반영 이후의 기업 상태/일정/담당자/메모/완료 처리. holeConfirm 확인/취소
+  // 양쪽에서도 같은 후속 저장을 재사용한다.
+  async function finishAfterStepStatus(
+    companyId: string,
+    eventStepIds: (string | null)[],
+    effectiveResultOption: StepUpdate["resultOption"]
+  ) {
     // withdrawn은 전형 상태가 아니라 기업 전체 상태다. failed도 함께 overallStatus에
     // 반영한다 — 둘 다 Step3에서 사용자가 직접 고른 값이라 명시적 의사로 보고, Company
     // Detail의 "변경할까요?" 확인 UI는 여기서는 띄우지 않는다. 마지막 전형이 passed라고
     // 임의로 offer 처리하지는 않는다(메일만으로는 실제 내정 여부를 확신할 수 없다).
-    if (resultOption === "failed" || resultOption === "withdrawn") {
+    if (effectiveResultOption === "failed" || effectiveResultOption === "withdrawn") {
       const baseValues = existingCompany ? companyToFormValues(existingCompany) : companyValues;
       const companyStatusOk = await updateCompany(companyId, {
         ...baseValues,
-        overallStatus: resultOption === "failed" ? "rejected" : "cancelled",
+        overallStatus: effectiveResultOption === "failed" ? "rejected" : "cancelled",
       });
       if (!companyStatusOk) {
         setSaveError(t("aiEmail.review.companyStatusSaveFailed"));
@@ -287,9 +448,11 @@ export default function EmailAnalysisReview({
       }
     }
 
-    const eventsToSave = events.filter((event) => event.title.trim());
+    const eventsToSave = events
+      .map((event, index) => ({ event, stepId: eventStepIds[index] ?? null }))
+      .filter(({ event }) => event.title.trim());
 
-    if (eventsToSave.length > 0 && !stepId) {
+    if (eventsToSave.some(({ stepId }) => !stepId)) {
       setSaveError(t("aiEmail.review.stepRequiredForEvents"));
       setSaving(false);
       return;
@@ -307,7 +470,7 @@ export default function EmailAnalysisReview({
     // 그 외 경우(둘 다 날짜 미정 → existingTimeIso와 toSaveTimeIso 둘 다 null이라 이미 위
     // "완전히 같음"에서 걸러짐, 또는 날짜가 서로 다름)는 기존 로직 그대로 새 일정으로 저장한다.
     for (let i = savedEventCount; i < eventsToSave.length; i++) {
-      const toSave = eventsToSave[i];
+      const { event: toSave, stepId } = eventsToSave[i];
       const toSaveTimeIso = formEventTimeIso(toSave);
       const sameSlot = existingEvents.find((existing) => {
         if (existing.companyId !== companyId) return false;
@@ -380,6 +543,67 @@ export default function EmailAnalysisReview({
     onDone(companyId, finalName);
   }
 
+  // 기본 전형은 stepKey, 커스텀 전형은 정확한 이름으로 찾고 없으면 기존 addStep으로 만든다.
+  // candidateSteps를 즉시 갱신해 같은 이름이 stepUpdates/events에 반복돼도 한 행만 재사용한다.
+  async function resolveApplicationStep(
+    companyId: string,
+    rawName: string,
+    candidateSteps: ApplicationStep[]
+  ): Promise<ApplicationStep | null> {
+    const name = rawName.trim();
+    if (!name) return null;
+    const matched = findMatchingApplicationStep(name, candidateSteps, t);
+    if (matched) return matched;
+
+    const created = await addStep(companyId, name);
+    if (created) candidateSteps.push(created);
+    return created;
+  }
+
+  // 실제 step_order 순서대로 적용한다. inProgress 대상 앞에 명시되지 않은 기존 in_progress가
+  // 남아 있으면 그 업데이트만 건너뛰어 기존 단계를 waiting으로 되돌리지 않는다.
+  async function applyResolvedStepUpdates(
+    companyId: string,
+    resolvedUpdates: ResolvedStepUpdate[],
+    eventStepIds: (string | null)[],
+    effectiveResultOption: StepUpdate["resultOption"]
+  ) {
+    const result = await applyStepUpdatesInOrder(
+      companyId,
+      resolvedUpdates,
+      checkStepHole,
+      updateStepStatus
+    );
+    if (result.type === "blockedByFailedStep") {
+      setSaveError(t("aiEmail.review.blockedByFailedStep"));
+      setSaving(false);
+      return;
+    }
+    if (result.type === "failed") {
+      setSaveError(t("aiEmail.review.stepStatusSaveFailed"));
+      setSaving(false);
+      return;
+    }
+    if (result.type === "needsConfirmation") {
+      setHoleConfirm({
+        companyId,
+        stepId: result.update.step.id,
+        targetStatus:
+          result.update.resultOption === "passed" ? "passed" : "in_progress",
+        stepDisplayName: getStepDisplayName(result.hole.target, t),
+        waitingStepIds: result.hole.waitingIds,
+        currentInProgressId: result.hole.currentInProgressId,
+        remainingStepUpdates: result.remainingStepUpdates,
+        eventStepIds,
+        effectiveResultOption,
+      });
+      setSaving(false);
+      return;
+    }
+
+    await finishAfterStepStatus(companyId, eventStepIds, effectiveResultOption);
+  }
+
   async function handleRegister() {
     if (!existingCompany && !companyValues.name.trim()) {
       setSaveError(t("companies.form.nameRequired"));
@@ -396,107 +620,84 @@ export default function EmailAnalysisReview({
 
     if (existingCompany) {
       companyId = existingCompany.id;
+      candidateSteps = (await refreshSteps()).filter((step) => step.companyId === companyId);
     } else if (createdCompanyId) {
-      // 이전 시도(이후 단계에서 실패해 재시도하는 경우)에서 이미 만들어진 기업을 그대로
-      // 재사용한다 — addCompany를 다시 호출하면 같은 이름의 기업이 중복 생성된다.
       companyId = createdCompanyId;
-      const freshSteps = await refreshSteps();
-      candidateSteps = freshSteps.filter((step) => step.companyId === companyId);
+      candidateSteps = (await refreshSteps()).filter((step) => step.companyId === companyId);
     } else {
       const created = await addCompany(companyValues);
       if (!created) {
-        // Context가 반환하는 원본 에러(예: Supabase 메시지)를 그대로 노출하지 않고
-        // 고정된 안내 문구만 보여준다.
         setSaveError(t("aiEmail.review.companySaveFailed"));
         setSaving(false);
         return;
       }
       companyId = created.id;
       setCreatedCompanyId(created.id);
-      // 기업 생성 시 DB 트리거가 기본 8개 전형을 자동 생성하므로, 최신 목록을 다시 받아온다.
-      const freshSteps = await refreshSteps();
-      candidateSteps = freshSteps.filter((step) => step.companyId === companyId);
+      candidateSteps = (await refreshSteps()).filter((step) => step.companyId === companyId);
     }
 
-    let stepId: string | null = null;
-    const trimmedStepName = stepName.trim();
+    // 빈 이름은 상태 업데이트 대상이 될 수 없으므로 제외한다. 같은 실제 전형이 반복되면
+    // 마지막 편집값 하나만 남겨 충돌하는 상태 변경/중복 생성을 막는다.
+    let resolvedStepUpdates: ResolvedStepUpdate[] = [];
+    for (const update of stepUpdates) {
+      const step = await resolveApplicationStep(companyId, update.stepName, candidateSteps);
+      if (!step) continue;
+      resolvedStepUpdates.push({ step, resultOption: update.resultOption });
+    }
 
-    if (trimmedStepName) {
-      // 먼저 stepName이 8개 기본 전형(step_key) 중 하나와 의미상 같은지 판정한다(ko/ja 번역,
-      // 대소문자·공백 변형까지 흡수 — matchDefaultStepKey 참고). 매칭되면 현재 UI locale이나
-      // 이 기업의 전형이 어떤 name으로 저장돼 있는지와 무관하게 stepKey만으로 기존 전형을
-      // 찾는다 — 이메일이 어느 언어로 와도(AI가 어느 언어로 stepName을 반환해도) 같은 기본
-      // 전형이면 항상 같은 행을 재사용하고 새로 만들지 않는다.
-      // 기본 전형이 아니면(=사용자가 직접 만든 커스텀 전형) 기존 그대로 정확한 문자열 일치만
-      // 확인한다 — 서로 다른 커스텀 전형을 임의로 합치지 않기 위함이다.
-      const canonicalStepKey = matchDefaultStepKey(trimmedStepName);
-      const matched = candidateSteps.find((step) =>
-        canonicalStepKey
-          ? step.stepKey === canonicalStepKey
-          : step.name === trimmedStepName ||
-            (step.stepKey && getStepDisplayName(step, t) === trimmedStepName)
-      );
-      if (matched) {
-        stepId = matched.id;
-      } else {
-        // addStep()이 항상 Supabase에서 이 기업의 전형을 직접 다시 조회해 order/in_progress
-        // 여부를 계산하므로, 방금 생성한 신규 기업이라 이 화면의 candidateSteps가 아직
-        // 최신이 아니어도(또는 로컬 steps 클로저가 뒤처져 있어도) order가 충돌하지 않는다.
-        const createdStep = await addStep(companyId, trimmedStepName);
-        if (!createdStep) {
+    // 신규 기업에서 이 AI 리뷰가 사용한 커스텀 전형만 문맥상 위치로 옮긴다. addStep의
+    // "항상 마지막에 추가"라는 수동 UX 정책은 그대로 두고, 기존 기업에도 손대지 않는다.
+    // 재시도(createdCompanyId)에서도 같은 최종 id 순서를 계산하므로 이 작업은 멱등이다.
+    if (!existingCompany) {
+      const orderedIds = prepareNewCompanyStepOrder(candidateSteps, resolvedStepUpdates);
+      const currentIds = [...candidateSteps]
+        .sort((a, b) => a.stepOrder - b.stepOrder)
+        .map((step) => step.id);
+      if (orderedIds.some((id, index) => id !== currentIds[index])) {
+        const reordered = await reorderSteps(companyId, orderedIds);
+        if (!reordered) {
           setSaveError(t("aiEmail.review.stepSaveFailed"));
           setSaving(false);
           return;
         }
-        stepId = createdStep.id;
+
+        candidateSteps = (await refreshSteps()).filter((step) => step.companyId === companyId);
+        const refreshedById = new Map(candidateSteps.map((step) => [step.id, step]));
+        resolvedStepUpdates = resolvedStepUpdates.map((update) => ({
+          ...update,
+          step: refreshedById.get(update.step.id) ?? update.step,
+        }));
       }
-    } else {
-      stepId = [...candidateSteps].sort((a, b) => a.stepOrder - b.stepOrder)[0]?.id ?? null;
     }
+    const resolvedUpdates = prepareResolvedStepUpdates(resolvedStepUpdates);
 
-    // 選考結果 반영: trimmedStepName이 비어 있으면 stepId는 "첫 전형으로 추정"한 값이라
-    // 명확한 매칭이 아니므로 건드리지 않는다. 상태 변경은 application-steps-context.tsx의
-    // updateStepStatus(캐스케이드 포함)를 그대로 재사용하고 별도 로직을 두지 않는다.
-    if (trimmedStepName && stepId && resultOption !== "withdrawn") {
-      const newStepStatus: StepStatus =
-        resultOption === "passed" ? "passed" : resultOption === "failed" ? "failed" : "in_progress";
-
-      // in_progress로 먼 전형을 바로 지정하면 그 앞의 waiting 전형들이 영원히 결과가 정해지지
-      // 않은 "구멍"으로 남을 수 있다(수동 Company Detail select는 항상 현재 전형만 조작
-      // 가능해 이 문제가 나지 않는다 — AI Drawer만의 경로). 앞에 이미 failed인 전형이 있으면
-      // AI가 임의로 통과 처리하지 않고 등록 자체를 중단하며, waiting인 전형만 있으면 먼저
-      // 사용자에게 확인받는다(holeConfirm → confirmHole/cancelHole).
-      if (newStepStatus === "in_progress") {
-        const hole = await checkStepHole(companyId, stepId);
-        if (hole) {
-          if (hole.failedIds.length > 0) {
-            setSaveError(t("aiEmail.review.blockedByFailedStep"));
-            setSaving(false);
-            return;
-          }
-          if (hole.waitingIds.length > 0) {
-            setHoleConfirm({
-              companyId,
-              stepId,
-              stepDisplayName: getStepDisplayName(hole.target, t),
-              waitingStepIds: hole.waitingIds,
-              currentInProgressId: hole.currentInProgressId,
-            });
-            setSaving(false);
-            return;
-          }
-        }
+    // 일정은 명확한 event.stepName별로 연결한다. 이벤트에만 등장한 커스텀 전형도 같은
+    // 매칭/생성 경로를 사용하며, null/빈 이름은 임의의 현재 단계에 붙이지 않는다.
+    const eventStepIds: (string | null)[] = [];
+    for (const eventStepName of eventStepNames) {
+      if (!eventStepName?.trim()) {
+        eventStepIds.push(null);
+        continue;
       }
-
-      const stepStatusOk = await updateStepStatus(stepId, newStepStatus);
-      if (!stepStatusOk) {
-        setSaveError(t("aiEmail.review.stepStatusSaveFailed"));
+      const step = await resolveApplicationStep(companyId, eventStepName, candidateSteps);
+      if (!step) {
+        setSaveError(t("aiEmail.review.stepSaveFailed"));
         setSaving(false);
         return;
       }
+      eventStepIds.push(step.id);
     }
 
-    await finishAfterStepStatus(companyId, stepId);
+    const effectiveUpdate =
+      resolvedUpdates.find((update) => update.resultOption === "inProgress") ??
+      resolvedUpdates[resolvedUpdates.length - 1];
+    const effectiveResultOption = effectiveUpdate?.resultOption ?? "inProgress";
+    await applyResolvedStepUpdates(
+      companyId,
+      resolvedUpdates,
+      eventStepIds,
+      effectiveResultOption
+    );
   }
 
   // holeConfirm 확인: 대상 전형보다 앞선 waiting 전형들을 step_order 순서대로 passed 처리한다.
@@ -507,7 +708,16 @@ export default function EmailAnalysisReview({
   // 있어도 멱등이라 안전하다).
   async function confirmHole() {
     if (!holeConfirm) return;
-    const { companyId, stepId, waitingStepIds, currentInProgressId } = holeConfirm;
+    const {
+      companyId,
+      stepId,
+      targetStatus,
+      waitingStepIds,
+      currentInProgressId,
+      remainingStepUpdates,
+      eventStepIds,
+      effectiveResultOption,
+    } = holeConfirm;
     setHoleConfirm(null);
     setSaving(true);
 
@@ -524,24 +734,39 @@ export default function EmailAnalysisReview({
       }
     }
 
-    const stepStatusOk = await updateStepStatus(stepId, "in_progress");
+    const stepStatusOk = await updateStepStatus(stepId, targetStatus);
     if (!stepStatusOk) {
       setSaveError(t("aiEmail.review.stepStatusSaveFailed"));
       setSaving(false);
       return;
     }
 
-    await finishAfterStepStatus(companyId, stepId);
+    await applyResolvedStepUpdates(
+      companyId,
+      remainingStepUpdates,
+      eventStepIds,
+      effectiveResultOption
+    );
   }
 
   // 취소하면 전형 상태는 전혀 건드리지 않고(대상 전형은 등록 당시 상태 그대로 유지) 일정・
   // 담당자・메모 등 나머지 저장만 이어간다 — stepName을 비워 저장했을 때와 동일한 처리다.
   async function cancelHole() {
     if (!holeConfirm) return;
-    const { companyId, stepId } = holeConfirm;
+    const {
+      companyId,
+      remainingStepUpdates,
+      eventStepIds,
+      effectiveResultOption,
+    } = holeConfirm;
     setHoleConfirm(null);
     setSaving(true);
-    await finishAfterStepStatus(companyId, stepId);
+    await applyResolvedStepUpdates(
+      companyId,
+      remainingStepUpdates,
+      eventStepIds,
+      effectiveResultOption
+    );
   }
 
   const footer = (
@@ -647,66 +872,105 @@ export default function EmailAnalysisReview({
           </div>
         )}
 
-        <div className="space-y-2">
-          <Field label={t("aiEmail.review.stepLabel")}>
-            <input
-              type="text"
-              value={stepName}
-              onChange={(e) => setStepName(e.target.value)}
-              placeholder={t("aiEmail.review.stepPlaceholder")}
-              className={fieldInputClass}
-            />
-          </Field>
-          {stepNameSuggestions.length > 0 && (
-            <div className="flex flex-wrap gap-2 px-1 pt-1">
-              {stepNameSuggestions.map((name) => (
-                <button
-                  key={name}
-                  type="button"
-                  onClick={() => setStepName(name)}
-                  className="rounded-full border border-stitch-border px-3 py-1 text-[11px] text-secondary transition-colors hover:border-primary-navy/40 hover:text-primary-navy"
+        <section className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h4 className="text-[13px] font-[500] text-stitch-ink">
+              {t("aiEmail.review.stepLabel")}
+            </h4>
+            <button
+              type="button"
+              onClick={() =>
+                setStepUpdates((prev) => [
+                  ...prev,
+                  { stepName: "", resultOption: "inProgress" },
+                ])
+              }
+              className="text-[12px] font-[500] text-primary-navy hover:underline"
+            >
+              + {t("companies.steps.addStep")}
+            </button>
+          </div>
+
+          {stepUpdates.length === 0 ? (
+            <p className="rounded-stitch-2xl border border-dashed border-stitch-border py-6 text-center text-[12px] text-secondary">
+              {t("companies.steps.empty")}
+            </p>
+          ) : (
+            <div className="flex flex-col gap-4">
+              {stepUpdates.map((stepUpdate, index) => (
+                <div
+                  key={index}
+                  className="space-y-3 rounded-stitch-2xl border border-stitch-border bg-white p-5"
                 >
-                  {name}
-                </button>
+                  <div className="grid grid-cols-[minmax(0,1fr)_minmax(120px,0.65fr)_auto] items-end gap-3">
+                    <Field label={t("aiEmail.review.stepLabel")}>
+                      <input
+                        type="text"
+                        value={stepUpdate.stepName}
+                        onChange={(e) => updateStepUpdate(index, { stepName: e.target.value })}
+                        placeholder={t("aiEmail.review.stepPlaceholder")}
+                        className={fieldInputClass}
+                      />
+                    </Field>
+                    <Field label={t("aiEmail.review.resultLabel")}>
+                      <select
+                        value={stepUpdate.resultOption}
+                        onChange={(e) =>
+                          updateStepUpdate(index, {
+                            resultOption: e.target.value as StepUpdate["resultOption"],
+                          })
+                        }
+                        className={fieldInputClass + " appearance-none"}
+                      >
+                        {RESULT_OPTION_KEYS.map((key) => (
+                          <option key={key} value={key}>
+                            {t(`aiEmail.review.resultOptions.${key}`)}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                    <button
+                      type="button"
+                      onClick={() => removeStepUpdate(index)}
+                      className="mb-3 text-[11px] text-secondary hover:text-error hover:underline"
+                    >
+                      {t("common.delete")}
+                    </button>
+                  </div>
+                  {stepNameSuggestions.length > 0 && (
+                    <div className="flex flex-wrap gap-2 px-1">
+                      {stepNameSuggestions.map((name) => (
+                        <button
+                          key={name}
+                          type="button"
+                          onClick={() => updateStepUpdate(index, { stepName: name })}
+                          className="rounded-full border border-stitch-border px-3 py-1 text-[11px] text-secondary transition-colors hover:border-primary-navy/40 hover:text-primary-navy"
+                        >
+                          {name}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               ))}
             </div>
           )}
-        </div>
+        </section>
 
-        {/* docs/stitch/AI Drawer/jobcal_dashboard_ai_drawer_step_3_sophisticated_refresh의
-            필드들. 選考結果는 handleRegister에서 stepId/companyId에 반영된다(아래 참고).
-            形式은 handleFormatChange를 통해 일정이 정확히 1개일 때만 그 일정의
-            location/onlineUrl에 반영된다. リマインダー는 대응하는 컬럼/알림 로직이 없어
-            선택해도 저장되지 않는 죽은 select였기 때문에 UI를 숨겼다(관련 state/상수/i18n
-            키도 함께 정리) — 나중에 알림 기능이 생기면 이 자리에 select를 다시 붙이면 된다. */}
-        <div className="grid grid-cols-2 gap-4">
-          <Field label={t("aiEmail.review.resultLabel")}>
-            <select
-              value={resultOption}
-              onChange={(e) => setResultOption(e.target.value as typeof resultOption)}
-              className={fieldInputClass + " appearance-none"}
-            >
-              {RESULT_OPTION_KEYS.map((key) => (
-                <option key={key} value={key}>
-                  {t(`aiEmail.review.resultOptions.${key}`)}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field label={t("aiEmail.review.formatLabel")}>
-            <select
-              value={formatOption}
-              onChange={(e) => handleFormatChange(e.target.value as typeof formatOption)}
-              className={fieldInputClass + " appearance-none"}
-            >
-              {FORMAT_OPTION_KEYS.map((key) => (
-                <option key={key} value={key}>
-                  {t(`aiEmail.review.formatOptions.${key}`)}
-                </option>
-              ))}
-            </select>
-          </Field>
-        </div>
+        {/* 形式은 기존처럼 일정이 정확히 1개일 때만 해당 일정에 반영한다. */}
+        <Field label={t("aiEmail.review.formatLabel")}>
+          <select
+            value={formatOption}
+            onChange={(e) => handleFormatChange(e.target.value as typeof formatOption)}
+            className={fieldInputClass + " appearance-none"}
+          >
+            {FORMAT_OPTION_KEYS.map((key) => (
+              <option key={key} value={key}>
+                {t(`aiEmail.review.formatOptions.${key}`)}
+              </option>
+            ))}
+          </select>
+        </Field>
 
         <section>
           <div className="mb-4 flex items-center justify-between">
@@ -715,7 +979,10 @@ export default function EmailAnalysisReview({
             </h4>
             <button
               type="button"
-              onClick={() => setEvents((prev) => [...prev, createEmptyEventFormValues()])}
+              onClick={() => {
+                setEvents((prev) => [...prev, createEmptyEventFormValues()]);
+                setEventStepNames((prev) => [...prev, null]);
+              }}
               className="text-[12px] font-[500] text-primary-navy hover:underline"
             >
               {t("companies.steps.addEvent")}
@@ -771,6 +1038,15 @@ export default function EmailAnalysisReview({
                         value={event.title}
                         onChange={(e) => updateEvent(index, { title: e.target.value })}
                         className={fieldInputClass}
+                      />
+                    </Field>
+
+                    <Field label={t("aiEmail.review.stepLabel")}>
+                      <input
+                        type="text"
+                        value={eventStepNames[index] ?? "-"}
+                        disabled
+                        className={fieldInputClass + " cursor-not-allowed opacity-70"}
                       />
                     </Field>
 

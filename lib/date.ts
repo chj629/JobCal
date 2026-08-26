@@ -7,6 +7,29 @@ export function formatDateKey(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
+// AI 메일 분석과 사용량 월 경계가 공유하는 Asia/Tokyo 기준 시각. 일본은 DST가 없으므로
+// Intl로 현지 날짜·시각을 뽑고 명시적인 +09:00 offset을 붙인다. toISOString()의 UTC Z를
+// 현지 시각이라고 잘못 설명하는 일이 없도록 서버에서 프롬프트에 넘길 때 사용한다.
+export function formatDateTimeInAsiaTokyo(date: Date): string {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Tokyo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(date);
+  const get = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value ?? "";
+  return `${get("year")}-${get("month")}-${get("day")}T${get("hour")}:${get("minute")}:${get("second")}+09:00`;
+}
+
+export function formatDateKeyInAsiaTokyo(date: Date): string {
+  return formatDateTimeInAsiaTokyo(date).slice(0, 10);
+}
+
 export function todayKey(): string {
   return formatDateKey(new Date());
 }
