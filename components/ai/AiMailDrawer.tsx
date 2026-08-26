@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import EmailPasteForm from "@/components/companies/EmailPasteForm";
 import CompanyMatchPicker from "@/components/companies/CompanyMatchPicker";
 import EmailAnalysisReview from "@/components/companies/EmailAnalysisReview";
@@ -9,6 +10,11 @@ import Drawer from "@/components/ui/Drawer";
 import MaterialIcon from "@/components/ui/MaterialIcon";
 import type { Company } from "@/lib/companies";
 import type { EmailAnalysisResult } from "@/lib/ai/emailAnalysis";
+import { PRO_AI_ANALYSIS_WARNING_THRESHOLD } from "@/lib/ai/analysisUsage";
+import {
+  notifyAiAnalysisUsageChanged,
+  useAiAnalysisUsage,
+} from "@/lib/ai/useAiAnalysisUsage";
 import { useT } from "@/lib/locale-context";
 
 type Step = "paste" | "match" | "review" | "complete";
@@ -125,6 +131,9 @@ export function useEmailAnalysisFlow() {
         return;
       }
 
+      // route가 성공 응답을 반환한 시점에는 원자적 사용량 RPC까지 커밋됐다. 전체 페이지를
+      // 새로고침하지 않고 현재 마운트된 Drawer/Settings의 숫자만 다시 읽게 한다.
+      notifyAiAnalysisUsageChanged();
       setAnalysis(json as EmailAnalysisResult);
       setAnalyzing(false);
       setStep("match");
@@ -195,6 +204,13 @@ export default function AiMailDrawer({
   const t = useT();
   const router = useRouter();
   const flow = useEmailAnalysisFlow();
+  // 닫힌 Drawer 때문에 플랜/사용량 조회를 만들지 않는다. 열릴 때만 현재 세션 기준으로
+  // getUserPlan + RLS 사용량 조회를 하고, 분석 성공 이벤트를 받으면 조용히 갱신한다.
+  const { usage } = useAiAnalysisUsage(open);
+  const usageRemaining = usage ? Math.max(usage.limit - usage.used, 0) : 0;
+  const showFreeUpgradeHint = usage?.plan === "free" && usageRemaining <= 3;
+  const showProUsageWarning =
+    usage?.plan === "pro" && usage.used >= PRO_AI_ANALYSIS_WARNING_THRESHOLD;
   // Drawer의 고정 footer 영역 DOM 노드. 각 스텝 컴포넌트가 이 노드로 자신의 버튼을
   // portal 렌더링해, content 스크롤과 무관하게 항상 화면 하단에 보이게 한다.
   const [footerEl, setFooterEl] = useState<HTMLDivElement | null>(null);
@@ -260,32 +276,54 @@ export default function AiMailDrawer({
       {flow.step !== "complete" && (
         // docs/stitch/AI Drawer/*의 최소 스텝 표시. 진행 중인 단계만 원+라벨을 보여주고,
         // 나머지는 옅은 원만 남긴다(완료 여부와 무관하게 동일 스타일 — Stitch도 구분 없음).
-        <div className="mb-10 flex items-center gap-3">
-          {STEPS.map((item, index) => {
-            const isActive = item.key === flow.step;
-            return (
-              <div key={item.key} className="flex items-center gap-3">
-                {index > 0 && <span className="h-px w-8 bg-stitch-border" aria-hidden="true" />}
-                <div className="flex items-center gap-2">
-                  <span
-                    className={
-                      "flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-[500] " +
-                      (isActive
-                        ? "bg-primary-navy text-white"
-                        : "border border-stitch-border bg-stitch-bg text-secondary")
-                    }
-                  >
-                    {index + 1}
-                  </span>
-                  {isActive && (
-                    <span className="text-[13px] font-[500] text-primary-navy">
-                      {t(item.labelKey)}
+        <div className="mb-10 space-y-3">
+          <div className="flex items-center gap-3">
+            {STEPS.map((item, index) => {
+              const isActive = item.key === flow.step;
+              return (
+                <div key={item.key} className="flex items-center gap-3">
+                  {index > 0 && <span className="h-px w-8 bg-stitch-border" aria-hidden="true" />}
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={
+                        "flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-[500] " +
+                        (isActive
+                          ? "bg-primary-navy text-white"
+                          : "border border-stitch-border bg-stitch-bg text-secondary")
+                      }
+                    >
+                      {index + 1}
                     </span>
-                  )}
+                    {isActive && (
+                      <span className="text-[13px] font-[500] text-primary-navy">
+                        {t(item.labelKey)}
+                      </span>
+                    )}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
+
+          {usage?.plan === "free" && (
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-secondary">
+              <span>{t("aiEmail.drawer.usage.free", { used: usage.used, limit: usage.limit })}</span>
+              {showFreeUpgradeHint && (
+                <Link
+                  href="/settings?tab=plan"
+                  className="font-[500] text-primary-navy underline underline-offset-2"
+                >
+                  {t("aiEmail.drawer.usage.freeUpgrade", { remaining: usageRemaining })}
+                </Link>
+              )}
+            </div>
+          )}
+
+          {showProUsageWarning && usage && (
+            <p className="text-[11px] text-warning">
+              {t("aiEmail.drawer.usage.proWarning", { remaining: usageRemaining })}
+            </p>
+          )}
         </div>
       )}
 

@@ -598,6 +598,13 @@
       "checkoutCompleted": "お支払いが完了しました。反映まで少し時間がかかる場合があります。",
       "checkoutError": "お支払い処理中に問題が発生しました。もう一度お試しください。",
       "notConfigured": "決済機能はまだ設定されていません。",
+      "aiUsage": {
+        "title": "AIメール分析",
+        "freeCount": "{used} / {limit}回使用",
+        "freeDescription": "無料プランでは登録後、通算10回までお試しいただけます。",
+        "proCount": "今月 {used} / {limit}回",
+        "proDescription": "Asia/Tokyo基準で毎月1日にリセットされます。"
+      },
       "history": {
         "title": "支払い履歴",
         "empty": "支払い履歴はまだありません。",
@@ -1073,6 +1080,11 @@
         "paste": "メール入力",
         "match": "企業選択",
         "review": "確認・登録"
+      },
+      "usage": {
+        "free": "AIメール分析 {used} / {limit}回使用",
+        "freeUpgrade": "残り{remaining}回 · Proを見る",
+        "proWarning": "今月のAIメール分析は残り{remaining}回です。"
       },
       "privacyNotice": "メール本文は分析のためにのみ使用されます。適用前に必ず内容をご確認ください。"
     },

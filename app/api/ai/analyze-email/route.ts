@@ -8,6 +8,10 @@ import {
   parseEmailAnalysisResult,
   type EmailAnalysisResult,
 } from "@/lib/ai/emailAnalysis";
+import {
+  FREE_AI_ANALYSIS_LIMIT,
+  PRO_AI_ANALYSIS_LIMIT,
+} from "@/lib/ai/analysisUsage";
 import { formatDateKeyInAsiaTokyo, formatDateTimeInAsiaTokyo } from "@/lib/date";
 import { DEFAULT_LOCALE, type Locale } from "@/lib/i18n/messages";
 
@@ -25,8 +29,6 @@ const DEFAULT_MODEL = "gpt-4.1-mini";
 // 않는다. "합계 확인 + 조건부 증가"는 increment_ai_analysis_usage() 함수 안에서 한
 // 트랜잭션으로 원자적으로 처리된다(0025 마이그레이션) — 한도를 넘긴 요청은 이 함수가
 // 아예 증가시키지 않고 allowed=false만 반환하므로, route.ts는 그 결과만 보고 분기한다.
-const FREE_LIFETIME_ANALYSIS_LIMIT = 10;
-const PRO_MONTHLY_ANALYSIS_LIMIT = 300;
 // 기존 JSON schema(companyName/stepName/resultOption/events/contacts/memo) 결과가
 // 충분히 들어가는 수준의 출력 토큰 상한. 프롬프트/모델/응답 구조는 그대로 두고 비용
 // 상한선만 둔다.
@@ -103,7 +105,7 @@ export async function POST(request: Request) {
   // 자리를 채간 경우), 그 경우 이미 받은 OpenAI 결과는 버리고 429를 반환한다.
   const plan = await getUserPlan(supabase);
   const scope = plan === "pro" ? "month" : "lifetime";
-  const limit = plan === "pro" ? PRO_MONTHLY_ANALYSIS_LIMIT : FREE_LIFETIME_ANALYSIS_LIMIT;
+  const limit = plan === "pro" ? PRO_AI_ANALYSIS_LIMIT : FREE_AI_ANALYSIS_LIMIT;
   const now = new Date();
   const usageDate = formatDateKeyInAsiaTokyo(now);
 

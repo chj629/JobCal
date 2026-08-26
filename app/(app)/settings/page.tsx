@@ -18,6 +18,7 @@ import {
   type UserTransaction,
 } from "@/lib/paddle/getUserTransactionHistory";
 import { usePaddleCheckout } from "@/lib/paddle/usePaddleCheckout";
+import { useAiAnalysisUsage } from "@/lib/ai/useAiAnalysisUsage";
 import { dateKeyOf } from "@/lib/date";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import MaterialIcon from "@/components/ui/MaterialIcon";
@@ -105,6 +106,10 @@ export default function SettingsPage() {
   // 읽어서만 정해지고, 체크아웃 성공 콜백이나 Customer Portal 이동 등 클라이언트 쪽에서
   // 직접 "pro"로 바꾸거나 상태를 조작하는 경로는 없다.
   const [subscription, setSubscription] = useState<UserSubscriptionSummary | null>(null);
+  const { usage: aiUsage, loading: aiUsageLoading } = useAiAnalysisUsage(
+    subscription !== null,
+    subscription?.plan
+  );
   const [isPortalLoading, setIsPortalLoading] = useState(false);
   // null = 아직 조회 전(로딩). paddle_transactions(webhook의 transaction.completed가
   // 채우는 결제 이력 전용 테이블)만 읽는다 — Pro 판정(subscription 상태)에는 전혀
@@ -368,6 +373,46 @@ export default function SettingsPage() {
   function handleSaveLanguage() {
     setLocale(pendingLocale);
     showToast(translate(pendingLocale, "settings.languageSaveSuccess"));
+  }
+
+  function renderAiUsage() {
+    if (aiUsageLoading) {
+      return (
+        <div className="mt-4 h-[58px] animate-pulse rounded-xl bg-stitch-bg" aria-hidden="true" />
+      );
+    }
+    if (!aiUsage) return null;
+
+    const percent = Math.min((aiUsage.used / aiUsage.limit) * 100, 100);
+    const isPro = aiUsage.plan === "pro";
+    return (
+      <div className="mt-4 rounded-xl bg-stitch-bg px-4 py-3">
+        <div className="flex items-center justify-between gap-3 text-[12px]">
+          <span className="font-medium text-[var(--color-settings-ink)]">
+            {t("settings.plan.aiUsage.title")}
+          </span>
+          <span className="text-[var(--color-settings-secondary)]">
+            {t(
+              isPro ? "settings.plan.aiUsage.proCount" : "settings.plan.aiUsage.freeCount",
+              { used: aiUsage.used, limit: aiUsage.limit }
+            )}
+          </span>
+        </div>
+        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white">
+          <div
+            className="h-full rounded-full bg-primary-navy transition-[width]"
+            style={{ width: `${percent}%` }}
+          />
+        </div>
+        <p className="mt-2 text-[10px] text-[var(--color-settings-secondary)]">
+          {t(
+            isPro
+              ? "settings.plan.aiUsage.proDescription"
+              : "settings.plan.aiUsage.freeDescription"
+          )}
+        </p>
+      </div>
+    );
   }
 
   return (
@@ -659,6 +704,8 @@ export default function SettingsPage() {
                         : t("settings.plan.proActiveDescription")}
                   </p>
 
+                  {renderAiUsage()}
+
                   <button
                     type="button"
                     onClick={handleManageSubscriptionClick}
@@ -684,6 +731,8 @@ export default function SettingsPage() {
                   <p className="mt-2 text-[13px] text-[var(--color-settings-secondary)]">
                     {t("settings.plan.proDescription")}
                   </p>
+
+                  {renderAiUsage()}
 
                   {/* Paddle Checkout(결제 오버레이) 진입 전, 자동갱신/무료체험 없음/해지
                       조건을 JobCal 사이트 자체에서 명확히 고지한다 — Paddle Seller Handbook의

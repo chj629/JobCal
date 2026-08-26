@@ -598,6 +598,13 @@
       "checkoutCompleted": "결제가 완료되었습니다. 반영까지 잠시 걸릴 수 있어요.",
       "checkoutError": "결제 진행 중 문제가 발생했습니다. 다시 시도해 주세요.",
       "notConfigured": "결제 기능이 아직 설정되지 않았습니다.",
+      "aiUsage": {
+        "title": "AI 메일 분석",
+        "freeCount": "{used} / {limit}회 사용",
+        "freeDescription": "무료 플랜에서는 가입 후 총 10회까지 체험할 수 있습니다.",
+        "proCount": "이번 달 {used} / {limit}회",
+        "proDescription": "Asia/Tokyo 기준으로 매월 1일 초기화됩니다."
+      },
       "history": {
         "title": "결제 내역",
         "empty": "결제 내역이 아직 없습니다.",
@@ -1073,6 +1080,11 @@
         "paste": "메일 입력",
         "match": "기업 선택",
         "review": "검토·등록"
+      },
+      "usage": {
+        "free": "AI 메일 분석 {used} / {limit}회 사용",
+        "freeUpgrade": "남은 {remaining}회 · Pro 보기",
+        "proWarning": "이번 달 AI 메일 분석이 {remaining}회 남았습니다."
       },
       "privacyNotice": "메일 본문은 분석 목적으로만 사용됩니다. 적용 전 반드시 내용을 확인해 주세요."
     },
