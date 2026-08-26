@@ -1,4 +1,5 @@
-import { getDefaultStepNames } from "@/lib/applicationSteps";
+import { getDefaultStepNames, matchDefaultStepKey } from "@/lib/applicationSteps";
+import { translate } from "@/lib/i18n/translate";
 import type { Locale } from "@/lib/i18n/messages";
 
 // docs/database.md: events.event_type
@@ -110,12 +111,13 @@ export function buildEmailAnalysisPrompt(emailText: string, nowIso: string, loca
 사용자가 붙여넣은 채용 관련 이메일 원문을 분석해 아래 항목을 JSON으로 추출하세요.
 
 [언어 규칙]
-- 이메일 내용을 바탕으로 당신이 새로 문장을 작성하는 자연어 설명 항목(현재는 memo)은 반드시 ${outputLanguageLabel}로 작성하세요. 앞으로 이런 자연어 설명 항목이 추가되더라도 항상 이 규칙을 적용하세요.
+- 이메일 내용을 바탕으로 당신이 새로 문장을 작성하는 자연어 설명 항목(현재는 memo)은 반드시 ${outputLanguageLabel}만 사용하고 다른 언어를 섞지 마세요. 앞으로 이런 자연어 설명 항목이 추가되더라도 항상 이 규칙을 적용하세요.
 - 반면 아래 항목은 당신이 새로 작성하는 문장이 아니라 이메일 원문에서 그대로 추출하는 고유 데이터이므로 이 규칙의 대상이 아닙니다. 다른 언어로 번역하지 말고 이메일에 쓰인 표현을 그대로 사용하세요: companyName, contacts의 이름, events의 location/onlineUrl, 기본 전형과 매칭되지 않는 커스텀 stepName, 그 외 이메일에 등장하는 고유명사 전반.
+- 이 문서 안의 일본어 예시 문장들은 이메일 문장 구조·관계를 설명하기 위한 것일 뿐, 출력 언어 예시가 아닙니다. 출력 언어는 오직 위 규칙만 따르세요.
 
 - companyName: 발신 기업명. 알 수 없으면 null.
 - stepName: 이 이메일과 관련된 전형 단계 이름. 다음 기본 전형 중 의미가 같은 것이 있으면 그 이름을 그대로 사용하세요(이 목록 자체가 이미 ${outputLanguageLabel} 정규 표기이므로 그대로 쓰면 됩니다): ${stepNameList}. 해당하지 않으면(이메일에만 있는 고유한 전형명, 예: AI一次面接, カジュアル面談) 이메일에 쓰인 원문 표현을 그대로 stepName으로 사용하세요 — 다른 언어로 번역하거나 새로 이름을 짓지 마세요. 알 수 없으면 null.
-  이메일 하나에 "이전 단계의 결과"와 "다음 단계 안내"가 함께 나오는 경우가 많습니다(예: "論理的思考力チェックのご通過、おめでとうございます。次の選考としてAI一次面接をご案内します."). 이런 경우 stepName은 이전에 끝난 단계가 아니라, 이번에 새로 안내된(사용자가 이제 준비해야 할) 다음 단계 이름으로 정하세요.
+  이메일 하나에 "이전 단계의 결과"와 "다음 단계 안내"가 함께 나오는 경우가 많습니다(예: "A 전형 통과 안내 + 다음 전형으로 B 안내"라는 구조). 이런 경우 stepName은 이전에 끝난 단계(A)가 아니라, 이번에 새로 안내된(사용자가 이제 준비해야 할) 다음 단계(B) 이름으로 정하세요.
 - resultOption: stepName으로 고른 바로 그 전형 단계 자체의 결과 상태입니다. 이메일에 있는 다른 단계의 결과를 stepName의 결과로 옮겨오면 안 됩니다. 다음 중 하나를 반드시 선택하세요.
   - "passed": stepName 단계 자체에 대해 합격/통과했다는 표현이 명확히 있는 경우 (예: 合格, 通過, 합격, 통과).
   - "failed": stepName 단계 자체에 대해 불합격/탈락했다는 표현이 명확히 있는 경우 (예: 不合格, 見送り, 選考終了, 採用を見送る, 불합격, 탈락, 전형 종료).
@@ -132,7 +134,9 @@ export function buildEmailAnalysisPrompt(emailText: string, nowIso: string, loca
 - contacts: 이메일에 언급된 담당자(발신자, 채용 담당자, 인사 담당자 등)를 모두 배열로 추출하세요. 담당자가 여러 명이면 모두 각각의 항목으로 만드세요. 각 항목마다 이름/이메일/전화번호/소속(부서·직책)을 채우세요. 이름을 알 수 없는 사람은 포함하지 마세요. 담당자 정보가 전혀 없으면 빈 배열을 반환하세요.
 - memo: 이메일 원문을 그대로 옮기거나 길게 요약하지 마세요. 사용자가 실제로 해야 할 일(준비물, 제출해야 할 것 등)과 주의사항 중심으로 짧게 정리하세요. 항목이 여러 개면 줄마다 "- "로 시작하는 짧은 문장으로 나열하세요. companyName/stepName/events/contacts에 이미 담기는 정보(기업명, 전형 단계, 일정 날짜·장소·링크, 담당자 이름·연락처)는 memo에 반복해서 적지 마세요. 위 [언어 규칙]에 따라 ${outputLanguageLabel}로 작성하세요. 정리할 내용이 없으면 null.
 
-이메일에 없는 정보를 추측해서 만들어내지 마세요. 확실하지 않으면 null을 사용하세요.`;
+이메일에 없는 정보를 추측해서 만들어내지 마세요. 확실하지 않으면 null을 사용하세요.
+
+다시 한 번 강조합니다: memo는 반드시 ${outputLanguageLabel}만 사용하고 다른 언어를 섞지 마세요.`;
 
   const user = `--- 이메일 원문 ---\n${emailText}`;
 
@@ -181,9 +185,28 @@ function resolveResultOption(
   return llmValue;
 }
 
+// stepName이 기본 전형과 의미상 같으면(matchDefaultStepKey) 현재 locale의 정규 표시명으로
+// 결정적으로 통일한다. 프롬프트로 "목록의 이름을 그대로 쓰라"고 안내해도 LLM이 종종 이메일
+// 원문 언어를 그대로 남기거나(예: "説明会", "1次面接" 같은 표기) 지시를 놓치므로, LLM에게만
+// 맡기지 않고 여기서 다시 한 번 결정적으로 맞춘다. matchDefaultStepKey는 8개 기본 전형의
+// ko/ja 정규 표기와 정확히 일치할 때만 매칭하므로("AI一次面接", "カジュアル面談" 같은 커스텀
+// 전형은 절대 매칭되지 않음) 커스텀 전형을 기본 전형으로 오인할 위험이 없고, 그 판단은 여기서
+// 새로 만들지 않고 그대로 재사용한다. 매칭되지 않으면 원문을 그대로 둔다.
+function normalizeStepName(rawStepName: string | null, locale: Locale): string | null {
+  if (!rawStepName) return rawStepName;
+  const stepKey = matchDefaultStepKey(rawStepName);
+  return stepKey ? translate(locale, `applicationSteps.default.${stepKey}`) : rawStepName;
+}
+
 // OpenAI 응답(구조화 출력)을 최소한으로 검증해 안전한 형태로 변환한다. 별도 검증 라이브러리는 쓰지 않는다.
-// emailText는 resolveResultOption의 결정적 후처리에 쓰인다.
-export function parseEmailAnalysisResult(raw: unknown, emailText: string): EmailAnalysisResult {
+// emailText는 resolveResultOption의 결정적 후처리에, locale은 stepName 정규화에 쓰인다.
+// API 응답으로 나가기 직전인 여기 한 곳에서만 stepName을 정규화해, 리뷰 화면/저장 데이터가
+// 서로 다른 이름을 보여주는 일이 없게 한다.
+export function parseEmailAnalysisResult(
+  raw: unknown,
+  emailText: string,
+  locale: Locale
+): EmailAnalysisResult {
   if (typeof raw !== "object" || raw === null) {
     throw new Error("분석 결과 형식이 올바르지 않습니다.");
   }
@@ -230,7 +253,7 @@ export function parseEmailAnalysisResult(raw: unknown, emailText: string): Email
 
   return {
     companyName: toNullableString(obj.companyName),
-    stepName: toNullableString(obj.stepName),
+    stepName: normalizeStepName(toNullableString(obj.stepName), locale),
     resultOption: resolveResultOption(llmResultOption, emailText),
     events,
     contacts,

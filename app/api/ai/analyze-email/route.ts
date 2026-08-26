@@ -214,7 +214,7 @@ export async function POST(request: Request) {
 
   let result: EmailAnalysisResult;
   try {
-    result = parseEmailAnalysisResult(parsedContent, emailText.trim());
+    result = parseEmailAnalysisResult(parsedContent, emailText.trim(), locale);
   } catch {
     return NextResponse.json({ error: "AI 응답을 해석할 수 없습니다." }, { status: 502 });
   }
