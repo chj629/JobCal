@@ -80,6 +80,11 @@ export interface EventFormValues {
   memo: string;
 }
 
+export type EventSaveDecision =
+  | { type: "noop"; existingEvent: AppEvent }
+  | { type: "confirmDate"; existingEvent: AppEvent }
+  | { type: "create"; existingEvent: null };
+
 export function createEmptyEventFormValues(eventType: EventType = "schedule"): EventFormValues {
   return {
     eventType,
@@ -174,6 +179,39 @@ export function eventFormValuesToRow(values: EventFormValues) {
     online_url: values.onlineUrl.trim() ? values.onlineUrl.trim() : null,
     memo: values.memo.trim() ? values.memo.trim() : null,
   };
+}
+
+// EmailAnalysisReview에서 AI 일정이 기존 일정과 어떤 관계인지 미리 보여주는 UI와 실제
+// 저장 경로가 공유하는 판정. 현재 저장 정책 그대로 전형/종류/제목이 같은 첫 일정만 비교하고,
+// 종류별 의미 있는 시각(schedule=startsAt, 그 외=dueAt)만 dedup 기준으로 삼는다.
+export function eventFormTimeIso(values: EventFormValues): string | null {
+  const raw = values.eventType === "schedule" ? values.startsAt : values.dueAt;
+  return raw ? new Date(raw).toISOString() : null;
+}
+
+export function getEventSaveDecision(
+  existingEvents: AppEvent[],
+  companyId: string,
+  applicationStepId: string,
+  incoming: EventFormValues
+): EventSaveDecision {
+  const sameSlot = existingEvents.find((existing) => {
+    if (existing.companyId !== companyId) return false;
+    if (existing.applicationStepId !== applicationStepId) return false;
+    if (existing.eventType !== incoming.eventType) return false;
+    return existing.title.trim() === incoming.title.trim();
+  });
+  if (!sameSlot) return { type: "create", existingEvent: null };
+
+  const existingTimeIso = eventTimeIso(sameSlot);
+  const incomingTimeIso = eventFormTimeIso(incoming);
+  if (existingTimeIso === incomingTimeIso) {
+    return { type: "noop", existingEvent: sameSlot };
+  }
+  if (existingTimeIso === null && incomingTimeIso !== null) {
+    return { type: "confirmDate", existingEvent: sameSlot };
+  }
+  return { type: "create", existingEvent: null };
 }
 
 // docs/database.md "다음 일정 계산": starts_at/due_at만 비교하고 ends_at은 비교 대상이 아니다.

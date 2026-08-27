@@ -21,6 +21,7 @@ import {
   DEFAULT_STEP_KEYS,
   getStepDisplayName,
   matchDefaultStepKey,
+  STEP_STATUS_LABEL_KEYS,
   type ApplicationStep,
   type StepStatus,
 } from "@/lib/applicationSteps";
@@ -29,7 +30,7 @@ import {
   applyExplicitEventFormat,
   createEmptyEventFormValues,
   deriveEventFormat,
-  eventTimeIso,
+  getEventSaveDecision,
   isoToDatetimeLocal,
   mergeEventFormValues,
   type EventFormat,
@@ -222,13 +223,6 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
 const fieldInputClass =
   "w-full rounded-full border border-stitch-border bg-white px-4 py-2.5 text-[14px] text-stitch-ink outline-none transition-all focus:border-primary-navy/30 focus:bg-stitch-bg";
 
-// 일정 dedup 비교용: 타입별로 실제 의미 있는 시각 필드만 ISO 문자열로 뽑는다
-// (schedule은 startsAt, deadline/result_announcement는 dueAt).
-function formEventTimeIso(value: EventFormValues): string | null {
-  const raw = value.eventType === "schedule" ? value.startsAt : value.dueAt;
-  return raw ? new Date(raw).toISOString() : null;
-}
-
 function extractedEventToFormValues(event: ExtractedEvent): EventFormValues {
   return {
     eventType: event.eventType,
@@ -354,6 +348,63 @@ export default function EmailAnalysisReview({
     return DEFAULT_STEP_KEYS.map((key) => t(`applicationSteps.default.${key}`));
   }, [existingCompany, steps, t]);
 
+  // 기존 기업에서만 현재 Context의 전형과 사용자가 편집 중인 AI 제안을 직접 비교한다.
+  // 실제 저장 결과를 시뮬레이션하지 않고, hole/cascade 전의 "변경 제안"만 보여준다.
+  const stepChangeSuggestions = useMemo(() => {
+    if (!existingCompany) return [];
+    const companySteps = steps.filter((step) => step.companyId === existingCompany.id);
+    return stepUpdates.map((update) => {
+      const matched = findMatchingApplicationStep(update.stepName, companySteps, t);
+      const proposedLabel = t(`aiEmail.review.resultOptions.${update.resultOption}`);
+      if (!matched) return { type: "new" as const, proposedLabel };
+
+      const proposedStatus: StepStatus | null =
+        update.resultOption === "inProgress"
+          ? "in_progress"
+          : update.resultOption === "passed" || update.resultOption === "failed"
+            ? update.resultOption
+            : null;
+      return {
+        type:
+          proposedStatus !== null && proposedStatus === matched.stepStatus
+            ? ("noop" as const)
+            : ("change" as const),
+        currentLabel: t(STEP_STATUS_LABEL_KEYS[matched.stepStatus]),
+        proposedLabel,
+      };
+    });
+  }, [existingCompany, stepUpdates, steps, t]);
+
+  // event.stepName을 실제 기존 step id로 해석한 뒤, 저장과 동일한 helper로 create/update/noop을
+  // 계산한다. 기존에 없는 커스텀 전형이나 귀속 불명 일정은 기존 이벤트와 매칭될 수 없으므로
+  // 새 일정으로 표시하되, 실제 저장 시의 전형 필수 검증은 기존 handleRegister가 그대로 맡는다.
+  const eventSaveSuggestions = useMemo(() => {
+    if (!existingCompany) return [];
+    const companySteps = steps.filter((step) => step.companyId === existingCompany.id);
+    return events.map((event, index) => {
+      const stepName = eventStepNames[index]?.trim();
+      const step = stepName
+        ? findMatchingApplicationStep(stepName, companySteps, t)
+        : undefined;
+      if (!step) return "create" as const;
+      return getEventSaveDecision(existingEvents, existingCompany.id, step.id, event).type;
+    });
+  }, [eventStepNames, events, existingCompany, existingEvents, steps, t]);
+
+  const contactSaveSuggestions = useMemo(() => {
+    if (!existingCompany) return [];
+    return contacts.map((contact) => {
+      const trimmedEmail = contact.email.trim().toLowerCase();
+      const alreadyExists = existingContacts.some((existing) => {
+        if (existing.companyId !== existingCompany.id) return false;
+        return trimmedEmail
+          ? existing.email.trim().toLowerCase() === trimmedEmail
+          : existing.name.trim() === contact.name.trim();
+      });
+      return alreadyExists ? ("noop" as const) : ("create" as const);
+    });
+  }, [contacts, existingCompany, existingContacts]);
+
   function updateEvent(index: number, patch: Partial<EventFormValues>) {
     setEvents((prev) => prev.map((event, i) => (i === index ? { ...event, ...patch } : event)));
   }
@@ -471,20 +522,15 @@ export default function EmailAnalysisReview({
     // "완전히 같음"에서 걸러짐, 또는 날짜가 서로 다름)는 기존 로직 그대로 새 일정으로 저장한다.
     for (let i = savedEventCount; i < eventsToSave.length; i++) {
       const { event: toSave, stepId } = eventsToSave[i];
-      const toSaveTimeIso = formEventTimeIso(toSave);
-      const sameSlot = existingEvents.find((existing) => {
-        if (existing.companyId !== companyId) return false;
-        if (existing.applicationStepId !== stepId) return false;
-        if (existing.eventType !== toSave.eventType) return false;
-        if (existing.title.trim() !== toSave.title.trim()) return false;
-        return true;
-      });
-      const existingTimeIso = sameSlot ? eventTimeIso(sameSlot) : null;
+      const decision = getEventSaveDecision(existingEvents, companyId, stepId!, toSave);
 
-      if (sameSlot && existingTimeIso === toSaveTimeIso) {
+      if (decision.type === "noop") {
         // 완전히 동일한 일정(날짜까지 같거나, 둘 다 날짜 미정) — 아무 것도 하지 않는다.
-      } else if (sameSlot && existingTimeIso === null && toSaveTimeIso !== null) {
-        const ok = await updateEventRecord(sameSlot.id, mergeEventFormValues(sameSlot, toSave));
+      } else if (decision.type === "confirmDate") {
+        const ok = await updateEventRecord(
+          decision.existingEvent.id,
+          mergeEventFormValues(decision.existingEvent, toSave)
+        );
         if (!ok) {
           setSaveError(t("aiEmail.review.eventSaveFailed"));
           setSaving(false);
@@ -951,6 +997,20 @@ export default function EmailAnalysisReview({
                       ))}
                     </div>
                   )}
+                  {existingCompany && stepChangeSuggestions[index] && (
+                    <div className="flex items-center gap-2 px-1 text-[11px]">
+                      <span className="rounded-full bg-primary-navy/8 px-2.5 py-1 font-[500] text-primary-navy">
+                        {t("aiEmail.review.changeSuggestion")}
+                      </span>
+                      <span className="text-secondary">
+                        {stepChangeSuggestions[index].type === "new"
+                          ? `${t("aiEmail.review.newStep")} · ${stepChangeSuggestions[index].proposedLabel}`
+                          : stepChangeSuggestions[index].type === "noop"
+                            ? t("aiEmail.review.noChange")
+                            : `${stepChangeSuggestions[index].currentLabel} → ${stepChangeSuggestions[index].proposedLabel}`}
+                      </span>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -1022,6 +1082,17 @@ export default function EmailAnalysisReview({
                             ))}
                           </select>
                         </Field>
+                        {existingCompany && eventSaveSuggestions[index] && (
+                          <span className="mt-2 inline-flex rounded-full bg-primary-navy/8 px-2.5 py-1 text-[11px] font-[500] text-primary-navy">
+                            {t(
+                              eventSaveSuggestions[index] === "noop"
+                                ? "aiEmail.review.eventAlreadyRegistered"
+                                : eventSaveSuggestions[index] === "confirmDate"
+                                  ? "aiEmail.review.eventDateConfirmed"
+                                  : "aiEmail.review.eventNew"
+                            )}
+                          </span>
+                        )}
                       </div>
                       <button
                         type="button"
@@ -1061,6 +1132,11 @@ export default function EmailAnalysisReview({
                             onChange={(e) => updateEvent(index, { startsAt: e.target.value })}
                             className={fieldInputClass}
                           />
+                          {!event.startsAt && (
+                            <p className="px-2 text-[11px] text-secondary">
+                              {t("aiEmail.review.dateUndecided")}
+                            </p>
+                          )}
                         </Field>
                         <Field
                           label={`${t("companies.events.endsAt")} ${t("common.optional")}`}
@@ -1089,6 +1165,11 @@ export default function EmailAnalysisReview({
                           onChange={(e) => updateEvent(index, { dueAt: e.target.value })}
                           className={fieldInputClass}
                         />
+                        {!event.dueAt && (
+                          <p className="px-2 text-[11px] text-secondary">
+                            {t("aiEmail.review.dateUndecided")}
+                          </p>
+                        )}
                       </Field>
                     )}
 
@@ -1154,7 +1235,16 @@ export default function EmailAnalysisReview({
                           className={fieldInputClass}
                         />
                       </Field>
-                    </div>
+                        {existingCompany && contact.name.trim() && contactSaveSuggestions[index] && (
+                          <span className="mt-2 inline-flex rounded-full bg-stitch-bg px-2.5 py-1 text-[11px] text-secondary">
+                            {t(
+                              contactSaveSuggestions[index] === "noop"
+                                ? "aiEmail.review.contactAlreadyRegistered"
+                                : "aiEmail.review.contactNew"
+                            )}
+                          </span>
+                        )}
+                      </div>
                     <button
                       type="button"
                       onClick={() => removeContact(index)}
@@ -1187,7 +1277,13 @@ export default function EmailAnalysisReview({
           )}
         </section>
 
-        <Field label={t("aiEmail.review.memoLabel")}>
+        <Field
+          label={
+            existingCompany && memo.trim()
+              ? `${t("aiEmail.review.memoLabel")} · ${t("aiEmail.review.memoNew")}`
+              : t("aiEmail.review.memoLabel")
+          }
+        >
           <textarea
             value={memo}
             onChange={(e) => setMemo(e.target.value)}
