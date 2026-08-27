@@ -1,6 +1,7 @@
 import { LocaleProvider } from "@/lib/locale-context";
 import { buildAuthPageMetadata } from "@/lib/i18n/publicPageMetadata";
 import UpdatePasswordPageContent from "@/components/auth/UpdatePasswordPageContent";
+import { validatePasswordRecoveryGrant } from "@/lib/auth/passwordRecoveryGrant";
 
 export const metadata = buildAuthPageMetadata({
   locale: "ja",
@@ -9,10 +10,11 @@ export const metadata = buildAuthPageMetadata({
   descriptionKey: "auth.updatePassword.description",
 });
 
-export default function UpdatePasswordPage() {
+export default async function UpdatePasswordPage() {
+  const recovery = await validatePasswordRecoveryGrant();
   return (
     <LocaleProvider initialLocale="ja" locked>
-      <UpdatePasswordPageContent />
+      <UpdatePasswordPageContent recoveryAllowed={recovery.valid} />
     </LocaleProvider>
   );
 }

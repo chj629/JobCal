@@ -6,7 +6,6 @@ import { createClient } from "@/lib/supabase/client";
 import { useHandleSupabaseError } from "@/lib/supabase/errorHandling";
 import { useT } from "@/lib/locale-context";
 import {
-  getCurrentStep,
   rowToApplicationStep,
   type ApplicationStep,
   type ApplicationStepRow,
@@ -24,6 +23,18 @@ interface ApplicationStepsContextValue {
   updateStepStatus: (id: string, status: StepStatus) => Promise<boolean>;
   moveStep: (id: string, direction: "up" | "down") => Promise<boolean>;
   reorderSteps: (companyId: string, orderedIds: string[]) => Promise<boolean>;
+}
+
+interface UpdateStepStatusRpcResult {
+  result_step_id: string;
+  result_step_status: StepStatus;
+  cleared_in_progress_ids: string[];
+  promoted_step_id: string | null;
+}
+
+interface DeleteStepRpcResult {
+  deleted_step_id: string;
+  promoted_step_id: string | null;
 }
 
 const ApplicationStepsContext = createContext<ApplicationStepsContextValue | null>(null);
@@ -213,54 +224,20 @@ export function ApplicationStepsProvider({ children }: { children: ReactNode }) 
   async function deleteStep(id: string) {
     if (!userId) return false;
 
-    const { data: targetRow, error: targetError } = await supabase
-      .from("application_steps")
-      .select("company_id, step_order, step_status")
-      .eq("id", id)
+    const { data, error: deleteError } = await supabase
+      .rpc("delete_application_step_atomic", { p_step_id: id })
       .single();
 
-    if (targetError || !targetRow) {
-      await handleSupabaseError(targetError?.message ?? t("companies.detail.selectionDetail.stepNotFound"), setError);
+    if (deleteError || !data) {
+      const message = deleteError?.message.includes("application_step_not_found")
+        ? t("companies.detail.selectionDetail.stepNotFound")
+        : deleteError?.message ?? t("companies.detail.selectionDetail.stepNotFound");
+      await handleSupabaseError(message, setError);
       return false;
     }
 
-    const { error: deleteError } = await supabase.from("application_steps").delete().eq("id", id);
-
-    if (deleteError) {
-      await handleSupabaseError(deleteError.message, setError);
-      return false;
-    }
-
-    let promotedId: string | null = null;
-    if (targetRow.step_status === "in_progress") {
-      const { data: nextWaitingRows, error: nextWaitingError } = await supabase
-        .from("application_steps")
-        .select("id")
-        .eq("company_id", targetRow.company_id)
-        .gt("step_order", targetRow.step_order as number)
-        .eq("step_status", "waiting")
-        .order("step_order", { ascending: true })
-        .limit(1);
-
-      if (nextWaitingError) {
-        await handleSupabaseError(nextWaitingError.message, setError);
-        return false;
-      }
-
-      promotedId = nextWaitingRows?.[0]?.id ?? null;
-
-      if (promotedId) {
-        const { error: promoteError } = await supabase
-          .from("application_steps")
-          .update({ step_status: "in_progress" })
-          .eq("id", promotedId);
-
-        if (promoteError) {
-          await handleSupabaseError(promoteError.message, setError);
-          return false;
-        }
-      }
-    }
+    const result = data as DeleteStepRpcResult;
+    const promotedId = result.promoted_step_id;
 
     setError(null);
     setSteps((prev) =>
@@ -317,126 +294,24 @@ export function ApplicationStepsProvider({ children }: { children: ReactNode }) 
   async function updateStepStatus(id: string, status: StepStatus) {
     if (!userId) return false;
 
-    // steps(이 컨텍스트의 로컬 state)로 target을 찾으면, 같은 함수 호출 안에서 방금
-    // addStep/기업 생성으로 만들어진 전형처럼 아직 이 클로저에 반영되지 않은 행은 찾지
-    // 못해 조용히 실패한다(EmailAnalysisReview의 handleRegister가 정확히 이 순서로 호출함).
-    // target은 Supabase에서 직접 다시 조회해 항상 최신 상태를 기준으로 한다.
-    const { data: targetRow, error: targetError } = await supabase
-      .from("application_steps")
-      .select("company_id, step_order, step_status")
-      .eq("id", id)
+    const { data, error: updateError } = await supabase
+      .rpc("update_application_step_status_atomic", { p_step_id: id, p_status: status })
       .single();
 
-    if (targetError || !targetRow) {
-      await handleSupabaseError(targetError?.message ?? t("companies.detail.selectionDetail.stepNotFound"), setError);
-      return false;
-    }
-
-    const targetCompanyId = targetRow.company_id as string;
-    const targetStepOrder = targetRow.step_order as number;
-    // 아래 두 곳(가드/승격 조건)에서 "변경 전 상태"로 계속 참조하므로 먼저 이름을 붙여둔다.
-    const targetPreviousStatus = targetRow.step_status as StepStatus;
-
-    // waiting 전형을 곧바로 passed/failed로 만드는 것 중 "진짜 미래(아직 순서가 오지 않은)"
-    // 전형만 막는다 — currentStep(getCurrentStep)보다 step_order가 큰 waiting만 차단 대상이고,
-    // 재정렬로 currentStep보다 앞으로 옮겨진 waiting은 이미 지나간 순서로 보아 허용한다.
-    // Company Detail의 select(isFutureWaitingStep)는 이 조건을 UI에서 미리 막아두지만,
-    // AI Drawer처럼 stepId를 직접 지정해 이 함수를 호출하는 경로는 그 UI 가드를 거치지
-    // 않으므로 여기서 같은 기준으로 다시 검증한다(getCurrentStep을 그대로 재사용해 두 계층의
-    // "미래 전형" 정의가 어긋나지 않게 한다).
-    if ((status === "passed" || status === "failed") && targetPreviousStatus === "waiting") {
-      const { data: companyStepRows, error: companyStepsError } = await supabase
-        .from("application_steps")
-        .select("step_order, step_status")
-        .eq("company_id", targetCompanyId);
-
-      if (companyStepsError) {
-        await handleSupabaseError(companyStepsError.message, setError);
-        return false;
-      }
-
-      const currentStep = getCurrentStep(
-        (companyStepRows ?? []).map((row) => ({
-          stepOrder: row.step_order as number,
-          stepStatus: row.step_status as StepStatus,
-        }))
-      );
-      const isFutureWaitingStep = !!currentStep && targetStepOrder > currentStep.stepOrder;
-
-      if (isFutureWaitingStep) {
+    if (updateError || !data) {
+      if (updateError?.message.includes("future_waiting_step_status_blocked")) {
         setError(t("companies.detail.selectionDetail.waitingStepStatusBlocked"));
         return false;
       }
-    }
-
-    // in_progress로 바꿀 때만: 기존에 in_progress였던 "다른" 전형을 waiting으로 되돌린다.
-    // order와 무관하게 step_status만으로 찾으므로 passed/failed는 대상이 될 수 없다 —
-    // 기업당 in_progress는 항상 최대 1개라는 불변식은 이 블록만으로 유지된다.
-    let clearedOtherInProgressIds: string[] = [];
-    if (status === "in_progress") {
-      const { data: clearedRows, error: clearOtherError } = await supabase
-        .from("application_steps")
-        .update({ step_status: "waiting" })
-        .eq("company_id", targetCompanyId)
-        .eq("step_status", "in_progress")
-        .neq("id", id)
-        .select("id");
-
-      if (clearOtherError) {
-        await handleSupabaseError(clearOtherError.message, setError);
-        return false;
-      }
-      clearedOtherInProgressIds = (clearedRows ?? []).map((row) => row.id as string);
-    }
-
-    const { error: updateError } = await supabase
-      .from("application_steps")
-      .update({ step_status: status })
-      .eq("id", id);
-
-    if (updateError) {
-      await handleSupabaseError(updateError.message, setError);
+      const message = updateError?.message.includes("application_step_not_found")
+        ? t("companies.detail.selectionDetail.stepNotFound")
+        : updateError?.message ?? t("companies.detail.selectionDetail.stepNotFound");
+      await handleSupabaseError(message, setError);
       return false;
     }
 
-    // passed로 바뀔 때만, 그리고 target의 변경 전 상태가 in_progress였을 때만: order가
-    // 더 크면서 지금 step_status가 waiting인 것 중 가장 앞선 것 하나만 조회해 승격한다.
-    // "변경 전 in_progress"로 제한하는 이유: waiting → passed(재배치된 과거 전형을 곧바로
-    // 확정하는 경우)까지 승격을 트리거하면, 이미 다른 in_progress(진짜 현재 진행 지점)가
-    // 있는 상태에서 승격이 또 하나의 in_progress를 만들어 "기업당 in_progress 최대 1개"
-    // 불변식이 깨진다 — 승격은 오직 "지금 진행 중이던 전형이 방금 통과했다"는 경우에만
-    // 의미가 있다. 중간에 이미 확정된(passed/failed) 전형이 있어도 이 쿼리는
-    // step_status='waiting' 조건 덕분에 자동으로 건너뛴다 — 그 전형의 상태는 건드리지 않는다.
-    let promotedId: string | null = null;
-    if (status === "passed" && targetPreviousStatus === "in_progress") {
-      const { data: nextWaitingRows, error: nextWaitingError } = await supabase
-        .from("application_steps")
-        .select("id")
-        .eq("company_id", targetCompanyId)
-        .gt("step_order", targetStepOrder)
-        .eq("step_status", "waiting")
-        .order("step_order", { ascending: true })
-        .limit(1);
-
-      if (nextWaitingError) {
-        await handleSupabaseError(nextWaitingError.message, setError);
-        return false;
-      }
-
-      promotedId = nextWaitingRows?.[0]?.id ?? null;
-
-      if (promotedId) {
-        const { error: promoteError } = await supabase
-          .from("application_steps")
-          .update({ step_status: "in_progress" })
-          .eq("id", promotedId);
-
-        if (promoteError) {
-          await handleSupabaseError(promoteError.message, setError);
-          return false;
-        }
-      }
-    }
+    const result = data as UpdateStepStatusRpcResult;
+    const promotedId = result.promoted_step_id;
 
     // load()로 다시 불러오면 여기서 바뀐 만큼 loading이 true로 잠깐 켜지는데, 그 순간
     // 이 steps context를 구독하는 페이지(예: Company Detail의 최상단 `if (loading) ...`
@@ -444,7 +319,7 @@ export function ApplicationStepsProvider({ children }: { children: ReactNode }) 
     // 전형, overallStatus 자동 제안 다이얼로그 등)가 날아간다. moveStep과 동일하게, 이미
     // 알고 있는 변경분(대상 전형/정리된 다른 in_progress/승격된 다음 전형)만 로컬에 직접
     // 반영한다.
-    const clearedOtherIds = new Set(clearedOtherInProgressIds);
+    const clearedOtherIds = new Set(result.cleared_in_progress_ids);
     setError(null);
     setSteps((prev) =>
       prev.map((s) => {

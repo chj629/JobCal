@@ -82,7 +82,9 @@ export interface EventFormValues {
 
 export type EventSaveDecision =
   | { type: "noop"; existingEvent: AppEvent }
-  | { type: "confirmDate"; existingEvent: AppEvent }
+  | { type: "mergeDetails"; existingEvent: AppEvent; hasConflictingDetails: boolean }
+  | { type: "confirmDate"; existingEvent: AppEvent; hasConflictingDetails: boolean }
+  | { type: "conflict"; existingEvent: AppEvent }
   | { type: "create"; existingEvent: null };
 
 export function createEmptyEventFormValues(eventType: EventType = "schedule"): EventFormValues {
@@ -205,11 +207,42 @@ export function getEventSaveDecision(
 
   const existingTimeIso = eventTimeIso(sameSlot);
   const incomingTimeIso = eventFormTimeIso(incoming);
+  // 같은 일정의 보조 정보는 기존 값이 비어 있을 때만 보강한다. 양쪽에 서로 다른 값이
+  // 있으면 AI 결과로 기존 사용자 데이터를 덮어쓰지 않고 conflict로 리뷰에 알린다.
+  const detailPairs = [
+    { existing: sameSlot.onlineUrl ?? "", incoming: incoming.onlineUrl },
+    { existing: sameSlot.memo ?? "", incoming: incoming.memo },
+    ...(incoming.eventType === "schedule"
+      ? [{ existing: sameSlot.location ?? "", incoming: incoming.location }]
+      : []),
+  ].map(({ existing, incoming: incomingValue }) => ({
+    existing: existing.trim(),
+    incoming: incomingValue.trim(),
+  }));
+  const hasNewDetails = detailPairs.some(({ existing, incoming: incomingValue }) =>
+    Boolean(!existing && incomingValue)
+  );
+  const hasConflictingDetails = detailPairs.some(({ existing, incoming: incomingValue }) =>
+    Boolean(existing && incomingValue && existing !== incomingValue)
+  );
+
   if (existingTimeIso === incomingTimeIso) {
+    if (hasNewDetails) {
+      return {
+        type: "mergeDetails",
+        existingEvent: sameSlot,
+        hasConflictingDetails,
+      };
+    }
+    if (hasConflictingDetails) return { type: "conflict", existingEvent: sameSlot };
     return { type: "noop", existingEvent: sameSlot };
   }
   if (existingTimeIso === null && incomingTimeIso !== null) {
-    return { type: "confirmDate", existingEvent: sameSlot };
+    return {
+      type: "confirmDate",
+      existingEvent: sameSlot,
+      hasConflictingDetails,
+    };
   }
   return { type: "create", existingEvent: null };
 }
@@ -282,16 +315,16 @@ export function eventTimeIso(event: Pick<AppEvent, "eventType" | "startsAt" | "d
 
 // 날짜 미정 이벤트에 새 분석 결과의 날짜가 확인됐을 때(EmailAnalysisReview) 새로 만들지 않고
 // 기존 이벤트를 채우는 용도. 날짜/제목/타입 등은 incoming(새 분석 결과)을 그대로 쓰되,
-// location/onlineUrl/memo는 이번에 비어 있으면(AI가 이번엔 못 뽑았거나 원래 없었으면) 기존
-// 이벤트에 있던 값을 그대로 보존해, 이전에 확인된 정보가 날짜 확정 과정에서 사라지지 않게 한다.
+// location/onlineUrl/memo는 기존 값 우선으로 병합한다. 기존이 비어 있을 때만 incoming으로
+// 보강하고, 둘 다 값이 다르면 기존 사용자 데이터를 보존한다.
 export function mergeEventFormValues(
   existing: AppEvent,
   incoming: EventFormValues
 ): EventFormValues {
   return {
     ...incoming,
-    location: incoming.location.trim() ? incoming.location : (existing.location ?? ""),
-    onlineUrl: incoming.onlineUrl.trim() ? incoming.onlineUrl : (existing.onlineUrl ?? ""),
-    memo: incoming.memo.trim() ? incoming.memo : (existing.memo ?? ""),
+    location: existing.location?.trim() ? existing.location : incoming.location,
+    onlineUrl: existing.onlineUrl?.trim() ? existing.onlineUrl : incoming.onlineUrl,
+    memo: existing.memo?.trim() ? existing.memo : incoming.memo,
   };
 }

@@ -137,9 +137,9 @@ export async function updateSession(request: NextRequest) {
   // 건드리지 않고, 서버 미들웨어 단계에서 리다이렉트하므로 클라이언트에 랜딩이 잠깐
   // 그려졌다 넘어가는 flash가 없다. /login·/signup의 /ko 짝(/ko/login, /ko/signup)도
   // 같은 이유로 동일하게 취급한다 — startsWith("/login")이 "/ko/login"까지 잡아주진
-  // 않아 별도로 나열해야 한다. /forgot-password·/update-password는 로그인 상태에서도
-  // (비밀번호 변경 등으로) 접근할 수 있어야 하므로 기존처럼 이 목록에 넣지 않는다 —
-  // /ko 짝을 추가해도 이 범위를 넓히지 않는다.
+  // 않아 별도로 나열해야 한다. /forgot-password는 로그인 상태에서도 재설정 메일을
+  // 요청할 수 있어야 하며, /update-password는 페이지/API 자체가 recovery grant를 별도로
+  // 검증하므로 여기서는 기존처럼 로그인 페이지로 강제 이동시키지 않는다.
   if (
     user &&
     (pathname === "/" ||

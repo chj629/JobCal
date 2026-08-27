@@ -39,6 +39,7 @@ import {
 } from "@/lib/events";
 import { createEmptyContactFormValues, type ContactFormValues } from "@/lib/companyContacts";
 import type { EmailAnalysisResult, ExtractedEvent, StepUpdate } from "@/lib/ai/emailAnalysis";
+import { getEmailAnalysisRegistrationPreflightError } from "@/lib/ai/emailAnalysisRegistrationPreflight";
 import { useT } from "@/lib/locale-context";
 import MaterialIcon from "@/components/ui/MaterialIcon";
 import { useToast } from "@/components/ui/Toast";
@@ -386,8 +387,8 @@ export default function EmailAnalysisReview({
       const step = stepName
         ? findMatchingApplicationStep(stepName, companySteps, t)
         : undefined;
-      if (!step) return "create" as const;
-      return getEventSaveDecision(existingEvents, existingCompany.id, step.id, event).type;
+      if (!step) return { type: "create" as const, existingEvent: null };
+      return getEventSaveDecision(existingEvents, existingCompany.id, step.id, event);
     });
   }, [eventStepNames, events, existingCompany, existingEvents, steps, t]);
 
@@ -500,19 +501,15 @@ export default function EmailAnalysisReview({
     }
 
     const eventsToSave = events
-      .map((event, index) => ({ event, stepId: eventStepIds[index] ?? null }))
+      // handleRegister의 mutation 전 preflight와 전형 해석이 끝났으므로, 제목이 있는 일정의
+      // stepId는 이 시점에 반드시 존재한다. 소속 전형 validation을 여기서 다시 늦게 하지 않는다.
+      .map((event, index) => ({ event, stepId: eventStepIds[index]! }))
       .filter(({ event }) => event.title.trim());
-
-    if (eventsToSave.some(({ stepId }) => !stepId)) {
-      setSaveError(t("aiEmail.review.stepRequiredForEvents"));
-      setSaving(false);
-      return;
-    }
 
     // savedEventCount부터 재개해, 이전 시도에서 이미 저장에 성공한 일정은 다시 만들지 않는다.
     // 같은 메일을 같은 기업에 다시 저장하는 경우(전형/타입/제목/시각이 기존 일정과 완전히
-    // 같은 경우)도 중복 생성하지 않도록, 저장 전에 기존 일정과 정확히 일치하는지 확인한다.
-    // 하나라도 다르면(예: AI가 제목을 조금 다르게 뽑은 경우) 별개의 새 일정으로 저장한다.
+    // 같은 경우)도 중복 생성하지 않는다. 같은 일정에 URL/장소/메모가 새로 보강되면 기존
+    // 행을 update하고, 제목이나 시각이 다르면 별개의 새 일정으로 저장한다.
     //
     // 전형/타입/제목이 같은데 기존 쪽만 날짜 미정(existingTimeIso === null)이고 이번에는
     // 날짜가 확인된 경우(toSaveTimeIso !== null)는 "완전히 같음"도 "완전히 다름"도 아니다 —
@@ -524,9 +521,10 @@ export default function EmailAnalysisReview({
       const { event: toSave, stepId } = eventsToSave[i];
       const decision = getEventSaveDecision(existingEvents, companyId, stepId!, toSave);
 
-      if (decision.type === "noop") {
-        // 완전히 동일한 일정(날짜까지 같거나, 둘 다 날짜 미정) — 아무 것도 하지 않는다.
-      } else if (decision.type === "confirmDate") {
+      if (decision.type === "noop" || decision.type === "conflict") {
+        // 완전히 동일하면 아무 것도 하지 않는다. conflict도 기존 값을 보호하는 정책상
+        // DB mutation 없이 그대로 둔다.
+      } else if (decision.type === "confirmDate" || decision.type === "mergeDetails") {
         const ok = await updateEventRecord(
           decision.existingEvent.id,
           mergeEventFormValues(decision.existingEvent, toSave)
@@ -651,8 +649,28 @@ export default function EmailAnalysisReview({
   }
 
   async function handleRegister() {
-    if (!existingCompany && !companyValues.name.trim()) {
-      setSaveError(t("companies.form.nameRequired"));
+    // DB id가 없어도 판단 가능한 입력 오류를 첫 mutation 전에 모두 끝낸다. 특히 제목이
+    // 있는 일정의 event.stepName 누락은 신규 기업/커스텀 전형/상태를 만든 뒤가 아니라
+    // 여기서 즉시 차단한다.
+    const preflightError = getEmailAnalysisRegistrationPreflightError({
+      requiresCompanyName: !existingCompany,
+      companyName: companyValues.name,
+      stepUpdates,
+      events,
+      eventStepNames,
+    });
+    if (preflightError) {
+      const errorKey =
+        preflightError === "companyNameRequired"
+          ? "companies.form.nameRequired"
+          : preflightError === "stepNameRequired"
+            ? "aiEmail.review.stepNameRequired"
+            : preflightError === "eventStepRequired"
+              ? "aiEmail.review.stepRequiredForEvents"
+              : preflightError === "invalidEventDate"
+                ? "aiEmail.review.invalidEventDate"
+                : "aiEmail.review.stepSaveFailed";
+      setSaveError(t(errorKey));
       return;
     }
 
@@ -682,8 +700,8 @@ export default function EmailAnalysisReview({
       candidateSteps = (await refreshSteps()).filter((step) => step.companyId === companyId);
     }
 
-    // 빈 이름은 상태 업데이트 대상이 될 수 없으므로 제외한다. 같은 실제 전형이 반복되면
-    // 마지막 편집값 하나만 남겨 충돌하는 상태 변경/중복 생성을 막는다.
+    // 빈 이름은 위 preflight에서 이미 차단했다. 같은 실제 전형이 반복되면 마지막 편집값
+    // 하나만 남겨 충돌하는 상태 변경/중복 생성을 막는다.
     let resolvedStepUpdates: ResolvedStepUpdate[] = [];
     for (const update of stepUpdates) {
       const step = await resolveApplicationStep(companyId, update.stepName, candidateSteps);
@@ -1084,13 +1102,15 @@ export default function EmailAnalysisReview({
                         </Field>
                         {existingCompany && eventSaveSuggestions[index] && (
                           <span className="mt-2 inline-flex rounded-full bg-primary-navy/8 px-2.5 py-1 text-[11px] font-[500] text-primary-navy">
-                            {t(
-                              eventSaveSuggestions[index] === "noop"
-                                ? "aiEmail.review.eventAlreadyRegistered"
-                                : eventSaveSuggestions[index] === "confirmDate"
-                                  ? "aiEmail.review.eventDateConfirmed"
-                                  : "aiEmail.review.eventNew"
-                            )}
+                            {eventSaveSuggestions[index].type === "noop"
+                              ? t("aiEmail.review.eventAlreadyRegistered")
+                              : eventSaveSuggestions[index].type === "conflict"
+                                ? t("aiEmail.review.eventExistingDetailsPreserved")
+                                : eventSaveSuggestions[index].type === "confirmDate"
+                                  ? `${t("aiEmail.review.eventDateConfirmed")}${eventSaveSuggestions[index].hasConflictingDetails ? ` · ${t("aiEmail.review.eventExistingDetailsPreserved")}` : ""}`
+                                  : eventSaveSuggestions[index].type === "mergeDetails"
+                                    ? `${t("aiEmail.review.eventDetailsMerged")}${eventSaveSuggestions[index].hasConflictingDetails ? ` · ${t("aiEmail.review.eventExistingDetailsPreserved")}` : ""}`
+                                    : t("aiEmail.review.eventNew")}
                           </span>
                         )}
                       </div>

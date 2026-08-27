@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 import { useLocale, useT } from "@/lib/locale-context";
 import { toPublicPageHref } from "@/lib/i18n/publicLocalePaths";
 import AuthHeader from "@/components/auth/AuthHeader";
@@ -13,7 +12,7 @@ import MaterialIcon from "@/components/ui/MaterialIcon";
 
 const MIN_PASSWORD_LENGTH = 6;
 
-type SessionStatus = "checking" | "ready" | "invalid";
+type SessionStatus = "ready" | "invalid";
 
 // app/update-password/page.tsx(ja)와 app/ko/update-password/page.tsx(ko)가 공유하는 실제
 // 페이지 본문 — 두 라우트 모두 이 컴포넌트를 그대로 렌더링하고, 감싸는
@@ -25,28 +24,25 @@ type SessionStatus = "checking" | "ready" | "invalid";
 // 헤더/좌측 패널/폼 폭/입력창/버튼 스타일은 /login, /signup, /forgot-password와 동일해 같은
 // components/auth/{AuthHeader,AuthHeroPanel,AuthPillField}를 그대로 재사용한다(다른 인증
 // 페이지는 이번 범위에서 수정하지 않음). Google 로그인/구분선 없이 새 비밀번호 2개 필드만
-// 있는 구성이 이 화면 고유 특징이다. checking/invalid 상태는 대응하는 screen.png가 없어
+// 있는 구성이 이 화면 고유 특징이다. invalid 상태는 대응하는 screen.png가 없어
 // signup의 이메일 발송완료 화면과 동일한 방식(가운데 정렬, 박스 없이, 새 톤)으로만 맞춘다.
-export default function UpdatePasswordPageContent() {
+export default function UpdatePasswordPageContent({
+  recoveryAllowed,
+}: {
+  recoveryAllowed: boolean;
+}) {
   const router = useRouter();
   const t = useT();
   const { locale } = useLocale();
-  const [sessionStatus, setSessionStatus] = useState<SessionStatus>("checking");
+  const [sessionStatus, setSessionStatus] = useState<SessionStatus>(
+    recoveryAllowed ? "ready" : "invalid"
+  );
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-
-  // 세션 존재 여부는 서버 프리렌더에서 알 수 없으므로 "checking" 상태로 시작해
-  // hydration mismatch를 피하고, 마운트 이후에만 실제 세션을 확인한다.
-  useEffect(() => {
-    const supabase = createClient();
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setSessionStatus(user ? "ready" : "invalid");
-    });
-  }, []);
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -66,16 +62,29 @@ export default function UpdatePasswordPageContent() {
     }
 
     setIsLoading(true);
-    const supabase = createClient();
-    const { error } = await supabase.auth.updateUser({ password });
-
-    if (error) {
+    let response: Response;
+    try {
+      response = await fetch("/api/auth/update-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password }),
+      });
+    } catch {
       setErrorMessage(t("auth.errors.updateFailed"));
       setIsLoading(false);
       return;
     }
 
-    router.push("/dashboard");
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        setSessionStatus("invalid");
+      }
+      setErrorMessage(t("auth.errors.updateFailed"));
+      setIsLoading(false);
+      return;
+    }
+
+    router.replace("/dashboard");
     router.refresh();
   }
 
@@ -84,10 +93,6 @@ export default function UpdatePasswordPageContent() {
       <AuthHeader />
 
       <main className="flex min-h-screen items-center justify-center p-6 pt-24 md:p-12 md:pt-24">
-        {sessionStatus === "checking" && (
-          <p className="text-[15px] text-neutral-600">{t("auth.updatePassword.checking")}</p>
-        )}
-
         {sessionStatus === "invalid" && (
           <div className="w-full max-w-[440px] space-y-4 text-center">
             <h1 className="text-[32px] leading-[1.1] font-[400] tracking-tight text-neutral-900">

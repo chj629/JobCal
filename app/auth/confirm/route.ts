@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { type EmailOtpType } from "@supabase/supabase-js";
 import { createClient, createOneOffAuthClient } from "@/lib/supabase/server";
 import { resolveNextPath } from "@/lib/auth/nextPath";
+import {
+  clearPasswordRecoveryGrant,
+  setPasswordRecoveryGrant,
+} from "@/lib/auth/passwordRecoveryGrant";
 
 // 이 앱은 이메일 회원가입 확인(email)과 비밀번호 재설정(recovery)만 처리한다.
 const ALLOWED_EMAIL_OTP_TYPES: EmailOtpType[] = ["email", "recovery"];
@@ -44,7 +48,7 @@ export async function GET(request: Request) {
     // /update-password가 이 세션을 실제로 써야 하므로 기존과 동일하게 쿠키 기반 서버
     // 클라이언트를 쓴다.
     const supabase = type === "email" ? createOneOffAuthClient() : await createClient();
-    const { error } = await supabase.auth.verifyOtp({
+    const { data, error } = await supabase.auth.verifyOtp({
       type: type as EmailOtpType,
       token_hash,
     });
@@ -63,10 +67,24 @@ export async function GET(request: Request) {
         if (next !== "/") confirmedUrl.searchParams.set("next", next);
         return NextResponse.redirect(confirmedUrl);
       }
-      // 비밀번호 재설정은 resetPasswordForEmail의 redirectTo(=next, 이미 요청 locale의
-      // /update-password를 가리키도록 구성됨)를 그대로 신뢰해 이동한다 — 별도 locale
-      // 분기가 필요 없다.
-      return NextResponse.redirect(`${origin}${next}`);
+      // recovery 여부는 세션에 영구 보존되지 않으므로, 실제 recovery OTP 검증이 성공한
+      // 이 지점에서만 짧은 수명의 HttpOnly 서명 grant를 발급한다. grant는 Supabase
+      // user/session_id/updated_at에 묶여 일반 로그인 세션이나 다른 세션에서 재사용할 수 없다.
+      if (data.session && data.user?.updated_at) {
+        const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(
+          data.session.access_token
+        );
+        if (!claimsError && claimsData?.claims.session_id) {
+          const response = NextResponse.redirect(`${origin}${next}`);
+          const grantSet = setPasswordRecoveryGrant(response, {
+            userId: data.user.id,
+            sessionId: claimsData.claims.session_id,
+            userUpdatedAt: data.user.updated_at,
+            sessionExpiresAt: claimsData.claims.exp,
+          });
+          if (grantSet) return response;
+        }
+      }
     }
   }
 
@@ -79,5 +97,7 @@ export async function GET(request: Request) {
     type === "recovery"
       ? `${isKoRecovery ? "/ko" : ""}/forgot-password?error=reset_failed`
       : `${requestedLocale === "ko" ? "/ko" : ""}/login?error=confirm_failed`;
-  return NextResponse.redirect(`${origin}${failureRedirect}`);
+  const response = NextResponse.redirect(`${origin}${failureRedirect}`);
+  if (type === "recovery") clearPasswordRecoveryGrant(response);
+  return response;
 }

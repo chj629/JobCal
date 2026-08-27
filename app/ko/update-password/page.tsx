@@ -1,6 +1,7 @@
 import { LocaleProvider } from "@/lib/locale-context";
 import { buildAuthPageMetadata } from "@/lib/i18n/publicPageMetadata";
 import UpdatePasswordPageContent from "@/components/auth/UpdatePasswordPageContent";
+import { validatePasswordRecoveryGrant } from "@/lib/auth/passwordRecoveryGrant";
 
 export const metadata = buildAuthPageMetadata({
   locale: "ko",
@@ -9,10 +10,11 @@ export const metadata = buildAuthPageMetadata({
   descriptionKey: "auth.updatePassword.description",
 });
 
-export default function KoUpdatePasswordPage() {
+export default async function KoUpdatePasswordPage() {
+  const recovery = await validatePasswordRecoveryGrant();
   return (
     <LocaleProvider initialLocale="ko" locked>
-      <UpdatePasswordPageContent />
+      <UpdatePasswordPageContent recoveryAllowed={recovery.valid} />
     </LocaleProvider>
   );
 }
