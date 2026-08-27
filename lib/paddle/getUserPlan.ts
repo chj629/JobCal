@@ -1,11 +1,11 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  getConfiguredPaddleProPriceId,
+  hasProEntitlement,
+  PRO_ENTITLEMENT_STATUSES,
+} from "./proPrice";
 
 export type Plan = "free" | "pro";
-
-// Paddle 구독 status 중 Pro로 인정하는 값. active/trialing은 정상 결제 중, past_due는
-// 최근 결제가 실패했지만 Paddle이 재시도(dunning) 중인 유예 상태 — 이 기간에도 Pro 접근을
-// 계속 허용한다. paused/canceled 등 그 외 값은 전부 Free로 판정한다.
-const PRO_STATUSES = ["active", "trialing", "past_due"] as const;
 
 // 현재 세션 사용자의 Free/Pro를 판정한다. app/api/paddle/webhook이 채우는
 // paddle_subscriptions(0017)가 유일한 source of truth이며, 이 함수는 그 값을 그대로
@@ -18,12 +18,18 @@ const PRO_STATUSES = ["active", "trialing", "past_due"] as const;
 // Pro 여부를 결정하게 만들 방법 자체가 없다. Route Handler(app/api/ai/analyze-email 등)에서
 // 이 함수를 부르면 서버 세션 기준으로 최종 판정되고, 클라이언트가 이 결과에 영향을 줄 수 없다.
 export async function getUserPlan(supabase: SupabaseClient): Promise<Plan> {
+  const configuredProPriceId = getConfiguredPaddleProPriceId();
+  if (!configuredProPriceId) {
+    // 설정 누락/형식 오류 때 모든 active 구독을 Pro로 인정하는 fallback은 두지 않는다.
+    // 내부 진단만 남기며 실제 price id 값은 로그에 노출하지 않는다.
+    console.error("[paddle] JobCal Pro price ID가 설정되지 않았거나 형식이 올바르지 않습니다.");
+    return "free";
+  }
+
   const { data, error } = await supabase
     .from("paddle_subscriptions")
-    .select("status")
-    .in("status", PRO_STATUSES)
-    .limit(1)
-    .maybeSingle();
+    .select("status, price_id")
+    .in("status", PRO_ENTITLEMENT_STATUSES);
 
   if (error) {
     // 조회 자체가 실패하면(네트워크 오류 등) Pro로 오판하지 않고 안전하게 Free로 처리한다.
@@ -31,5 +37,12 @@ export async function getUserPlan(supabase: SupabaseClient): Promise<Plan> {
     return "free";
   }
 
-  return data ? "pro" : "free";
+  const isPro = hasProEntitlement(data ?? [], configuredProPriceId);
+  if (!isPro && data && data.length > 0) {
+    // 유효 상태 구독은 있지만 허용된 JobCal Pro price가 하나도 없는 구성 오류를 서버에서
+    // 진단할 수 있게 한다. 사용자/customer/subscription/price 식별자는 기록하지 않는다.
+    console.warn("[paddle] 유효 상태의 구독이 있지만 JobCal Pro price와 일치하지 않습니다.");
+  }
+
+  return isPro ? "pro" : "free";
 }

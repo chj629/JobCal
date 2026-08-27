@@ -22,6 +22,7 @@ const PROTECTED_PATH_PREFIXES = [
   "/settings",
   "/api/ai/analyze-email",
   "/api/account/delete",
+  "/api/paddle/checkout-eligibility",
   "/api/paddle/portal",
 ];
 

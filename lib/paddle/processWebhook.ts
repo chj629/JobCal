@@ -10,10 +10,10 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 const FOREIGN_KEY_VIOLATION = "23503";
 
-// subscription.created/updated/canceled + transaction.completed + adjustment.created/updated
-// 6개 이벤트만 처리한다. 그 외 이벤트는 구독 설정을 하지 않았다면 애초에 안 오지만, 혹시
-// 오더라도 no-op으로 무시한다 — 모르는 이벤트라고 에러를 던지면 Paddle이 불필요하게
-// 재시도한다.
+// subscription.created/updated/canceled/paused/resumed + transaction.completed +
+// adjustment.created/updated 8개 이벤트만 처리한다. 그 외 이벤트는 구독 설정을 하지
+// 않았다면 애초에 안 오지만, 혹시 오더라도 no-op으로 무시한다 — 모르는 이벤트라고
+// 에러를 던지면 Paddle이 불필요하게 재시도한다.
 //
 // transaction.completed(upsertTransaction)/adjustment.*(upsertAdjustment)는
 // paddle_subscriptions를 절대 건드리지 않는 완전히 별도 경로다 — Pro 권한 판정
@@ -24,7 +24,9 @@ export async function processPaddleEvent(event: EventEntity) {
     case EventName.SubscriptionCreated:
     case EventName.SubscriptionUpdated:
     case EventName.SubscriptionCanceled:
-      return upsertSubscription(event.data);
+    case EventName.SubscriptionPaused:
+    case EventName.SubscriptionResumed:
+      return upsertSubscription(event.data, event.occurredAt);
     case EventName.TransactionCompleted:
       return upsertTransaction(event.data);
     case EventName.AdjustmentCreated:
@@ -35,7 +37,10 @@ export async function processPaddleEvent(event: EventEntity) {
   }
 }
 
-async function upsertSubscription(data: SubscriptionCreatedNotification | SubscriptionNotification) {
+async function upsertSubscription(
+  data: SubscriptionCreatedNotification | SubscriptionNotification,
+  eventOccurredAt: string
+) {
   // Paddle customer의 email로 JobCal user를 찾는 대신, 체크아웃 시
   // Paddle.Checkout.open({ customData: { user_id } })로 실어 보낸 값을 그대로 읽는다
   // (다음 단계인 체크아웃 구현에서 채워짐). customData가 없거나 user_id가 문자열이
@@ -65,6 +70,10 @@ async function upsertSubscription(data: SubscriptionCreatedNotification | Subscr
       status: data.status,
       price_id: data.items[0]?.price?.id ?? "",
       scheduled_change: data.scheduledChange,
+      // 서버 수신 시각이 아니라 Paddle이 서명한 webhook payload의 occurred_at이다. 0028의
+      // DB trigger가 이 값과 현재 행을 원자적으로 비교해, 늦게 도착한 과거 이벤트와 같은
+      // 이벤트 재전송이 최신 subscription 상태를 덮어쓰지 못하게 한다.
+      last_event_occurred_at: eventOccurredAt,
       // lib/notifications.ts의 computeBillingNotification이 past_due 알림의 "발생 주기"를
       // 구분하는 키로 쓴다(0023) — 새 Paddle 이벤트를 구독하지 않고, 이미 받고 있는 이
       // payload의 필드를 하나 더 저장할 뿐이다. 결제 재시도나 scheduled_change 같은 무관한
@@ -213,20 +222,49 @@ async function upsertAdjustment(data: AdjustmentNotification) {
   }
 }
 
-// paddle_customers를 idempotent하게 upsert한다. upsertSubscription/upsertTransaction
-// 두 경로가 이 함수 하나를 공유한다 — customer upsert 로직이 두 곳에 따로 구현되어
-// 어긋나는 일을 막는다. user_id가 이미 삭제된 계정이면(정상 레이스) false를 반환해
-// 호출부가 조용히 종료하게 하고, 그 외 에러는 그대로 throw한다.
+// paddle_customers를 idempotent하게 보장한다. 0027부터 user/customer 매핑이 복합 PK이고
+// 한 JobCal user가 예외적으로 여러 Paddle customer id를 가질 수 있다. 기존 user_id 행의
+// customer id를 UPDATE하지 않고 새 id를 별도 INSERT하므로, 과거 subscription/transaction
+// FK를 깨뜨리거나 실제 결제 귀속을 새 customer로 덮어쓰지 않는다.
 async function upsertCustomer(
   admin: ReturnType<typeof createAdminClient>,
   userId: string,
   customerId: string
 ): Promise<boolean> {
+  const { data: existing, error: lookupError } = await admin
+    .from("paddle_customers")
+    .select("user_id")
+    .eq("paddle_customer_id", customerId)
+    .maybeSingle();
+
+  if (lookupError) throw lookupError;
+
+  if (existing) {
+    if (existing.user_id !== userId) {
+      throw new Error(
+        `[paddle webhook] customer ${customerId}가 다른 JobCal user에 이미 연결되어 있음`
+      );
+    }
+    return true;
+  }
+
   const { error } = await admin
     .from("paddle_customers")
-    .upsert({ user_id: userId, paddle_customer_id: customerId }, { onConflict: "user_id" });
+    .insert({ user_id: userId, paddle_customer_id: customerId });
 
   if (error) {
+    // subscription.created와 transaction.completed가 동시에 처음 도착하면 둘 다 위 SELECT에서
+    // 행이 없다고 본 뒤 INSERT할 수 있다. 한쪽의 PK insert가 먼저 성공한 정상 레이스인지
+    // 다시 확인하고, 같은 user의 같은 customer면 성공으로 수렴시킨다.
+    if (error.code === "23505") {
+      const { data: raced, error: racedLookupError } = await admin
+        .from("paddle_customers")
+        .select("user_id")
+        .eq("paddle_customer_id", customerId)
+        .maybeSingle();
+      if (racedLookupError) throw racedLookupError;
+      if (raced?.user_id === userId) return true;
+    }
     if (isMissingUser(error)) {
       // user_id가 이미 삭제된 계정(auth.users에 없음) — 예: 계정 삭제 직후 도착한
       // 뒤늦은 웹훅. 정상적인 레이스이지 오류가 아니므로 재시도를 유발하지 않는다.
@@ -238,14 +276,8 @@ async function upsertCustomer(
   return true;
 }
 
-// auth.users(id)를 참조하는 FK(paddle_customers_user_id_fkey, paddle_subscriptions_user_id_fkey)
-// 위반만 "존재하지 않는 user_id" 정상 케이스로 취급한다. paddle_subscriptions_paddle_customer_id_fkey
-// 같은 다른 FK 위반(예: 기존 paddle_customers 행의 paddle_customer_id를 다른 값으로 바꾸려는데
-// 그 옛 값을 참조하는 paddle_subscriptions 행이 있어서 막히는 경우)도 Postgres 코드는 똑같이
-// 23503이라, code만 보면 실제 버그를 "user 없음"으로 오판해 조용히 삼키게 된다 — 실제 사고 사례
-// (실제 Paddle Sandbox 결제 데이터가 이 오판 때문에 DB에 반영되지 않고 200으로 무시됨) 로
-// 확인됨. PostgrestError에는 constraint를 담는 별도 필드가 없어(details/hint/message/code뿐),
-// message에 항상 포함되는 제약조건 이름을 파싱해서 정확히 판별한다.
+// auth.users(id)를 참조하는 FK 위반만 "존재하지 않는 user_id" 정상 케이스로 취급한다.
+// PostgrestError에는 constraint 전용 필드가 없어 message에서 정확한 제약 이름을 확인한다.
 const USER_ID_FK_CONSTRAINTS = new Set([
   "paddle_customers_user_id_fkey",
   "paddle_subscriptions_user_id_fkey",

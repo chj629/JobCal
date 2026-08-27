@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Plan } from "./getUserPlan";
+import { getConfiguredPaddleProPriceId, PRO_ENTITLEMENT_STATUSES } from "./proPrice";
 
 // app/api/paddle/webhook(lib/paddle/processWebhook.ts)이 Paddle Node SDK의
 // SubscriptionScheduledChangeNotification 인스턴스를 그대로 upsert하는데, 이 클래스는
@@ -29,8 +30,6 @@ export interface UserSubscriptionSummary {
   currentBillingPeriodStartsAt: string | null;
 }
 
-const PRO_STATUSES = ["active", "trialing", "past_due"];
-
 // Settings 플랜 탭 표시 전용 조회. lib/paddle/getUserPlan.ts(AI quota 접근 제어에 쓰이는
 // 판정 함수)는 그대로 두고 건드리지 않는다 — 화면에 "해지 예정"/"결제수단 확인 필요" 같은
 // 문구를 보여주려면 status/scheduled_change까지 더 필요해서 별도로 조회한다. 대상
@@ -38,21 +37,22 @@ const PRO_STATUSES = ["active", "trialing", "past_due"];
 export async function getUserSubscriptionSummary(
   supabase: SupabaseClient
 ): Promise<UserSubscriptionSummary> {
+  const configuredProPriceId = getConfiguredPaddleProPriceId();
+  if (!configuredProPriceId) {
+    console.error("[paddle] JobCal Pro price ID가 설정되지 않았거나 형식이 올바르지 않습니다.");
+    return emptySubscriptionSummary();
+  }
+
   const { data, error } = await supabase
     .from("paddle_subscriptions")
     .select("paddle_subscription_id, status, scheduled_change, current_billing_period_starts_at")
-    .in("status", PRO_STATUSES)
+    .in("status", PRO_ENTITLEMENT_STATUSES)
+    .eq("price_id", configuredProPriceId)
     .limit(1)
     .maybeSingle();
 
   if (error || !data) {
-    return {
-      plan: "free",
-      status: null,
-      scheduledChange: null,
-      subscriptionId: null,
-      currentBillingPeriodStartsAt: null,
-    };
+    return emptySubscriptionSummary();
   }
 
   return {
@@ -61,5 +61,15 @@ export async function getUserSubscriptionSummary(
     scheduledChange: data.scheduled_change,
     subscriptionId: data.paddle_subscription_id,
     currentBillingPeriodStartsAt: data.current_billing_period_starts_at,
+  };
+}
+
+function emptySubscriptionSummary(): UserSubscriptionSummary {
+  return {
+    plan: "free",
+    status: null,
+    scheduledChange: null,
+    subscriptionId: null,
+    currentBillingPeriodStartsAt: null,
   };
 }

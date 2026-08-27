@@ -597,6 +597,7 @@
       "upgrading": "処理中...",
       "checkoutCompleted": "お支払いが完了しました。反映まで少し時間がかかる場合があります。",
       "checkoutError": "お支払い処理中に問題が発生しました。もう一度お試しください。",
+      "existingSubscriptionCheckoutBlocked": "管理可能なサブスクリプションがすでにあるため、新しいお支払いは開始できません。既存のサブスクリプションを管理するか、サポートへお問い合わせください。",
       "notConfigured": "決済機能はまだ設定されていません。",
       "aiUsage": {
         "title": "AIメール分析",

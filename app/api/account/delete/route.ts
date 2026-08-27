@@ -6,13 +6,11 @@ import { getPaddleInstance } from "@/lib/paddle/paddleClient";
 
 export const runtime = "nodejs";
 
-// Paddle에서 여전히 청구가 발생할 수 있는 상태. canceled/paused는 Paddle 쪽에서 이미
-// 청구가 끝난 상태라 cancel을 다시 호출하지 않는다(이미 종료된 구독에 또 취소를
-// 요청하면 Paddle API가 에러를 반환할 수 있다). scheduled_change로 해지가 예약되어
-// 있어도 status는 그 발효 시점까지 active/trialing/past_due로 남아있고 Paddle 구독은
-// 실제로 살아있으므로, 계정을 삭제할 때는 예약일을 기다리지 않고 이 상태들에서 즉시
-// 취소한다.
-const BILLABLE_STATUSES = ["active", "trialing", "past_due"];
+// Paddle에서 현재 또는 향후 다시 청구될 수 있어 계정 삭제 전에 영구 취소해야 하는 상태.
+// paused도 scheduled_change.action=resume 또는 이후 수동 resume로 다시 active가 될 수
+// 있으므로 예약 유무와 관계없이 포함한다. canceled만 이미 영구 종료되어 재개할 수 없으므로
+// 불필요한 API 호출을 하지 않는다.
+const CANCELLABLE_STATUSES = ["active", "trialing", "past_due", "paused"];
 
 // 현재 로그인한 사용자 "본인"의 auth.users 행만 admin API로 삭제한다. 클라이언트가
 // user_id를 요청 바디로 보내는 방식은 절대 쓰지 않는다 — 임의의 다른 계정을 지정해
@@ -71,21 +69,27 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "계정 삭제에 실패했습니다." }, { status: 500 });
   }
 
-  const billableSubscriptions = (subscriptionRows ?? []).filter((row) =>
-    BILLABLE_STATUSES.includes(row.status)
+  const cancellableSubscriptions = (subscriptionRows ?? []).filter((row) =>
+    CANCELLABLE_STATUSES.includes(row.status)
   );
 
-  if (billableSubscriptions.length > 0) {
+  if (cancellableSubscriptions.length > 0) {
     const paddle = getPaddleInstance();
     // 정상적으로는 활성 구독이 1개뿐이지만, 이중 구독 등 비정상 상태를 포함해 취소가
     // 필요한 구독을 전부 순서대로 취소한다. 하나라도 실패하면 즉시 중단하고 계정
     // 삭제로 넘어가지 않는다 — 일부만 취소된 채로 계정이 삭제되어 나머지가 계속
     // 청구되는 상황을 막기 위함이다.
-    for (const row of billableSubscriptions) {
+    for (const row of cancellableSubscriptions) {
       try {
-        await paddle.subscriptions.cancel(row.paddle_subscription_id, {
-          effectiveFrom: "immediately",
-        });
+        const canceledSubscription = await paddle.subscriptions.cancel(
+          row.paddle_subscription_id,
+          { effectiveFrom: "immediately" }
+        );
+        // Paddle의 즉시 취소 성공 응답은 status=canceled여야 한다. 요청이 오류 없이 끝났어도
+        // 실제 subscription이 종료되지 않았다면 계정을 지우지 않아 결제 매핑을 보존한다.
+        if (canceledSubscription.status !== "canceled") {
+          throw new Error(`즉시 취소 후 예상하지 못한 상태: ${canceledSubscription.status}`);
+        }
       } catch (error) {
         // Paddle API 오류 내용(키, 응답 본문 등)은 클라이언트에 노출하지 않고 로그에만
         // 남긴다. 취소가 실패하면 계정 삭제를 진행하지 않는다 — 그대로 두면 계정 없이

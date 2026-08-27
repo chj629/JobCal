@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { CheckoutEventNames, initializePaddle, type Paddle } from "@paddle/paddle-js";
 import { translate } from "@/lib/locale-context";
 import type { Locale } from "@/lib/i18n/messages";
+import { getCheckoutCustomer } from "@/lib/paddle/customerSelection";
+import { getConfiguredPaddleProPriceId } from "@/lib/paddle/proPrice";
 import { useToast } from "@/components/ui/Toast";
 
 interface UsePaddleCheckoutParams {
@@ -20,7 +22,13 @@ interface UsePaddleCheckoutParams {
 interface UsePaddleCheckoutResult {
   isReady: boolean;
   isCheckoutBusy: boolean;
-  openCheckout: () => void;
+  openCheckout: () => Promise<void>;
+}
+
+interface CheckoutEligibilityResponse {
+  allowed?: boolean;
+  reason?: "existing_subscription";
+  paddleCustomerId?: string | null;
 }
 
 // app/(app)/settings/page.tsx의 Plan 탭이 쓰던 Paddle Checkout 초기화/오픈 로직을 그대로
@@ -37,6 +45,11 @@ export function usePaddleCheckout({
   const { showToast } = useToast();
   const [paddleInstance, setPaddleInstance] = useState<Paddle | null>(null);
   const [isCheckoutBusy, setIsCheckoutBusy] = useState(false);
+  // React state는 같은 렌더 안의 연속 클릭 사이에 즉시 바뀌지 않으므로 동기 ref를 함께
+  // 사용한다. 서버 검증 요청이 시작되는 순간 잠가 빠른 더블클릭도 요청/Checkout 하나로
+  // 수렴시킨다.
+  const checkoutBusyRef = useRef(false);
+  const checkoutCompletedRef = useRef(false);
   // Paddle의 eventCallback은 initializePaddle 최초 호출 시 한 번만 등록되므로(재호출은
   // SDK가 무시/경고함) 그 안에서 최신 locale로 토스트 문구를 고르려면 클로저 대신 ref로
   // 읽어야 한다 — locale을 effect deps에 넣으면 locale이 바뀔 때마다 이 effect가
@@ -71,10 +84,14 @@ export function usePaddleCheckout({
           event.name === CheckoutEventNames.CHECKOUT_ERROR ||
           event.name === CheckoutEventNames.CHECKOUT_PAYMENT_ERROR
         ) {
+          checkoutBusyRef.current = false;
           setIsCheckoutBusy(false);
         }
 
         if (event.name === CheckoutEventNames.CHECKOUT_COMPLETED) {
+          // 같은 마운트에서 webhook 반영 전 다시 여는 것을 막는다. 다른 탭/기기는 아래
+          // 서버 preflight의 DB + Paddle 원본 재검증으로 차단한다.
+          checkoutCompletedRef.current = true;
           showToast(translate(localeRef.current, "settings.plan.checkoutCompleted"));
           onCheckoutCompletedRef.current?.();
         } else if (
@@ -95,28 +112,68 @@ export function usePaddleCheckout({
   // checkout.closed/completed/error에서만 풀어, 오버레이가 떠 있는 동안 계속 비활성 상태로
   // 둔다. userId가 없으면(비로그인) 아무 것도 하지 않는다 — 호출부가 로그인 여부를
   // 먼저 판단해야 한다(이 훅은 그 판단을 대신 해주지 않는다).
-  function openCheckout() {
-    if (isCheckoutBusy || !paddleInstance || !userId) return;
-
-    const priceId = process.env.NEXT_PUBLIC_PADDLE_PRO_PRICE_ID;
+  async function openCheckout() {
+    if (checkoutBusyRef.current || !paddleInstance || !userId) return;
+    if (checkoutCompletedRef.current) {
+      showToast(translate(locale, "settings.plan.existingSubscriptionCheckoutBlocked"), "error");
+      return;
+    }
+    const priceId = getConfiguredPaddleProPriceId();
     if (!priceId) {
       showToast(translate(locale, "settings.plan.notConfigured"), "error");
       return;
     }
 
+    checkoutBusyRef.current = true;
     setIsCheckoutBusy(true);
-    paddleInstance.Checkout.open({
-      items: [{ priceId, quantity: 1 }],
-      // 로그인한 Supabase user.id를 그대로 실어 보낸다 — Paddle customer의 email 매칭이
-      // 아니라 이 값을 기준으로 app/api/paddle/webhook이 paddle_customers/
-      // paddle_subscriptions를 upsert한다(lib/paddle/processWebhook.ts).
-      customData: { user_id: userId },
-      ...(email ? { customer: { email } } : {}),
-      settings: {
-        variant: "one-page",
-        locale,
-      },
-    });
+    let checkoutOpened = false;
+
+    try {
+      const response = await fetch("/api/paddle/checkout-eligibility", { method: "POST" });
+      const contentType = response.headers.get("content-type") ?? "";
+
+      if (!contentType.includes("application/json") || response.status === 401) {
+        showToast(translate(locale, "common.sessionExpired"), "error");
+        return;
+      }
+
+      const body = (await response.json()) as CheckoutEligibilityResponse;
+      if (response.status === 409 && body.reason === "existing_subscription") {
+        showToast(translate(locale, "settings.plan.existingSubscriptionCheckoutBlocked"), "error");
+        return;
+      }
+      if (!response.ok || body.allowed !== true) {
+        showToast(translate(locale, "settings.plan.checkoutError"), "error");
+        return;
+      }
+
+      const checkoutCustomer = getCheckoutCustomer(body.paddleCustomerId ?? null, email);
+      paddleInstance.Checkout.open({
+        items: [{ priceId, quantity: 1 }],
+        // 로그인한 Supabase user.id를 그대로 실어 보낸다 — Paddle customer의 email 매칭이
+        // 아니라 이 값을 기준으로 app/api/paddle/webhook이 paddle_customers/
+        // paddle_subscriptions를 upsert한다(lib/paddle/processWebhook.ts).
+        customData: { user_id: userId },
+        // 서버 preflight가 방금 조회한 기존 customer id를 재사용한다. Paddle는 existing
+        // customer id와 email을 동시에 받을 수 없으므로 첫 결제 사용자만 email을 prefill한다.
+        ...(checkoutCustomer.customer ? { customer: checkoutCustomer.customer } : {}),
+        settings: {
+          variant: "one-page",
+          locale,
+          ...(checkoutCustomer.lockCustomer ? { allowLogout: false } : {}),
+        },
+      });
+      checkoutOpened = true;
+    } catch {
+      showToast(translate(locale, "settings.plan.checkoutError"), "error");
+    } finally {
+      // Checkout이 열렸으면 closed/completed/error 이벤트가 잠금을 해제한다. 사전 검증이
+      // 차단되거나 실패한 경우에만 여기서 즉시 다시 시도할 수 있게 푼다.
+      if (!checkoutOpened) {
+        checkoutBusyRef.current = false;
+        setIsCheckoutBusy(false);
+      }
+    }
   }
 
   return {
