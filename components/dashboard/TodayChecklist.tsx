@@ -1,6 +1,6 @@
 "use client";
 
-import { todayKey, dateKeyOf } from "@/lib/date";
+import { formatDateKeyInAsiaTokyo, todayKeyInAsiaTokyo } from "@/lib/date";
 import { useEventCompletions } from "@/lib/event-completions";
 import type { AppEvent } from "@/lib/events";
 import type { Company } from "@/lib/companies";
@@ -14,11 +14,11 @@ import { useScrollFade } from "@/lib/useScrollFade";
 // 훅으로 분리했다. 체크 상태 자체는 lib/event-completions.ts의 공용 훅을 그대로 쓰고,
 // 여기서는 "오늘 마감인 이벤트만" 필터링만 담당한다.
 export function useTodayChecklist(events: AppEvent[]) {
-  const today = todayKey();
+  const today = todayKeyInAsiaTokyo();
 
   const todayDeadlines = events
     .filter((event) => event.eventType === "deadline" && event.dueAt !== null)
-    .filter((event) => dateKeyOf(event.dueAt as string) === today)
+    .filter((event) => formatDateKeyInAsiaTokyo(event.dueAt as string) === today)
     .sort((a, b) => new Date(a.dueAt as string).getTime() - new Date(b.dueAt as string).getTime());
 
   const { checkedIds, loaded, toggle, error: taskError } = useEventCompletions();

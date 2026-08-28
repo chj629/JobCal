@@ -5,7 +5,12 @@ import { useRouter } from "next/navigation";
 import type { Company } from "@/lib/companies";
 import { getCurrentStep, getStepDisplayName, type ApplicationStep } from "@/lib/applicationSteps";
 import { getNextEvent, type AppEvent } from "@/lib/events";
-import { diffInDays, dateKeyOf, todayKey, formatTimeOfDay } from "@/lib/date";
+import {
+  diffInDaysInAsiaTokyo,
+  formatDateKeyInAsiaTokyo,
+  formatTimeOfDayInAsiaTokyo,
+  todayKeyInAsiaTokyo,
+} from "@/lib/date";
 import { useT } from "@/lib/locale-context";
 import EmptyState from "@/components/ui/EmptyState";
 import MaterialIcon from "@/components/ui/MaterialIcon";
@@ -21,11 +26,11 @@ interface FocusCompaniesProps {
 const MAX_ROWS = 5;
 
 function formatRelativeTime(iso: string, t: (key: string) => string): string {
-  const key = dateKeyOf(iso);
-  const diff = diffInDays(todayKey(), key);
+  const key = formatDateKeyInAsiaTokyo(iso);
+  const diff = diffInDaysInAsiaTokyo(todayKeyInAsiaTokyo(), key);
   const dayLabel =
     diff === 0 ? t("dashboard.today") : diff === 1 ? t("dashboard.tomorrow") : key.slice(5).replace("-", ".");
-  return `${dayLabel} ${formatTimeOfDay(iso)}`;
+  return `${dayLabel} ${formatTimeOfDayInAsiaTokyo(iso)}`;
 }
 
 // docs/stitch/메인페이지 5개/jobcal_dashboard_added_weekly_progress_summary의 "注目企業" 카드.

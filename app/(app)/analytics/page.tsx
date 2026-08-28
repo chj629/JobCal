@@ -3,6 +3,8 @@
 import { useCompanies } from "@/lib/companies-context";
 import { useEvents } from "@/lib/events-context";
 import { useApplicationSteps } from "@/lib/application-steps-context";
+import { useCompanyNotes } from "@/lib/company-notes-context";
+import { useNextActions } from "@/lib/next-actions-context";
 import { useT } from "@/lib/locale-context";
 import LoadingState from "@/components/ui/LoadingState";
 import StatusDonutChart from "@/components/analytics/StatusDonutChart";
@@ -25,10 +27,15 @@ export default function AnalyticsPage() {
   const { companies, loading: companiesLoading, error: companiesError } = useCompanies();
   const { events, loading: eventsLoading, error: eventsError } = useEvents();
   const { steps, loading: stepsLoading, error: stepsError } = useApplicationSteps();
-  const loading = companiesLoading || eventsLoading || stepsLoading;
+  const { notes, loading: notesLoading, error: notesError } = useCompanyNotes();
+  const { actions, loading: actionsLoading, error: actionsError } = useNextActions();
+  const loading =
+    companiesLoading || eventsLoading || stepsLoading || notesLoading || actionsLoading;
   // Dashboard/Companies/Calendar와 동일한 이유 — 세 Context 중 하나라도 실패하면 배너
   // 1개만 보여준다.
-  const hasLoadError = !!(companiesError || eventsError || stepsError);
+  const hasLoadError = !!(
+    companiesError || eventsError || stepsError || notesError || actionsError
+  );
 
   const totalCount = companies.length;
   const inProgressCount = companies.filter((c) => c.overallStatus === "in_progress").length;
@@ -115,7 +122,13 @@ export default function AnalyticsPage() {
         </div>
 
         <div className="mt-3 grid grid-cols-1 gap-3 @min-[960px]/main:grid-cols-2">
-          <StalledCompaniesCard companies={companies} steps={steps} />
+          <StalledCompaniesCard
+            companies={companies}
+            steps={steps}
+            events={events}
+            notes={notes}
+            nextActions={actions}
+          />
           <PriorityBreakdownCard companies={companies} />
         </div>
 

@@ -8,7 +8,11 @@ import { useScrollFade } from "@/lib/useScrollFade";
 import { EVENT_CHIP_CLASS } from "@/components/calendar/eventChipStyle";
 import type { Company } from "@/lib/companies";
 import type { AppEvent, EventType } from "@/lib/events";
-import { todayKey, dateKeyOf, diffInDays } from "@/lib/date";
+import {
+  diffInDaysInAsiaTokyo,
+  formatDateKeyInAsiaTokyo,
+  todayKeyInAsiaTokyo,
+} from "@/lib/date";
 import { useT } from "@/lib/locale-context";
 
 interface DeadlineRiskCardProps {
@@ -34,7 +38,7 @@ const EVENT_TYPE_LABEL_KEYS: Record<EventType, string> = {
 // startsAt을 우선)가 오늘부터 7일 이내인 항목만 모은다. 과거 일정은 제외한다.
 export default function DeadlineRiskCard({ companies, events }: DeadlineRiskCardProps) {
   const t = useT();
-  const today = todayKey();
+  const today = todayKeyInAsiaTokyo();
 
   const excludedCompanyIds = new Set(
     companies.filter((c) => EXCLUDED_STATUSES.has(c.overallStatus)).map((c) => c.id)
@@ -44,7 +48,10 @@ export default function DeadlineRiskCard({ companies, events }: DeadlineRiskCard
     .filter((event) => !excludedCompanyIds.has(event.companyId))
     .map((event) => ({ event, at: event.startsAt ?? event.dueAt }))
     .filter((row): row is { event: AppEvent; at: string } => row.at !== null)
-    .map((row) => ({ ...row, diff: diffInDays(today, dateKeyOf(row.at)) }))
+    .map((row) => ({
+      ...row,
+      diff: diffInDaysInAsiaTokyo(today, formatDateKeyInAsiaTokyo(row.at)),
+    }))
     .filter((row) => row.diff >= 0 && row.diff <= RISK_WINDOW_DAYS)
     .sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime())
     .slice(0, MAX_ROWS);

@@ -3,7 +3,12 @@
 import Link from "next/link";
 import type { Company } from "@/lib/companies";
 import { getStepDisplayName, type ApplicationStep } from "@/lib/applicationSteps";
-import { dateKeyOf, diffInDays, todayKey } from "@/lib/date";
+import {
+  ASIA_TOKYO_TIME_ZONE,
+  diffInDaysInAsiaTokyo,
+  formatDateKeyInAsiaTokyo,
+  todayKeyInAsiaTokyo,
+} from "@/lib/date";
 import { useLocale, useT } from "@/lib/locale-context";
 import type { AppEvent, EventType } from "@/lib/events";
 import Badge, { type BadgeVariant } from "@/components/ui/Badge";
@@ -37,17 +42,19 @@ export default function UpcomingEventsCard({ companies, events, steps }: Upcomin
   const t = useT();
   const { locale } = useLocale();
   const localeCode = locale === "ja" ? "ja-JP" : "ko-KR";
-  const today = todayKey();
+  const today = todayKeyInAsiaTokyo();
 
   const rows = events
     .map((event) => ({ event, at: event.startsAt ?? event.dueAt }))
     .filter((row): row is { event: AppEvent; at: string } => row.at !== null)
-    .filter((row) => diffInDays(today, dateKeyOf(row.at)) >= 0)
+    .filter(
+      (row) => diffInDaysInAsiaTokyo(today, formatDateKeyInAsiaTokyo(row.at)) >= 0
+    )
     .sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime())
     .slice(0, MAX_ROWS);
 
   function formatDDay(at: string) {
-    const diff = diffInDays(today, dateKeyOf(at));
+    const diff = diffInDaysInAsiaTokyo(today, formatDateKeyInAsiaTokyo(at));
     if (diff === 0) return t("dashboard.today");
     if (diff === 1) return t("dashboard.tomorrow");
     return t("companies.detail.schedulePanel.dDay", { days: diff });
@@ -87,6 +94,7 @@ export default function UpcomingEventsCard({ companies, events, steps }: Upcomin
                     <p className="mt-0.5 truncate text-xs text-secondary">
                       {stepName ?? event.title} ·{" "}
                       {new Date(at).toLocaleString(localeCode, {
+                        timeZone: ASIA_TOKYO_TIME_ZONE,
                         month: "2-digit",
                         day: "2-digit",
                         weekday: "short",

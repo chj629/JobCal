@@ -1,7 +1,15 @@
 "use client";
 
 import { useMemo } from "react";
-import { formatDateKey } from "@/lib/date";
+import {
+  dateKeyParts,
+  formatTimeOfDayInAsiaTokyo,
+} from "@/lib/date";
+import {
+  CALENDAR_HOUR_ROW_HEIGHT,
+  getCalendarWeekEventPosition,
+  tokyoWallClock,
+} from "@/components/calendar/calendarDate";
 import { EVENT_CHIP_CLASS } from "@/components/calendar/eventChipStyle";
 import type { AppEvent } from "@/lib/events";
 import type { Company } from "@/lib/companies";
@@ -12,8 +20,8 @@ import ScrollFade from "@/components/ui/ScrollFade";
 import { useScrollFade } from "@/lib/useScrollFade";
 
 interface CalendarWeekGridProps {
-  weekDays: Date[]; // 일~토 7일
-  today: Date;
+  weekDayKeys: string[]; // 일~토 7일, YYYY-MM-DD
+  todayDateKey: string;
   eventsByDate: Record<string, AppEvent[]>;
   companies: Company[];
   steps: ApplicationStep[];
@@ -21,18 +29,16 @@ interface CalendarWeekGridProps {
   onSelectEvent: (event: AppEvent) => void;
 }
 
-const HOUR_ROW_HEIGHT = 56; // px. 월간 뷰 컴팩트화와 맞춰 h-16(64px)에서 h-14(56px)로 축소.
 const DEFAULT_START_HOUR = 9;
 const DEFAULT_END_HOUR = 20; // 이 시각의 "시작"까지 행을 그린다(즉 20:00 행까지 표시).
-const MIN_DURATION_MINUTES = 40;
 
 // docs/stitch/메인페이지 5개/jobcal_calendar_rectangular_event_cards_refresh의
 // 우측 "Right Calendar (Week View)". 09:00-20:00 범위는 code.html 그대로지만, 실제
 // 데이터에 이 범위를 벗어나는 이벤트가 있으면 표시 범위를 그만큼 넓힌다(코드가 임의로
 // 잘라내 이벤트를 감추지 않도록).
 export default function CalendarWeekGrid({
-  weekDays,
-  today,
+  weekDayKeys,
+  todayDateKey,
   eventsByDate,
   companies,
   steps,
@@ -40,24 +46,27 @@ export default function CalendarWeekGrid({
   onSelectEvent,
 }: CalendarWeekGridProps) {
   const t = useT();
-  const todayKeyStr = formatDateKey(today);
 
   const { startHour, endHour } = useMemo(() => {
     let min = DEFAULT_START_HOUR;
     let max = DEFAULT_END_HOUR;
-    for (const date of weekDays) {
-      const dayEvents = eventsByDate[formatDateKey(date)] ?? [];
+    for (const dateKey of weekDayKeys) {
+      const dayEvents = eventsByDate[dateKey] ?? [];
       for (const event of dayEvents) {
         const at = event.startsAt ?? event.dueAt;
         if (!at) continue;
-        const start = new Date(at);
-        min = Math.min(min, start.getHours());
-        const end = event.endsAt ? new Date(event.endsAt) : start;
-        max = Math.max(max, end.getHours() + 1);
+        const start = tokyoWallClock(at);
+        min = Math.min(min, start.hour);
+        if (event.endsAt) {
+          const end = tokyoWallClock(event.endsAt);
+          max = Math.max(max, end.dateKey === start.dateKey ? end.hour + 1 : 24);
+        } else {
+          max = Math.max(max, start.hour + 1);
+        }
       }
     }
     return { startHour: min, endHour: max };
-  }, [weekDays, eventsByDate]);
+  }, [weekDayKeys, eventsByDate]);
 
   const hours = useMemo(
     () => Array.from({ length: endHour - startHour }, (_, i) => startHour + i),
@@ -66,37 +75,13 @@ export default function CalendarWeekGrid({
 
   const { scrollRef, canScrollDown, onScroll } = useScrollFade([hours.length]);
 
-  function eventPosition(event: AppEvent) {
-    const at = event.startsAt ?? event.dueAt;
-    if (!at) return null;
-    const start = new Date(at);
-    const minutesFromGridStart = (start.getHours() - startHour) * 60 + start.getMinutes();
-    const top = (minutesFromGridStart / 60) * HOUR_ROW_HEIGHT;
-    let durationMinutes = MIN_DURATION_MINUTES;
-    if (event.endsAt) {
-      // endsAt이 다음날 이후(여러 날짜에 걸친 일정)로 잘못 입력돼도 그리드가 하루치
-      // 칸을 벗어나 무한정 길어지지 않도록, 같은 날 자정까지로 길이를 제한한다.
-      const endOfStartDay = new Date(start);
-      endOfStartDay.setHours(23, 59, 59, 999);
-      const cappedEnd = Math.min(new Date(event.endsAt).getTime(), endOfStartDay.getTime());
-      durationMinutes = Math.max(MIN_DURATION_MINUTES, (cappedEnd - start.getTime()) / 60000);
-    }
-    const rawHeight = (durationMinutes / 60) * HOUR_ROW_HEIGHT;
-    // 자정까지로 길이를 제한해도 startHour~endHour 표시 범위(기본 09-20시) 밖으로
-    // 늘어질 수 있으니(예: 14시 시작, 자정 마감), 그리드 카드 자체를 벗어나지 않게
-    // 한 번 더 높이를 제한한다.
-    const maxHeight = Math.max(HOUR_ROW_HEIGHT / 2, hours.length * HOUR_ROW_HEIGHT - top);
-    const height = Math.min(rawHeight, maxHeight);
-    return { top, height };
-  }
-
   return (
     <div className="relative flex h-[847px] min-h-0 max-h-full flex-1 flex-col self-start overflow-hidden rounded-stitch-2xl border border-stitch-border bg-card shadow-sm">
       <div className="grid shrink-0 grid-cols-8 border-b border-stitch-border">
         <div className="col-span-1" />
-        {weekDays.map((date, index) => {
-          const dateKey = formatDateKey(date);
-          const isToday = dateKey === todayKeyStr;
+        {weekDayKeys.map((dateKey, index) => {
+          const { day } = dateKeyParts(dateKey);
+          const isToday = dateKey === todayDateKey;
 
           return (
             <div
@@ -109,11 +94,11 @@ export default function CalendarWeekGrid({
               <span className="mb-1 text-[11px] font-[400] text-secondary">{weekdayLabels[index]}</span>
               {isToday ? (
                 <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-navy text-[14px] font-[400] text-white">
-                  {date.getDate()}
+                  {day}
                 </span>
               ) : (
                 <span className="flex h-8 w-8 items-center justify-center text-[14px] font-[400] text-stitch-ink">
-                  {date.getDate()}
+                  {day}
                 </span>
               )}
             </div>
@@ -126,7 +111,7 @@ export default function CalendarWeekGrid({
         onScroll={onScroll}
         className="stitch-scrollbar-hidden relative flex-1 overflow-y-auto"
       >
-        <div className="relative grid grid-cols-8" style={{ minHeight: hours.length * HOUR_ROW_HEIGHT }}>
+        <div className="relative grid grid-cols-8" style={{ minHeight: hours.length * CALENDAR_HOUR_ROW_HEIGHT }}>
           <div className="relative col-span-1 border-r border-stitch-border">
             {hours.map((hour) => (
               <div key={hour} className="relative h-14 pb-1 pr-3 text-right">
@@ -144,9 +129,8 @@ export default function CalendarWeekGrid({
               ))}
             </div>
             <div className="pointer-events-none absolute inset-0 grid grid-cols-7">
-              {weekDays.map((date) => {
-                const dateKey = formatDateKey(date);
-                const isToday = dateKey === todayKeyStr;
+              {weekDayKeys.map((dateKey) => {
+                const isToday = dateKey === todayDateKey;
                 return (
                   <div
                     key={dateKey}
@@ -156,21 +140,24 @@ export default function CalendarWeekGrid({
               })}
             </div>
 
-            {weekDays.map((date, dayIndex) => {
-              const dateKey = formatDateKey(date);
+            {weekDayKeys.map((dateKey, dayIndex) => {
               const dayEvents = eventsByDate[dateKey] ?? [];
 
               return dayEvents.map((event) => {
-                const position = eventPosition(event);
+                const position = getCalendarWeekEventPosition(
+                  event,
+                  startHour,
+                  hours.length
+                );
                 if (!position) return null;
                 const company = companies.find((c) => c.id === event.companyId);
                 const step = steps.find((s) => s.id === event.applicationStepId);
                 const stepName = step ? getStepDisplayName(step, t) : event.title;
                 const at = event.startsAt ?? event.dueAt;
                 const timeLabel = at
-                  ? new Date(at).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", hour12: false }) +
+                  ? formatTimeOfDayInAsiaTokyo(at) +
                     (event.endsAt
-                      ? ` - ${new Date(event.endsAt).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", hour12: false })}`
+                      ? ` - ${formatTimeOfDayInAsiaTokyo(event.endsAt)}`
                       : "")
                   : "";
 

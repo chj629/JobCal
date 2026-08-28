@@ -3,7 +3,13 @@
 import { useMemo, useState } from "react";
 import { buildShowcaseMockData } from "@/components/landing/landingShowcaseMockData";
 import { useLocale, useT } from "@/lib/locale-context";
-import { dateKeyOf, formatDateKey } from "@/lib/date";
+import {
+  addDaysToDateKey,
+  dateKeyToUtcDate,
+  formatDateKeyInAsiaTokyo,
+  startOfMonthDateKey,
+  todayKeyInAsiaTokyo,
+} from "@/lib/date";
 import type { AppEvent } from "@/lib/events";
 import MiniCalendar from "@/components/calendar/MiniCalendar";
 import TodayEventsCard from "@/components/calendar/TodayEventsCard";
@@ -23,14 +29,19 @@ export default function LandingCalendarShowcase() {
   const { locale } = useLocale();
   const { companies, events } = buildShowcaseMockData(t);
 
-  const today = useMemo(() => new Date(), []);
-  const [focusDate, setFocusDate] = useState(today);
+  const todayDateKey = todayKeyInAsiaTokyo();
+  const [focusDateKey, setFocusDateKey] = useState(todayDateKey);
   const [checkedIds, setCheckedIds] = useState<Set<string>>(() => new Set(["showcase-e2"]));
 
   const localeCode = locale === "ja" ? "ja-JP" : "ko-KR";
   const weekdayLabels = useMemo(() => {
-    const formatter = new Intl.DateTimeFormat(localeCode, { weekday: "short" });
-    return Array.from({ length: 7 }, (_, i) => formatter.format(new Date(2023, 0, 1 + i)));
+    const formatter = new Intl.DateTimeFormat(localeCode, {
+      weekday: "short",
+      timeZone: "UTC",
+    });
+    return Array.from({ length: 7 }, (_, i) =>
+      formatter.format(dateKeyToUtcDate(addDaysToDateKey("2023-01-01", i)))
+    );
   }, [localeCode]);
 
   const eventsByDate = useMemo(() => {
@@ -38,7 +49,7 @@ export default function LandingCalendarShowcase() {
     for (const event of events) {
       const at = event.startsAt ?? event.dueAt;
       if (!at) continue;
-      const key = dateKeyOf(at);
+      const key = formatDateKeyInAsiaTokyo(at);
       const list = map[key] ?? [];
       list.push(event);
       map[key] = list;
@@ -46,8 +57,7 @@ export default function LandingCalendarShowcase() {
     return map;
   }, [events]);
 
-  const todayKeyStr = formatDateKey(today);
-  const todayEvents = (eventsByDate[todayKeyStr] ?? []).slice().sort((a, b) => {
+  const todayEvents = (eventsByDate[todayDateKey] ?? []).slice().sort((a, b) => {
     const atA = (a.startsAt ?? a.dueAt) as string;
     const atB = (b.startsAt ?? b.dueAt) as string;
     return new Date(atA).getTime() - new Date(atB).getTime();
@@ -66,11 +76,7 @@ export default function LandingCalendarShowcase() {
   }
 
   function navigateMonth(direction: 1 | -1) {
-    setFocusDate((prev) => {
-      const next = new Date(prev);
-      next.setMonth(next.getMonth() + direction, 1);
-      return next;
-    });
+    setFocusDateKey((prev) => startOfMonthDateKey(prev, direction));
   }
 
   return (
@@ -124,8 +130,8 @@ export default function LandingCalendarShowcase() {
             <div className="font-[family-name:var(--font-hanken-grotesk)] font-[350] tracking-[-0.025em] text-stitch-ink md:flex md:gap-6">
               <div className="mb-6 flex shrink-0 flex-col gap-4 md:mb-0 md:w-72">
                 <MiniCalendar
-                  focusDate={focusDate}
-                  today={today}
+                  focusDateKey={focusDateKey}
+                  todayDateKey={todayDateKey}
                   eventsByDate={eventsByDate}
                   onNavigateMonth={navigateMonth}
                   onSelectDate={() => {}}
@@ -143,8 +149,8 @@ export default function LandingCalendarShowcase() {
 
               <div className="min-w-0 flex-1">
                 <CalendarMonthGrid
-                  focusDate={focusDate}
-                  today={today}
+                  focusDateKey={focusDateKey}
+                  todayDateKey={todayDateKey}
                   eventsByDate={eventsByDate}
                   companies={companies}
                   weekdayLabels={weekdayLabels}

@@ -6,7 +6,11 @@ import { useCompanies } from "@/lib/companies-context";
 import { useApplicationSteps } from "@/lib/application-steps-context";
 import { useEvents } from "@/lib/events-context";
 import type { Company } from "@/lib/companies";
-import { dateKeyOf, diffInDays, todayKey } from "@/lib/date";
+import {
+  diffInDaysInAsiaTokyo,
+  formatDateKeyInAsiaTokyo,
+  todayKeyInAsiaTokyo,
+} from "@/lib/date";
 import { useT } from "@/lib/locale-context";
 import { createClient } from "@/lib/supabase/client";
 import CompanyCreateForm from "@/components/CompanyCreateForm";
@@ -45,7 +49,7 @@ function countDeadlineSoon(events: AppEvent[], today: string): number {
   return events.filter((event) => {
     if (event.eventType !== "deadline" || event.dueAt === null) return false;
     if (new Date(event.dueAt).getTime() < now) return false;
-    const diff = diffInDays(today, dateKeyOf(event.dueAt));
+    const diff = diffInDaysInAsiaTokyo(today, formatDateKeyInAsiaTokyo(event.dueAt));
     return diff <= DEADLINE_SOON_DAYS;
   }).length;
 }
@@ -55,7 +59,7 @@ function countDeadlineSoon(events: AppEvent[], today: string): number {
 // 변경 이력)는 별도 트래킹이 없어 만들 수 없으므로, 가장 근접한 실제 신호만 쓴다.
 function countCreatedWithinDays(companies: Company[], today: string, days: number): number {
   return companies.filter((c) => {
-    const diff = diffInDays(c.createdAt, today);
+    const diff = diffInDaysInAsiaTokyo(c.createdAt, today);
     return diff >= 0 && diff <= days;
   }).length;
 }
@@ -65,7 +69,7 @@ function countCreatedWithinDays(companies: Company[], today: string, days: numbe
 function countOfferUpdatedWithinDays(companies: Company[], today: string, days: number): number {
   return companies.filter((c) => {
     if (c.overallStatus !== "offer") return false;
-    const diff = diffInDays(c.updatedAt, today);
+    const diff = diffInDaysInAsiaTokyo(c.updatedAt, today);
     return diff >= 0 && diff <= days;
   }).length;
 }
@@ -97,7 +101,7 @@ export default function DashboardPage() {
     });
   }, []);
 
-  const today = todayKey();
+  const today = todayKeyInAsiaTokyo();
   // Calendar/기업 상세의 원본 events는 그대로 두고, 행동 중심 Dashboard에서만 종료 기업의
   // 일정을 공통 제외한다. 아래 KPI와 모든 일정 위젯이 이 배열 하나를 공유한다.
   const dashboardActionEvents = filterDashboardActionEvents(companies, events);

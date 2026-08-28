@@ -1,39 +1,63 @@
 "use client";
 
 import Link from "next/link";
+import { useMemo } from "react";
 import MaterialIcon from "@/components/ui/MaterialIcon";
 import EmptyState from "@/components/ui/EmptyState";
 import ScrollFade from "@/components/ui/ScrollFade";
 import { useScrollFade } from "@/lib/useScrollFade";
 import type { Company } from "@/lib/companies";
+import type { CompanyNote } from "@/lib/companyNotes";
 import { getCurrentStep, getStepDisplayName, type ApplicationStep } from "@/lib/applicationSteps";
-import { todayKey, diffInDays } from "@/lib/date";
+import {
+  buildCompanyActivityMap,
+  stalledDaysForCompany,
+} from "@/lib/analyticsActivity";
+import { todayKeyInAsiaTokyo } from "@/lib/date";
+import type { AppEvent } from "@/lib/events";
+import type { NextAction } from "@/lib/nextActions";
 import { useT } from "@/lib/locale-context";
 
 interface StalledCompaniesCardProps {
   companies: Company[];
   steps: ApplicationStep[];
+  events: AppEvent[];
+  notes: CompanyNote[];
+  nextActions: NextAction[];
 }
 
-// 이 기간 이상 companies.updated_at이 갱신되지 않은 진행 중 기업을 "정체됨"으로 본다.
-// updated_at은 어떤 필드든 수정되면 갱신되므로, 그만큼 오래 아무 변화가 없었다는 것은
-// 실제로 정체됐다고 볼 수 있는 근거가 된다(companies/page.tsx의 formatUpdatedRelative와
-// 동일한 필드를 재사용).
-const STALLED_THRESHOLD_DAYS = 14;
 const MAX_ROWS = 6;
 
-// "返信・結果待ち" 카드. overallStatus가 in_progress인데 오래 갱신이 없는 기업을
-// 오래된 순으로 보여준다. companies/page.tsx의 formatUpdatedRelative와 같은 로직을
-// 이 화면 전용으로 로컬 재구현한다(공용 모듈로 옮기면 딱 1곳 더 쓰자고 새 추상화를
-// 만드는 셈이라, 기존 폼 컴포넌트들의 로컬 헬퍼 중복 관례를 그대로 따른다).
-export default function StalledCompaniesCard({ companies, steps }: StalledCompaniesCardProps) {
+// "返信・結果待ち" 카드. 기업 기본정보 수정 시각이 아니라 전형/일정/메모/다음 액션의
+// 실제 활동 시각을 기준으로 오래된 진행 중 기업을 보여준다.
+export default function StalledCompaniesCard({
+  companies,
+  steps,
+  events,
+  notes,
+  nextActions,
+}: StalledCompaniesCardProps) {
   const t = useT();
-  const today = todayKey();
+  const today = todayKeyInAsiaTokyo();
+  const activityByCompany = useMemo(
+    () => buildCompanyActivityMap({ companies, steps, events, notes, nextActions }),
+    [companies, steps, events, notes, nextActions]
+  );
 
   const rows = companies
-    .filter((c) => c.overallStatus === "in_progress")
-    .map((company) => ({ company, days: diffInDays(company.updatedAt, today) }))
-    .filter((row) => row.days >= STALLED_THRESHOLD_DAYS)
+    .map((company) => {
+      const activity = activityByCompany.get(company.id);
+      const days = stalledDaysForCompany(
+        company,
+        activity ?? { lastActivityAt: company.createdAt, hasNearFutureEvent: false },
+        today
+      );
+      return {
+        company,
+        days,
+      };
+    })
+    .filter((row): row is { company: Company; days: number } => row.days !== null)
     .sort((a, b) => b.days - a.days)
     .slice(0, MAX_ROWS);
   const { scrollRef, canScrollDown, onScroll } = useScrollFade([rows.length]);

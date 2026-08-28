@@ -5,6 +5,7 @@ export interface CompanyNote {
   title: string;
   content: string;
   position: number;
+  createdAt: string;
   updatedAt: string;
 }
 
@@ -35,6 +36,7 @@ export interface CompanyNoteRow {
   title: string;
   content: string;
   position: number;
+  created_at: string;
   updated_at: string;
 }
 
@@ -45,6 +47,7 @@ export function rowToCompanyNote(row: CompanyNoteRow): CompanyNote {
     title: row.title,
     content: row.content,
     position: row.position,
+    createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
 }

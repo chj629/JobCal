@@ -4,7 +4,12 @@ import { useRouter } from "next/navigation";
 import { getTodayResultsList } from "@/components/dashboard/TodayResults";
 import { getUpcomingHighlights } from "@/components/dashboard/UpcomingDDay";
 import { getUpcomingDeadlinesList } from "@/components/dashboard/UpcomingDeadlines";
-import { dateKeyOf, diffInDays, formatTimeOfDay, todayKey } from "@/lib/date";
+import {
+  diffInDaysInAsiaTokyo,
+  formatDateKeyInAsiaTokyo,
+  formatTimeOfDayInAsiaTokyo,
+  todayKeyInAsiaTokyo,
+} from "@/lib/date";
 import { useT } from "@/lib/locale-context";
 import type { Company } from "@/lib/companies";
 import type { AppEvent } from "@/lib/events";
@@ -23,8 +28,9 @@ interface UpcomingScheduleProps {
 const MAX_ROWS = 5;
 
 function formatRelativeBadge(at: string, t: (key: string, vars?: Record<string, string | number>) => string) {
-  const today = todayKey();
-  const diff = diffInDays(today, dateKeyOf(at));
+  const today = todayKeyInAsiaTokyo();
+  const eventDateKey = formatDateKeyInAsiaTokyo(at);
+  const diff = diffInDaysInAsiaTokyo(today, eventDateKey);
 
   if (diff <= 0) {
     const hoursLeft = Math.max(1, Math.ceil((new Date(at).getTime() - Date.now()) / (1000 * 60 * 60)));
@@ -33,17 +39,17 @@ function formatRelativeBadge(at: string, t: (key: string, vars?: Record<string, 
 
   if (diff === 1) {
     return {
-      label: t("dashboard.upcomingSchedule.tomorrowAt", { time: formatTimeOfDay(at) }),
+      label: t("dashboard.upcomingSchedule.tomorrowAt", {
+        time: formatTimeOfDayInAsiaTokyo(at),
+      }),
       urgent: false,
     };
   }
 
-  const date = new Date(at);
-  const pad = (n: number) => String(n).padStart(2, "0");
   return {
     label: t("dashboard.upcomingSchedule.dateAt", {
-      date: `${pad(date.getMonth() + 1)}.${pad(date.getDate())}`,
-      time: formatTimeOfDay(at),
+      date: eventDateKey.slice(5).replace("-", "."),
+      time: formatTimeOfDayInAsiaTokyo(at),
     }),
     urgent: false,
   };

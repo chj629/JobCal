@@ -1,15 +1,21 @@
 "use client";
 
 import { useMemo } from "react";
-import { formatDateKey, formatTimeOfDay } from "@/lib/date";
+import {
+  addDaysToDateKey,
+  dateKeyParts,
+  formatTimeOfDayInAsiaTokyo,
+  startOfMonthDateKey,
+  startOfWeekDateKey,
+} from "@/lib/date";
 import { useT } from "@/lib/locale-context";
 import { EVENT_CHIP_CLASS } from "@/components/calendar/eventChipStyle";
 import type { AppEvent } from "@/lib/events";
 import type { Company } from "@/lib/companies";
 
 interface CalendarMonthGridProps {
-  focusDate: Date;
-  today: Date;
+  focusDateKey: string;
+  todayDateKey: string;
   eventsByDate: Record<string, AppEvent[]>;
   companies: Company[];
   weekdayLabels: string[];
@@ -22,29 +28,20 @@ const MAX_VISIBLE_CHIPS = 2;
 // 우측 "Right Calendar (Month View)". min-h-[64px]는 이 Stitch 화면 이름대로
 // "고밀도/컴팩트" 월간 뷰를 그대로 재현한 값이다.
 export default function CalendarMonthGrid({
-  focusDate,
-  today,
+  focusDateKey,
+  todayDateKey,
   eventsByDate,
   companies,
   weekdayLabels,
   onSelectEvent,
 }: CalendarMonthGridProps) {
   const t = useT();
-  const year = focusDate.getFullYear();
-  const month = focusDate.getMonth();
+  const { month } = dateKeyParts(focusDateKey);
 
-  const days = useMemo(() => {
-    const firstOfMonth = new Date(year, month, 1);
-    const gridStart = new Date(firstOfMonth);
-    gridStart.setDate(gridStart.getDate() - firstOfMonth.getDay());
-    return Array.from({ length: 42 }, (_, i) => {
-      const date = new Date(gridStart);
-      date.setDate(gridStart.getDate() + i);
-      return date;
-    });
-  }, [year, month]);
-
-  const todayKeyStr = formatDateKey(today);
+  const dayKeys = useMemo(() => {
+    const gridStart = startOfWeekDateKey(startOfMonthDateKey(focusDateKey));
+    return Array.from({ length: 42 }, (_, i) => addDaysToDateKey(gridStart, i));
+  }, [focusDateKey]);
 
   return (
     <div className="flex h-[847px] min-h-0 max-h-full flex-1 flex-col self-start overflow-hidden rounded-stitch-2xl border border-stitch-border bg-card shadow-sm">
@@ -60,10 +57,10 @@ export default function CalendarMonthGrid({
           방식). 부모가 세로로 제한된 높이일 때만(md 이상) 의미가 있고, md 미만에서는
           이 컴포넌트 자체가 렌더링되지 않는다. */}
       <div className="grid flex-1 grid-cols-7 grid-rows-6 overflow-y-auto">
-        {days.map((date) => {
-          const dateKey = formatDateKey(date);
-          const isCurrentMonth = date.getMonth() === month;
-          const isToday = dateKey === todayKeyStr;
+        {dayKeys.map((dateKey) => {
+          const { month: dateMonth, day } = dateKeyParts(dateKey);
+          const isCurrentMonth = dateMonth === month;
+          const isToday = dateKey === todayDateKey;
           const dayEvents = eventsByDate[dateKey] ?? [];
           const visibleEvents = dayEvents.slice(0, MAX_VISIBLE_CHIPS);
           const overflowCount = dayEvents.length - visibleEvents.length;
@@ -79,11 +76,11 @@ export default function CalendarMonthGrid({
               <div className="mb-1 text-left text-[12px]">
                 {isToday ? (
                   <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary-navy font-[400] text-white">
-                    {date.getDate()}
+                    {day}
                   </span>
                 ) : (
                   <span className={isCurrentMonth ? "text-stitch-ink" : "text-secondary/50"}>
-                    {date.getDate()}
+                    {day}
                   </span>
                 )}
               </div>
@@ -91,7 +88,7 @@ export default function CalendarMonthGrid({
               {visibleEvents.map((event) => {
                 const company = companies.find((c) => c.id === event.companyId);
                 const at = event.startsAt ?? event.dueAt;
-                const time = at ? formatTimeOfDay(at) : null;
+                const time = at ? formatTimeOfDayInAsiaTokyo(at) : null;
 
                 return (
                   <button

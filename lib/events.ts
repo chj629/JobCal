@@ -1,3 +1,8 @@
+import {
+  datetimeLocalInAsiaTokyoToIso,
+  isoToDatetimeLocalInAsiaTokyo,
+} from "@/lib/date";
+
 // docs/database.md: events.event_type
 export type EventType = "schedule" | "deadline" | "result_announcement";
 
@@ -35,6 +40,9 @@ export interface AppEvent {
   location: string | null;
   onlineUrl: string | null;
   memo: string | null;
+  // DB row에는 항상 존재한다. optional은 기존 mock/fixture 호환을 유지하기 위함이다.
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 // Supabase events 테이블의 컬럼(snake_case)과 1:1로 대응한다.
@@ -51,6 +59,8 @@ export interface EventRow {
   location: string | null;
   online_url: string | null;
   memo: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export function rowToEvent(row: EventRow): AppEvent {
@@ -66,6 +76,8 @@ export function rowToEvent(row: EventRow): AppEvent {
     location: row.location,
     onlineUrl: row.online_url,
     memo: row.memo,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
   };
 }
 
@@ -100,13 +112,8 @@ export function createEmptyEventFormValues(eventType: EventType = "schedule"): E
   };
 }
 
-function pad(n: number) {
-  return String(n).padStart(2, "0");
-}
-
 function toDatetimeLocal(isoString: string): string {
-  const date = new Date(isoString);
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  return isoToDatetimeLocalInAsiaTokyo(isoString);
 }
 
 // AI 추출 결과처럼 값이 없을 수 있는 ISO 문자열을 <input type="datetime-local"> 문자열로 변환한다.
@@ -174,9 +181,11 @@ export function eventFormValuesToRow(values: EventFormValues) {
   return {
     event_type: values.eventType,
     title: values.title.trim(),
-    starts_at: isSchedule && values.startsAt ? new Date(values.startsAt).toISOString() : null,
-    ends_at: isSchedule && values.endsAt ? new Date(values.endsAt).toISOString() : null,
-    due_at: isDeadlineOrResult && values.dueAt ? new Date(values.dueAt).toISOString() : null,
+    starts_at:
+      isSchedule && values.startsAt ? datetimeLocalInAsiaTokyoToIso(values.startsAt) : null,
+    ends_at: isSchedule && values.endsAt ? datetimeLocalInAsiaTokyoToIso(values.endsAt) : null,
+    due_at:
+      isDeadlineOrResult && values.dueAt ? datetimeLocalInAsiaTokyoToIso(values.dueAt) : null,
     location: isSchedule && values.location.trim() ? values.location.trim() : null,
     online_url: values.onlineUrl.trim() ? values.onlineUrl.trim() : null,
     memo: values.memo.trim() ? values.memo.trim() : null,
@@ -184,11 +193,12 @@ export function eventFormValuesToRow(values: EventFormValues) {
 }
 
 // EmailAnalysisReview에서 AI 일정이 기존 일정과 어떤 관계인지 미리 보여주는 UI와 실제
-// 저장 경로가 공유하는 판정. 현재 저장 정책 그대로 전형/종류/제목이 같은 첫 일정만 비교하고,
-// 종류별 의미 있는 시각(schedule=startsAt, 그 외=dueAt)만 dedup 기준으로 삼는다.
+// 저장 경로가 공유하는 판정. 전형/종류/제목이 같은 후보 전체에서 종류별 의미 있는
+// 시각(schedule=startsAt, 그 외=dueAt)이 같은 일정을 먼저 찾고, 없을 때만 날짜 미정 일정을 병합
+// 후보로 삼는다.
 export function eventFormTimeIso(values: EventFormValues): string | null {
   const raw = values.eventType === "schedule" ? values.startsAt : values.dueAt;
-  return raw ? new Date(raw).toISOString() : null;
+  return raw ? datetimeLocalInAsiaTokyoToIso(raw) : null;
 }
 
 export function getEventSaveDecision(
@@ -197,54 +207,118 @@ export function getEventSaveDecision(
   applicationStepId: string,
   incoming: EventFormValues
 ): EventSaveDecision {
-  const sameSlot = existingEvents.find((existing) => {
+  const sameSlotCandidates = existingEvents.filter((existing) => {
     if (existing.companyId !== companyId) return false;
     if (existing.applicationStepId !== applicationStepId) return false;
     if (existing.eventType !== incoming.eventType) return false;
     return existing.title.trim() === incoming.title.trim();
   });
-  if (!sameSlot) return { type: "create", existingEvent: null };
+  if (sameSlotCandidates.length === 0) return { type: "create", existingEvent: null };
 
-  const existingTimeIso = eventTimeIso(sameSlot);
   const incomingTimeIso = eventFormTimeIso(incoming);
+  const exactMatches = sameSlotCandidates
+    .filter((existing) => eventTimeIso(existing) === incomingTimeIso)
+    .map((existing) => getExactMatchDecision(existing, incoming))
+    .sort(compareExactMatchDecisions);
+  if (exactMatches.length > 0) return exactMatches[0];
+
+  if (incomingTimeIso !== null) {
+    const undatedCandidate = sameSlotCandidates
+      .filter((existing) => eventTimeIso(existing) === null)
+      .sort((a, b) => compareMergeCandidates(a, b, incoming))[0];
+    if (undatedCandidate) {
+      return {
+        type: "confirmDate",
+        existingEvent: undatedCandidate,
+        hasConflictingDetails: getDetailComparison(undatedCandidate, incoming).conflicts > 0,
+      };
+    }
+  }
+
+  return { type: "create", existingEvent: null };
+}
+
+interface EventDetailComparison {
+  conflicts: number;
+  matches: number;
+  additions: number;
+}
+
+function getDetailComparison(
+  existingEvent: AppEvent,
+  incoming: EventFormValues
+): EventDetailComparison {
   // 같은 일정의 보조 정보는 기존 값이 비어 있을 때만 보강한다. 양쪽에 서로 다른 값이
   // 있으면 AI 결과로 기존 사용자 데이터를 덮어쓰지 않고 conflict로 리뷰에 알린다.
   const detailPairs = [
-    { existing: sameSlot.onlineUrl ?? "", incoming: incoming.onlineUrl },
-    { existing: sameSlot.memo ?? "", incoming: incoming.memo },
+    { existing: existingEvent.onlineUrl ?? "", incoming: incoming.onlineUrl },
+    { existing: existingEvent.memo ?? "", incoming: incoming.memo },
     ...(incoming.eventType === "schedule"
-      ? [{ existing: sameSlot.location ?? "", incoming: incoming.location }]
+      ? [{ existing: existingEvent.location ?? "", incoming: incoming.location }]
       : []),
   ].map(({ existing, incoming: incomingValue }) => ({
     existing: existing.trim(),
     incoming: incomingValue.trim(),
   }));
-  const hasNewDetails = detailPairs.some(({ existing, incoming: incomingValue }) =>
-    Boolean(!existing && incomingValue)
-  );
-  const hasConflictingDetails = detailPairs.some(({ existing, incoming: incomingValue }) =>
-    Boolean(existing && incomingValue && existing !== incomingValue)
-  );
 
-  if (existingTimeIso === incomingTimeIso) {
-    if (hasNewDetails) {
-      return {
-        type: "mergeDetails",
-        existingEvent: sameSlot,
-        hasConflictingDetails,
-      };
-    }
-    if (hasConflictingDetails) return { type: "conflict", existingEvent: sameSlot };
-    return { type: "noop", existingEvent: sameSlot };
-  }
-  if (existingTimeIso === null && incomingTimeIso !== null) {
+  return detailPairs.reduce<EventDetailComparison>(
+    (result, { existing, incoming: incomingValue }) => {
+      if (!existing && incomingValue) result.additions += 1;
+      if (existing && incomingValue && existing === incomingValue) result.matches += 1;
+      if (existing && incomingValue && existing !== incomingValue) result.conflicts += 1;
+      return result;
+    },
+    { conflicts: 0, matches: 0, additions: 0 }
+  );
+}
+
+function getExactMatchDecision(
+  existingEvent: AppEvent,
+  incoming: EventFormValues
+): Exclude<EventSaveDecision, { type: "confirmDate" | "create" }> {
+  const details = getDetailComparison(existingEvent, incoming);
+  if (details.additions > 0) {
     return {
-      type: "confirmDate",
-      existingEvent: sameSlot,
-      hasConflictingDetails,
+      type: "mergeDetails",
+      existingEvent,
+      hasConflictingDetails: details.conflicts > 0,
     };
   }
-  return { type: "create", existingEvent: null };
+  if (details.conflicts > 0) return { type: "conflict", existingEvent };
+  return { type: "noop", existingEvent };
+}
+
+function exactMatchDecisionPriority(decision: EventSaveDecision): number {
+  if (decision.type === "noop") return 0;
+  if (decision.type === "mergeDetails") return decision.hasConflictingDetails ? 2 : 1;
+  if (decision.type === "conflict") return 3;
+  return 4;
+}
+
+function compareExactMatchDecisions(
+  a: Exclude<EventSaveDecision, { type: "confirmDate" | "create" }>,
+  b: Exclude<EventSaveDecision, { type: "confirmDate" | "create" }>
+): number {
+  const priorityDifference = exactMatchDecisionPriority(a) - exactMatchDecisionPriority(b);
+  if (priorityDifference !== 0) return priorityDifference;
+  return a.existingEvent.id.localeCompare(b.existingEvent.id);
+}
+
+function compareMergeCandidates(
+  a: AppEvent,
+  b: AppEvent,
+  incoming: EventFormValues
+): number {
+  const aDetails = getDetailComparison(a, incoming);
+  const bDetails = getDetailComparison(b, incoming);
+
+  if (aDetails.conflicts !== bDetails.conflicts) {
+    return aDetails.conflicts - bDetails.conflicts;
+  }
+  if (aDetails.matches !== bDetails.matches) {
+    return bDetails.matches - aDetails.matches;
+  }
+  return a.id.localeCompare(b.id);
 }
 
 // docs/database.md "다음 일정 계산": starts_at/due_at만 비교하고 ends_at은 비교 대상이 아니다.

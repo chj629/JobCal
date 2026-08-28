@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import type { AppEvent } from "@/lib/events";
+import { ASIA_TOKYO_TIME_ZONE } from "@/lib/date";
 import { useLocale, useT } from "@/lib/locale-context";
 import MaterialIcon from "@/components/ui/MaterialIcon";
 import { EVENT_CHIP_CLASS } from "@/components/calendar/eventChipStyle";
@@ -53,6 +54,7 @@ export default function EventDetailPopover({
   const at = event.startsAt ?? event.dueAt;
   const formattedAt = at
     ? new Date(at).toLocaleString(localeCode, {
+        timeZone: ASIA_TOKYO_TIME_ZONE,
         year: "numeric",
         month: "2-digit",
         day: "2-digit",

@@ -1,7 +1,11 @@
 "use client";
 
 import { useTodayChecklist } from "@/components/dashboard/TodayChecklist";
-import { dateKeyOf, diffInDays, todayKey } from "@/lib/date";
+import {
+  diffInDaysInAsiaTokyo,
+  formatDateKeyInAsiaTokyo,
+  todayKeyInAsiaTokyo,
+} from "@/lib/date";
 import { useT } from "@/lib/locale-context";
 import type { AppEvent } from "@/lib/events";
 
@@ -17,10 +21,10 @@ export default function WeeklyProgress({ events }: WeeklyProgressProps) {
   const t = useT();
   const { checkedIds } = useTodayChecklist(events);
 
-  const today = todayKey();
+  const today = todayKeyInAsiaTokyo();
   const weekDeadlines = events.filter((event) => {
     if (event.eventType !== "deadline" || event.dueAt === null) return false;
-    const diff = diffInDays(today, dateKeyOf(event.dueAt));
+    const diff = diffInDaysInAsiaTokyo(today, formatDateKeyInAsiaTokyo(event.dueAt));
     return diff >= 0 && diff <= 6;
   });
   const completedCount = weekDeadlines.filter((event) => checkedIds.has(event.id)).length;

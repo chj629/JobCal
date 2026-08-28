@@ -63,6 +63,10 @@ export interface ApplicationStep {
   stepKey: string | null;
   stepOrder: number;
   stepStatus: StepStatus;
+  // DB에서 읽은 전형은 항상 값을 갖는다. optional은 기존 UI fixture/로컬 생성 객체와의
+  // 하위 호환을 위한 것으로, activity 집계는 값이 있을 때만 사용한다.
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 // Supabase application_steps 테이블의 컬럼(snake_case)과 1:1로 대응한다.
@@ -74,6 +78,8 @@ export interface ApplicationStepRow {
   step_key: string | null;
   step_order: number;
   step_status: StepStatus;
+  created_at: string;
+  updated_at: string;
 }
 
 export function rowToApplicationStep(row: ApplicationStepRow): ApplicationStep {
@@ -84,6 +90,8 @@ export function rowToApplicationStep(row: ApplicationStepRow): ApplicationStep {
     stepKey: row.step_key,
     stepOrder: row.step_order,
     stepStatus: row.step_status,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
   };
 }
 

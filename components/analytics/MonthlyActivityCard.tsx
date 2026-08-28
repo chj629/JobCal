@@ -3,7 +3,7 @@
 import MaterialIcon from "@/components/ui/MaterialIcon";
 import type { Company } from "@/lib/companies";
 import type { AppEvent } from "@/lib/events";
-import { todayKey, dateKeyOf } from "@/lib/date";
+import { formatDateKeyInAsiaTokyo, todayKeyInAsiaTokyo } from "@/lib/date";
 import { useT } from "@/lib/locale-context";
 
 interface MonthlyActivityCardProps {
@@ -22,16 +22,22 @@ function isThisMonth(dateKey: string, currentMonthKey: string): boolean {
 // 그대로 재사용한다.
 export default function MonthlyActivityCard({ companies, events }: MonthlyActivityCardProps) {
   const t = useT();
-  const currentMonthKey = todayKey().slice(0, 7);
+  const currentMonthKey = todayKeyInAsiaTokyo().slice(0, 7);
 
   const newApplications = companies.filter((c) => isThisMonth(c.createdAt, currentMonthKey)).length;
 
   const scheduledEvents = events.filter(
-    (e) => e.eventType === "schedule" && e.startsAt && isThisMonth(dateKeyOf(e.startsAt), currentMonthKey)
+    (e) =>
+      e.eventType === "schedule" &&
+      e.startsAt &&
+      isThisMonth(formatDateKeyInAsiaTokyo(e.startsAt), currentMonthKey)
   ).length;
 
   const deadlines = events.filter(
-    (e) => e.eventType === "deadline" && e.dueAt && isThisMonth(dateKeyOf(e.dueAt), currentMonthKey)
+    (e) =>
+      e.eventType === "deadline" &&
+      e.dueAt &&
+      isThisMonth(formatDateKeyInAsiaTokyo(e.dueAt), currentMonthKey)
   ).length;
 
   const rows = [

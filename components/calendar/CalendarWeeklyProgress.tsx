@@ -1,6 +1,10 @@
 "use client";
 
-import { dateKeyOf, diffInDays, todayKey } from "@/lib/date";
+import {
+  diffInDaysInAsiaTokyo,
+  formatDateKeyInAsiaTokyo,
+  todayKeyInAsiaTokyo,
+} from "@/lib/date";
 import { useT } from "@/lib/locale-context";
 import type { AppEvent } from "@/lib/events";
 
@@ -17,11 +21,11 @@ interface CalendarWeeklyProgressProps {
 export default function CalendarWeeklyProgress({ events, checkedIds }: CalendarWeeklyProgressProps) {
   const t = useT();
 
-  const today = todayKey();
+  const today = todayKeyInAsiaTokyo();
   const weekEvents = events.filter((event) => {
     const at = event.startsAt ?? event.dueAt;
     if (!at) return false;
-    const diff = diffInDays(today, dateKeyOf(at));
+    const diff = diffInDaysInAsiaTokyo(today, formatDateKeyInAsiaTokyo(at));
     return diff >= 0 && diff <= 6;
   });
 

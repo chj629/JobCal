@@ -2,6 +2,7 @@
 
 import MaterialIcon from "@/components/ui/MaterialIcon";
 import type { Company } from "@/lib/companies";
+import { todayKeyInAsiaTokyo } from "@/lib/date";
 import { useT } from "@/lib/locale-context";
 import EmptyState from "@/components/ui/EmptyState";
 
@@ -44,17 +45,17 @@ export default function CompanyTrendChart({ companies }: CompanyTrendChartProps)
     );
   }
 
-  const now = new Date();
+  const [currentYear, currentMonth] = todayKeyInAsiaTokyo().split("-").map(Number);
   const months = Array.from({ length: MONTH_COUNT }, (_, i) => {
     const offset = MONTH_COUNT - 1 - i;
-    const d = new Date(now.getFullYear(), now.getMonth() - offset, 1);
-    return { year: d.getFullYear(), month: d.getMonth() };
+    const date = new Date(Date.UTC(currentYear, currentMonth - 1 - offset, 1));
+    return { year: date.getUTCFullYear(), month: date.getUTCMonth() };
   });
 
   const newCountByKey = new Map<string, number>();
   for (const company of companies) {
-    const created = new Date(company.createdAt);
-    const key = monthKey(created.getFullYear(), created.getMonth());
+    const [year, month] = company.createdAt.split("-").map(Number);
+    const key = monthKey(year, month - 1);
     newCountByKey.set(key, (newCountByKey.get(key) ?? 0) + 1);
   }
 

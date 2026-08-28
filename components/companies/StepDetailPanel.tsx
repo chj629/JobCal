@@ -19,7 +19,11 @@ import {
   getUndatedEvent,
   type EventFormat,
 } from "@/lib/events";
-import { formatTimeOfDay } from "@/lib/date";
+import {
+  datetimeLocalInAsiaTokyoToIso,
+  formatDateKeyInAsiaTokyo,
+  formatTimeOfDayInAsiaTokyo,
+} from "@/lib/date";
 import { useT } from "@/lib/locale-context";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import MaterialIcon from "@/components/ui/MaterialIcon";
@@ -193,12 +197,10 @@ export default function StepDetailPanel({ companyId, selectedStepId }: StepDetai
   }
 
   function formatDateTime(iso: string, endsAt: string | null) {
-    const date = new Date(iso);
-    const pad = (n: number) => String(n).padStart(2, "0");
-    const base = `${date.getFullYear()}年${pad(date.getMonth() + 1)}月${pad(date.getDate())}日 ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+    const [year, month, day] = formatDateKeyInAsiaTokyo(iso).split("-");
+    const base = `${year}年${month}月${day}日 ${formatTimeOfDayInAsiaTokyo(iso)}`;
     if (!endsAt) return base;
-    const end = new Date(endsAt);
-    return `${base}〜${pad(end.getHours())}:${pad(end.getMinutes())}`;
+    return `${base}〜${formatTimeOfDayInAsiaTokyo(endsAt)}`;
   }
 
   function startEditDateTime() {
@@ -208,7 +210,7 @@ export default function StepDetailPanel({ companyId, selectedStepId }: StepDetai
       const values = eventToFormValues(primaryEvent);
       setDateTimeDraft(primaryEvent.eventType === "schedule" ? values.startsAt : values.dueAt);
       if (primaryEvent.eventType === "schedule" && primaryEvent.endsAt) {
-        setEndTimeDraft(formatTimeOfDay(primaryEvent.endsAt));
+        setEndTimeDraft(formatTimeOfDayInAsiaTokyo(primaryEvent.endsAt));
         setShowEndTime(true);
       } else {
         setEndTimeDraft("");
@@ -240,7 +242,11 @@ export default function StepDetailPanel({ companyId, selectedStepId }: StepDetai
       supportsEndTime && showEndTime && endTimeDraft
         ? `${dateTimeDraft.slice(0, 10)}T${endTimeDraft}`
         : "";
-    if (endsAtDraft && new Date(endsAtDraft).getTime() <= new Date(dateTimeDraft).getTime()) {
+    if (
+      endsAtDraft &&
+      Date.parse(datetimeLocalInAsiaTokyoToIso(endsAtDraft)) <=
+        Date.parse(datetimeLocalInAsiaTokyoToIso(dateTimeDraft))
+    ) {
       setDateTimeError(t("companies.events.endsAtBeforeStartsAt"));
       return;
     }

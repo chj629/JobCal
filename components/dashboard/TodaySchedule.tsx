@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { getTodaySchedules } from "@/components/dashboard/TodayTimetable";
-import { formatTimeOfDay } from "@/lib/date";
+import { formatTimeOfDayInAsiaTokyo, todayKeyInAsiaTokyo } from "@/lib/date";
 import { useLocale, useT } from "@/lib/locale-context";
 import type { Locale } from "@/lib/i18n/messages";
 import type { Company } from "@/lib/companies";
@@ -42,11 +42,12 @@ export default function TodaySchedule({ companies, events }: TodayScheduleProps)
   const todaySchedules = getTodaySchedules(events);
   const nextIndex = findNextIndex(todaySchedules);
 
-  const now = new Date();
+  const [year, month, day] = todayKeyInAsiaTokyo().split("-").map(Number);
+  const weekday = new Date(Date.UTC(year, month - 1, day)).getUTCDay();
   const dateLabel = t("dashboard.todaySchedule.dateLabel", {
-    month: now.getMonth() + 1,
-    day: now.getDate(),
-    weekday: weekdayLabels[now.getDay()],
+    month,
+    day,
+    weekday: weekdayLabels[weekday],
   });
   const { scrollRef, canScrollDown, onScroll } = useScrollFade([todaySchedules.length]);
 
@@ -82,11 +83,11 @@ export default function TodaySchedule({ companies, events }: TodayScheduleProps)
               >
                 <div className="flex w-10 shrink-0 flex-col items-end pt-0.5">
                   <p className="text-[14px] font-[400] leading-none tracking-tight text-stitch-ink">
-                    {event.startsAt ? formatTimeOfDay(event.startsAt) : ""}
+                    {event.startsAt ? formatTimeOfDayInAsiaTokyo(event.startsAt) : ""}
                   </p>
                   {event.endsAt && (
                     <p className="mt-1 text-[11px] leading-none tracking-tight text-secondary">
-                      {formatTimeOfDay(event.endsAt)}
+                      {formatTimeOfDayInAsiaTokyo(event.endsAt)}
                     </p>
                   )}
                 </div>

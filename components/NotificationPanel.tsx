@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { useT } from "@/lib/locale-context";
-import { formatTimeOfDay } from "@/lib/date";
+import { formatTimeOfDayInAsiaTokyo } from "@/lib/date";
 import {
   NOTIFICATION_TIME_KEYS,
   NOTIFICATION_TITLE_KEYS,
@@ -173,7 +173,7 @@ export default function NotificationPanel({
               {!isBilling && (
                 <span className={"text-[12px] " + (isRead ? "text-secondary/70" : "text-secondary")}>
                   {t(NOTIFICATION_TIME_KEYS[notification.bucket], {
-                    time: formatTimeOfDay(notification.at),
+                    time: formatTimeOfDayInAsiaTokyo(notification.at),
                   })}
                 </span>
               )}

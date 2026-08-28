@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import EmptyState from "@/components/ui/EmptyState";
-import { formatTimeOfDay } from "@/lib/date";
+import { formatTimeOfDayInAsiaTokyo } from "@/lib/date";
 import { useT } from "@/lib/locale-context";
 import type { AppEvent } from "@/lib/events";
 import type { Company } from "@/lib/companies";
@@ -45,7 +45,8 @@ export default function TodayEventsCard({
     const checked = checkedIds.has(event.id);
     const at = event.startsAt ?? event.dueAt;
     const timeLabel = at
-      ? formatTimeOfDay(at) + (event.endsAt ? ` - ${formatTimeOfDay(event.endsAt)}` : "")
+      ? formatTimeOfDayInAsiaTokyo(at) +
+        (event.endsAt ? ` - ${formatTimeOfDayInAsiaTokyo(event.endsAt)}` : "")
       : "";
 
     return (

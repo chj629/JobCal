@@ -29,7 +29,12 @@ import { useCompanyContacts } from "@/lib/company-contacts-context";
 import { useCompanyNotes } from "@/lib/company-notes-context";
 import { useCompanyCredentials } from "@/lib/company-credentials-context";
 import { useNextActions } from "@/lib/next-actions-context";
-import { diffInDays, formatTimeOfDay, todayKey } from "@/lib/date";
+import {
+  diffInDaysInAsiaTokyo,
+  formatDateKeyInAsiaTokyo,
+  formatTimeOfDayInAsiaTokyo,
+  todayKeyInAsiaTokyo,
+} from "@/lib/date";
 import { useT } from "@/lib/locale-context";
 
 const ALL = "전체";
@@ -49,15 +54,13 @@ const STITCH_VISIBLE_STATUSES = new Set(["in_progress", "offer", "rejected"]);
 const PRIORITY_IS_HIGH = (priority: string) => priority === "high";
 
 function formatNextSchedule(iso: string): string {
-  const date = new Date(iso);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${pad(date.getMonth() + 1)}/${pad(date.getDate())} ${formatTimeOfDay(iso)}`;
+  return `${formatDateKeyInAsiaTokyo(iso).slice(5).replace("-", "/")} ${formatTimeOfDayInAsiaTokyo(iso)}`;
 }
 
 // Stitch code.html의 "最終更新" 표기(今日 10:30 / 昨日 18:15 / 2日前 / 1週間前)를 재현한다.
 // company.updatedAt은 날짜만 저장하므로(lib/companies.ts) 시:분은 표시하지 않는다.
 function formatUpdatedRelative(dateKey: string, t: (key: string, vars?: Record<string, string | number>) => string): string {
-  const diff = diffInDays(dateKey, todayKey());
+  const diff = diffInDaysInAsiaTokyo(dateKey, todayKeyInAsiaTokyo());
   if (diff <= 0) return t("companies.list.updatedRelative.today");
   if (diff === 1) return t("companies.list.updatedRelative.yesterday");
   if (diff < 7) return t("companies.list.updatedRelative.daysAgo", { days: diff });

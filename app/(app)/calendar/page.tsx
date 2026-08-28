@@ -1,13 +1,24 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useCompanies } from "@/lib/companies-context";
 import { useEvents } from "@/lib/events-context";
 import { useApplicationSteps } from "@/lib/application-steps-context";
 import { getStepDisplayName } from "@/lib/applicationSteps";
 import { useEventCompletions } from "@/lib/event-completions";
 import { EVENT_TYPES, eventToFormValues, type AppEvent, type EventType } from "@/lib/events";
-import { formatDateKey, dateKeyOf, formatTimeOfDay } from "@/lib/date";
+import {
+  addDaysToDateKey,
+  dateKeyParts,
+  dateKeyToUtcDate,
+  dayOfWeekForDateKey,
+  formatDateKeyInAsiaTokyo,
+  formatTimeOfDayInAsiaTokyo,
+  millisecondsUntilNextDayInAsiaTokyo,
+  startOfMonthDateKey,
+  startOfWeekDateKey,
+  todayKeyInAsiaTokyo,
+} from "@/lib/date";
 import { useLocale, useT } from "@/lib/locale-context";
 import Badge, { type BadgeVariant } from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
@@ -58,15 +69,35 @@ const EVENT_TYPE_DOT_CLASS: Record<EventType, string> = {
   result_announcement: "bg-joined",
 };
 
-function startOfMonth(year: number, month: number) {
-  return new Date(year, month, 1);
-}
+function useAsiaTokyoTodayKey() {
+  const [today, setToday] = useState(() => todayKeyInAsiaTokyo());
 
-function startOfWeek(date: Date) {
-  const start = new Date(date);
-  start.setDate(start.getDate() - start.getDay());
-  start.setHours(0, 0, 0, 0);
-  return start;
+  useEffect(() => {
+    let timeoutId: number | undefined;
+
+    function refreshAndSchedule() {
+      if (timeoutId !== undefined) window.clearTimeout(timeoutId);
+      const now = new Date();
+      setToday(todayKeyInAsiaTokyo(now));
+      timeoutId = window.setTimeout(
+        refreshAndSchedule,
+        millisecondsUntilNextDayInAsiaTokyo(now) + 100
+      );
+    }
+
+    function handleVisibilityChange() {
+      if (!document.hidden) refreshAndSchedule();
+    }
+
+    refreshAndSchedule();
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      if (timeoutId !== undefined) window.clearTimeout(timeoutId);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, []);
+
+  return today;
 }
 
 export default function CalendarPage() {
@@ -90,14 +121,14 @@ export default function CalendarPage() {
   // 다른 쪽(진행률 등)이 페이지를 새로고침하기 전까지 반영되지 않는 문제가 있었다.
   const { checkedIds, loaded: completionsLoaded, toggle: toggleCompletion } = useEventCompletions();
   const loading = companiesLoading || eventsLoading;
-  const today = useMemo(() => new Date(), []);
+  const todayDateKey = useAsiaTokyoTodayKey();
 
   // docs/stitch/메인페이지 5개의 캘린더 두 화면(월간/주간)은 같은 페이지의 토글
-  // 상태다. focusDate 하나가 월간 뷰에서는 "표시 중인 달", 주간 뷰에서는 "표시 중인 주"를
+  // 상태다. focusDateKey 하나가 월간 뷰에서는 "표시 중인 달", 주간 뷰에서는 "표시 중인 주"를
   // 결정하는 단일 기준점 역할을 한다. 미니 캘린더는 항상 focusDate가 속한 달을 보여주고,
   // 날짜를 클릭하면 focusDate가 그 날짜로 바뀌어 메인 그리드가 따라 이동한다.
   const [viewMode, setViewMode] = useState<"month" | "week">("month");
-  const [focusDate, setFocusDate] = useState(() => today);
+  const [focusDateKey, setFocusDateKey] = useState(() => todayDateKey);
   const [selectedEvent, setSelectedEvent] = useState<AppEvent | null>(null);
   const [isAddEventOpen, setIsAddEventOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<AppEvent | null>(null);
@@ -108,47 +139,52 @@ export default function CalendarPage() {
   // 눌렀을 때만 값이 채워진다.
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
-  const year = focusDate.getFullYear();
-  const month = focusDate.getMonth();
+  const { month } = dateKeyParts(focusDateKey);
 
   // 요일/월 표기는 Intl.DateTimeFormat으로 locale에 맞게 생성한다(날짜 계산 로직과는 무관).
   const localeCode = locale === "ja" ? "ja-JP" : "ko-KR";
   const weekdayLabels = useMemo(() => {
-    const formatter = new Intl.DateTimeFormat(localeCode, { weekday: "short" });
+    const formatter = new Intl.DateTimeFormat(localeCode, {
+      weekday: "short",
+      timeZone: "UTC",
+    });
     // 2023-01-01은 일요일이므로 이를 기준으로 일~토 순서의 짧은 요일 이름을 만든다.
-    return Array.from({ length: 7 }, (_, i) => formatter.format(new Date(2023, 0, 1 + i)));
+    return Array.from({ length: 7 }, (_, i) =>
+      formatter.format(dateKeyToUtcDate(addDaysToDateKey("2023-01-01", i)))
+    );
   }, [localeCode]);
   const monthLabel = useMemo(
-    () => new Intl.DateTimeFormat(localeCode, { year: "numeric", month: "long" }).format(focusDate),
-    [localeCode, focusDate]
+    () =>
+      new Intl.DateTimeFormat(localeCode, {
+        year: "numeric",
+        month: "long",
+        timeZone: "UTC",
+      }).format(dateKeyToUtcDate(focusDateKey)),
+    [localeCode, focusDateKey]
   );
 
-  const weekDays = useMemo(() => {
-    const start = startOfWeek(focusDate);
-    return Array.from({ length: 7 }, (_, i) => {
-      const date = new Date(start);
-      date.setDate(start.getDate() + i);
-      return date;
-    });
-  }, [focusDate]);
+  const weekDayKeys = useMemo(() => {
+    const start = startOfWeekDateKey(focusDateKey);
+    return Array.from({ length: 7 }, (_, i) => addDaysToDateKey(start, i));
+  }, [focusDateKey]);
 
   const weekRangeLabel = useMemo(() => {
-    const start = weekDays[0];
-    const end = weekDays[6];
+    const start = dateKeyParts(weekDayKeys[0]);
+    const end = dateKeyParts(weekDayKeys[6]);
     return t("calendar.weekRangeLabel", {
-      year: start.getFullYear(),
-      month: start.getMonth() + 1,
-      startDay: start.getDate(),
-      endDay: end.getDate(),
+      year: start.year,
+      month: start.month,
+      startDay: start.day,
+      endDay: end.day,
     });
-  }, [weekDays, t]);
+  }, [weekDayKeys, t]);
 
   const eventsByDate = useMemo(() => {
     const map: Record<string, AppEvent[]> = {};
     for (const event of events) {
       const at = event.startsAt ?? event.dueAt;
       if (!at) continue;
-      const dateKey = dateKeyOf(at);
+      const dateKey = formatDateKeyInAsiaTokyo(at);
       const list = map[dateKey] ?? [];
       list.push(event);
       map[dateKey] = list;
@@ -163,64 +199,51 @@ export default function CalendarPage() {
     return map;
   }, [events]);
 
-  const days = useMemo(() => {
-    const firstOfMonth = new Date(year, month, 1);
-    const gridStart = new Date(firstOfMonth);
-    gridStart.setDate(gridStart.getDate() - firstOfMonth.getDay());
-
-    return Array.from({ length: 42 }, (_, i) => {
-      const date = new Date(gridStart);
-      date.setDate(gridStart.getDate() + i);
-      return date;
-    });
-  }, [year, month]);
+  const dayKeys = useMemo(() => {
+    const gridStart = startOfWeekDateKey(startOfMonthDateKey(focusDateKey));
+    return Array.from({ length: 42 }, (_, i) => addDaysToDateKey(gridStart, i));
+  }, [focusDateKey]);
 
   // 모바일 선택 날짜 리스트(md:hidden)용 파생 값. eventsByDate를 그대로 재사용하고,
-  // 라벨은 이미 계산된 days(현재 그리드에 실제로 그려지는 Date 객체들)에서 찾아
-  // 문자열을 다시 Date로 파싱하는 별도 로직을 만들지 않는다.
+  // 라벨은 선택된 date key를 UTC date-only Date로만 매핑해 locale 표시한다.
   const selectedDateEvents = selectedDate ? (eventsByDate[selectedDate] ?? []) : [];
-  const selectedDateObj = days.find((date) => formatDateKey(date) === selectedDate) ?? null;
-  const selectedDateLabel = selectedDateObj
+  const selectedDateLabel = selectedDate
     ? new Intl.DateTimeFormat(localeCode, {
         month: "long",
         day: "numeric",
         weekday: "short",
-      }).format(selectedDateObj)
+        timeZone: "UTC",
+      }).format(dateKeyToUtcDate(selectedDate))
     : "";
 
-  const todayKey = formatDateKey(today);
-  const todayEvents = eventsByDate[todayKey] ?? [];
+  const todayEvents = eventsByDate[todayDateKey] ?? [];
 
   function goToPrev() {
     if (viewMode === "month") {
-      setFocusDate(startOfMonth(year, month - 1));
+      setFocusDateKey(startOfMonthDateKey(focusDateKey, -1));
     } else {
-      const prev = new Date(focusDate);
-      prev.setDate(prev.getDate() - 7);
-      setFocusDate(prev);
+      setFocusDateKey(addDaysToDateKey(focusDateKey, -7));
     }
     setSelectedDate(null);
   }
   function goToNext() {
     if (viewMode === "month") {
-      setFocusDate(startOfMonth(year, month + 1));
+      setFocusDateKey(startOfMonthDateKey(focusDateKey, 1));
     } else {
-      const next = new Date(focusDate);
-      next.setDate(next.getDate() + 7);
-      setFocusDate(next);
+      setFocusDateKey(addDaysToDateKey(focusDateKey, 7));
     }
     setSelectedDate(null);
   }
   function goToToday() {
-    setFocusDate(today);
-    setSelectedDate(formatDateKey(today));
+    setFocusDateKey(todayDateKey);
+    setSelectedDate(todayDateKey);
   }
   function goToMiniCalMonth(direction: 1 | -1) {
-    setFocusDate((prev) => startOfMonth(prev.getFullYear(), prev.getMonth() + direction));
+    setFocusDateKey((prev) => startOfMonthDateKey(prev, direction));
   }
-  function handleSelectDate(date: Date) {
-    setFocusDate(date);
-    setSelectedDate(formatDateKey(date));
+  function handleSelectDate(dateKey: string) {
+    setFocusDateKey(dateKey);
+    setSelectedDate(dateKey);
   }
 
   // 10_calendar.png 기준: 일요일은 빨강, 토요일은 파랑 계열로 요일 헤더/날짜 숫자를 구분한다.
@@ -306,14 +329,14 @@ export default function CalendarPage() {
             </Button>
           </div>
 
-          {/* 모바일(md 미만) 전용. 항상 월간 뷰만 보여주므로 startOfMonth로 직접 이동한다
+          {/* 모바일(md 미만) 전용. 항상 월간 뷰만 보여주므로 month start key로 직접 이동한다
               (goToPrev/goToNext는 viewMode="week"일 때 주 단위로 움직이기 때문). */}
           <div className="flex flex-wrap items-center gap-2 md:hidden">
             <Button
               type="button"
               variant="secondary"
               onClick={() => {
-                setFocusDate(startOfMonth(year, month - 1));
+                setFocusDateKey(startOfMonthDateKey(focusDateKey, -1));
                 setSelectedDate(null);
               }}
             >
@@ -326,7 +349,7 @@ export default function CalendarPage() {
               type="button"
               variant="secondary"
               onClick={() => {
-                setFocusDate(startOfMonth(year, month + 1));
+                setFocusDateKey(startOfMonthDateKey(focusDateKey, 1));
                 setSelectedDate(null);
               }}
             >
@@ -371,8 +394,8 @@ export default function CalendarPage() {
             <div className="hidden gap-6 md:flex md:min-h-0 md:flex-1">
               <div className="flex w-72 shrink-0 flex-col gap-4 md:overflow-y-auto">
                 <MiniCalendar
-                  focusDate={focusDate}
-                  today={today}
+                  focusDateKey={focusDateKey}
+                  todayDateKey={todayDateKey}
                   eventsByDate={eventsByDate}
                   onNavigateMonth={goToMiniCalMonth}
                   onSelectDate={handleSelectDate}
@@ -390,8 +413,8 @@ export default function CalendarPage() {
 
               {viewMode === "month" ? (
                 <CalendarMonthGrid
-                  focusDate={focusDate}
-                  today={today}
+                  focusDateKey={focusDateKey}
+                  todayDateKey={todayDateKey}
                   eventsByDate={eventsByDate}
                   companies={companies}
                   weekdayLabels={weekdayLabels}
@@ -399,8 +422,8 @@ export default function CalendarPage() {
                 />
               ) : (
                 <CalendarWeekGrid
-                  weekDays={weekDays}
-                  today={today}
+                  weekDayKeys={weekDayKeys}
+                  todayDateKey={todayDateKey}
                   eventsByDate={eventsByDate}
                   companies={companies}
                   steps={steps}
@@ -428,12 +451,14 @@ export default function CalendarPage() {
                   ))}
                 </div>
                 <div className="grid grid-cols-7">
-                  {days.map((date) => {
-                    const dateKey = formatDateKey(date);
-                    const isCurrentMonth = date.getMonth() === month;
-                    const isToday = dateKey === todayKey;
+                  {dayKeys.map((dateKey) => {
+                    const { month: dateMonth, day } = dateKeyParts(dateKey);
+                    const isCurrentMonth = dateMonth === month;
+                    const isToday = dateKey === todayDateKey;
                     const dayEvents = eventsByDate[dateKey] ?? [];
-                    const weekendClass = isCurrentMonth ? weekendTextClass(date.getDay()) : "";
+                    const weekendClass = isCurrentMonth
+                      ? weekendTextClass(dayOfWeekForDateKey(dateKey))
+                      : "";
                     const isSelected = dateKey === selectedDate && !isToday;
 
                     return (
@@ -457,7 +482,7 @@ export default function CalendarPage() {
                             (isSelected ? " ring-2 ring-primary" : "")
                           }
                         >
-                          {date.getDate()}
+                          {day}
                         </span>
                         {dayEvents.length > 0 && (
                           <div className="mt-1 flex flex-wrap items-center justify-center gap-1">
@@ -498,7 +523,7 @@ export default function CalendarPage() {
                     {selectedDateEvents.map((event, index) => {
                       const company = companies.find((c) => c.id === event.companyId);
                       const at = event.startsAt ?? event.dueAt;
-                      const time = at ? formatTimeOfDay(at) : null;
+                      const time = at ? formatTimeOfDayInAsiaTokyo(at) : null;
                       const isLast = index === selectedDateEvents.length - 1;
 
                       return (

@@ -1,4 +1,7 @@
-import { dateKeyOf, diffInDays, formatDateKey } from "@/lib/date";
+import {
+  diffInDaysInAsiaTokyo,
+  formatDateKeyInAsiaTokyo,
+} from "@/lib/date";
 import type { AppEvent } from "@/lib/events";
 import type { Company } from "@/lib/companies";
 import type { ApplicationStep, StepStatus } from "@/lib/applicationSteps";
@@ -100,7 +103,7 @@ export function computeNotifications(
 ): EventNotification[] {
   const companiesById = new Map(companies.map((company) => [company.id, company]));
   const stepsById = new Map(applicationSteps.map((step) => [step.id, step]));
-  const today = formatDateKey(now);
+  const today = formatDateKeyInAsiaTokyo(now);
 
   const notifications: EventNotification[] = [];
 
@@ -118,8 +121,8 @@ export function computeNotifications(
     const at = kind === "deadline" ? event.dueAt : event.startsAt;
     if (!at) continue;
 
-    const dateKey = dateKeyOf(at);
-    const diff = diffInDays(today, dateKey);
+    const dateKey = formatDateKeyInAsiaTokyo(at);
+    const diff = diffInDaysInAsiaTokyo(today, dateKey);
 
     if (diff === 1) {
       notifications.push(buildNotification(kind, "d1", event, at, dateKey, companiesById));

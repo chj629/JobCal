@@ -2,6 +2,11 @@ import type { Company } from "@/lib/companies";
 import type { AppEvent } from "@/lib/events";
 import type { ApplicationStep, StepStatus } from "@/lib/applicationSteps";
 import { DEFAULT_STEP_KEYS } from "@/lib/applicationSteps";
+import {
+  addDaysToDateKey,
+  datetimeLocalInAsiaTokyoToIso,
+  todayKeyInAsiaTokyo,
+} from "@/lib/date";
 
 // 56차: Dashboard/Calendar/Companies 랜딩 쇼케이스 전용 목업 데이터. 실제 서비스 컴포넌트
 // (TodayChecklistCard, TodaySchedule, UpcomingSchedule, PipelineOverview, FocusCompanies,
@@ -12,16 +17,13 @@ import { DEFAULT_STEP_KEYS } from "@/lib/applicationSteps";
 // 항상 "오늘 일정/이번 주 마감" 같은 카드들이 빈 화면이 아니라 채워진 상태로 보이게 한다.
 
 function isoAt(daysFromToday: number, hour: number, minute = 0): string {
-  const d = new Date();
-  d.setDate(d.getDate() + daysFromToday);
-  d.setHours(hour, minute, 0, 0);
-  return d.toISOString();
+  const date = addDaysToDateKey(todayKeyInAsiaTokyo(), daysFromToday);
+  const time = `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+  return datetimeLocalInAsiaTokyoToIso(`${date}T${time}`);
 }
 
 function dateKey(daysFromToday: number): string {
-  const d = new Date();
-  d.setDate(d.getDate() + daysFromToday);
-  return d.toISOString().slice(0, 10);
+  return addDaysToDateKey(todayKeyInAsiaTokyo(), daysFromToday);
 }
 
 function buildSteps(companyId: string, currentIndex: number | null): ApplicationStep[] {

@@ -5,6 +5,9 @@ export interface NextAction {
   text: string;
   dueLabel: string;
   done: boolean;
+  // DB row에는 항상 존재한다. optional은 기존 fixture 호환을 유지하기 위함이다.
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 // Supabase next_actions 테이블의 컬럼(snake_case)과 1:1로 대응한다.
@@ -26,5 +29,7 @@ export function rowToNextAction(row: NextActionRow): NextAction {
     text: row.text,
     dueLabel: row.due_label,
     done: row.done,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
   };
 }
