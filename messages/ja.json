@@ -621,7 +621,8 @@
     "korean": "한국어",
     "languageDescription": "表示言語を設定します。",
     "languageLabel": "表示言語",
-    "languageSaveSuccess": "言語設定を保存しました。"
+    "languageSaveSuccess": "言語設定を保存しました。",
+    "languageSaveError": "言語設定を保存できませんでした。もう一度お試しください。"
   },
   "analytics": {
     "title": "分析",

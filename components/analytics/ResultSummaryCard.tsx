@@ -15,13 +15,13 @@ interface ResultSummaryCardProps {
 }
 
 // docs/stitch/메인페이지 5개/jobcal_analytics_standardized_design_refresh의 "選考結果"
-// 카드. StepFunnelChart.tsx와 같은 전형명별 집계(lib/stepFunnel.ts)를 재사용해, 첫 단계
-// (エントリー 격)를 제외한 각 단계의 통과율(=passRate)과 통과/불합격 인원을 보여준다.
+// 카드. StepFunnelChart.tsx와 같은 전형명별 집계(lib/stepFunnel.ts)를 재사용해, 기본 Entry
+// 전형(stepKey === "entry")만 제외한 각 단계의 통과율(=passRate)과 통과/불합격 인원을 보여준다.
 // 통과/불합격은 그 단계의 stepStatus가 실제로 passed/failed인 건수를 그대로 센 값이고,
 // 통과율은 passedCount / (passedCount + failedCount)다(in_progress/waiting은 분모에서 제외).
 export default function ResultSummaryCard({ companies, steps }: ResultSummaryCardProps) {
   const t = useT();
-  const rows = buildStepFunnelRows(companies, steps).slice(1);
+  const rows = buildStepFunnelRows(companies, steps).filter((row) => row.stepKey !== "entry");
   const { scrollRef, canScrollDown, onScroll } = useScrollFade([rows.length]);
 
   return (

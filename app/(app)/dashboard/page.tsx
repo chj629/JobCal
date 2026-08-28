@@ -22,6 +22,7 @@ import PipelineOverview from "@/components/dashboard/PipelineOverview";
 import DashboardEmptyState from "@/components/dashboard/DashboardEmptyState";
 import type { AppEvent } from "@/lib/events";
 import type { ApplicationStep } from "@/lib/applicationSteps";
+import { filterDashboardActionEvents } from "@/lib/dashboardEvents";
 
 const INTERVIEW_STEP_KEYS = new Set(["interview_1", "interview_2", "interview_final"]);
 const DEADLINE_SOON_DAYS = 3;
@@ -97,11 +98,14 @@ export default function DashboardPage() {
   }, []);
 
   const today = todayKey();
+  // Calendar/기업 상세의 원본 events는 그대로 두고, 행동 중심 Dashboard에서만 종료 기업의
+  // 일정을 공통 제외한다. 아래 KPI와 모든 일정 위젯이 이 배열 하나를 공유한다.
+  const dashboardActionEvents = filterDashboardActionEvents(companies, events);
 
   const entryInProgressCount = companies.filter((c) => c.overallStatus === "in_progress").length;
-  const interviewScheduledCount = countInterviewScheduled(events, steps);
+  const interviewScheduledCount = countInterviewScheduled(dashboardActionEvents, steps);
   const offerCount = companies.filter((c) => c.overallStatus === "offer").length;
-  const deadlineSoonCount = countDeadlineSoon(events, today);
+  const deadlineSoonCount = countDeadlineSoon(dashboardActionEvents, today);
   const entryDelta = countCreatedWithinDays(companies, today, DELTA_WINDOW_DAYS);
   const offerDelta = countOfferUpdatedWithinDays(companies, today, DELTA_WINDOW_DAYS);
 
@@ -211,20 +215,20 @@ export default function DashboardPage() {
           <DashboardEmptyState onManualRegister={() => setIsAddOpen(true)} />
         )}
 
-        <WeeklyProgress events={events} />
+        <WeeklyProgress events={dashboardActionEvents} />
 
         {/* docs/stitch/.../code.html은 grid-cols-[1fr_1fr_1.5fr]이지만, 가운데 카드(本日の予定)
             헤더 행에 truncate/min-w-0가 없어 실제 렌더링(screen.png)에서는 1:1:1.5가 아니라
             약 255:290:260으로 밀린다. screen.png를 기준값으로 픽셀 실측해 그 비율을 그대로 고정한다. */}
         <div className="mb-3 grid grid-cols-1 items-stretch gap-3 lg:grid-cols-[255fr_290fr_260fr]">
-          <TodayChecklistCard companies={companies} events={events} />
-          <TodaySchedule companies={companies} events={events} />
-          <UpcomingSchedule companies={companies} events={events} steps={steps} />
+          <TodayChecklistCard companies={companies} events={dashboardActionEvents} />
+          <TodaySchedule companies={companies} events={dashboardActionEvents} />
+          <UpcomingSchedule companies={companies} events={dashboardActionEvents} steps={steps} />
         </div>
 
         <div className="grid grid-cols-1 items-stretch gap-3 pb-10 lg:grid-cols-[1.5fr_1fr]">
           <PipelineOverview companies={companies} steps={steps} />
-          <FocusCompanies companies={companies} events={events} steps={steps} />
+          <FocusCompanies companies={companies} events={dashboardActionEvents} steps={steps} />
         </div>
 
         {isAddOpen && (

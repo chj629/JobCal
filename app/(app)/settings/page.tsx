@@ -120,6 +120,7 @@ export default function SettingsPage() {
   // 고른 값을 "変更を保存"를 눌러야 실제로 반영하는 구조다(기존 버튼 2개를 즉시 전환하던
   // 방식과 다름). 실제 반영/저장은 그대로 LocaleContext의 setLocale을 재사용한다.
   const [pendingLocale, setPendingLocale] = useState<Locale>(locale);
+  const [isSavingLanguage, setIsSavingLanguage] = useState(false);
 
   useEffect(() => {
     // lib/locale-context.tsx의 LocaleProvider와 동일한 이유로 microtask로 한 틱 미뤄
@@ -370,8 +371,21 @@ export default function SettingsPage() {
     }
   }
 
-  function handleSaveLanguage() {
-    setLocale(pendingLocale);
+  async function handleSaveLanguage() {
+    if (isSavingLanguage || pendingLocale === locale) return;
+
+    setIsSavingLanguage(true);
+    const saved = await setLocale(pendingLocale);
+    setIsSavingLanguage(false);
+
+    if (!saved) {
+      // locale은 아직 바뀌지 않았으므로 현재 화면 언어로 실패를 안내한다.
+      showToast(t("settings.languageSaveError"), "error");
+      return;
+    }
+
+    // 성공 시에는 방금 저장한 언어로 즉시 안내한다(t는 다음 렌더 전까지 이전 locale을
+    // 캡처하고 있으므로 translate에 저장된 locale을 명시한다).
     showToast(translate(pendingLocale, "settings.languageSaveSuccess"));
   }
 
@@ -904,7 +918,7 @@ export default function SettingsPage() {
                   <button
                     type="button"
                     onClick={handleSaveLanguage}
-                    disabled={pendingLocale === locale}
+                    disabled={isSavingLanguage || pendingLocale === locale}
                     className="rounded-full bg-[#e2dffe] px-6 py-3 text-[13px] font-medium text-[#1a192f] shadow-sm transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {t("common.save")}

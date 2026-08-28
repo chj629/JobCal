@@ -34,14 +34,6 @@ function escapeHtml(value: string): string {
 }
 
 export async function POST(request: Request) {
-  // 클라이언트 검증만 신뢰하지 않는다 — rate limit도 실제 발송(과금·스팸) 이전에 먼저 확인.
-  const clientKey = getClientKey(request);
-  if (!checkContactRateLimit(clientKey)) {
-    return NextResponse.json({ error: "요청이 너무 많습니다. 잠시 후 다시 시도해 주세요." }, {
-      status: 429,
-    });
-  }
-
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey || !CONTACT_EMAIL) {
     console.error("[contact] RESEND_API_KEY 또는 CONTACT_EMAIL이 설정되지 않았습니다.");
@@ -83,8 +75,34 @@ export async function POST(request: Request) {
 
   const trimmedName = name.trim();
   const trimmedEmail = email.trim();
+  const normalizedEmail = trimmedEmail.toLowerCase();
   const trimmedMessage = message.trim();
   const receivedAt = new Date().toISOString();
+
+  // email 기준 제한도 함께 적용해야 하므로 서버 입력 검증이 끝난 뒤, 실제 Resend 발송보다
+  // 먼저 durable RPC를 호출한다. DB/RPC/환경설정 오류는 제한을 우회하지 않고 503으로
+  // fail-closed 처리한다. 카운터 증가는 RPC transaction 안에서만 일어나므로 오류가
+  // 복구되면 정상 사용자는 그대로 재시도할 수 있다.
+  try {
+    const clientKey = getClientKey(request);
+    const allowed = await checkContactRateLimit(clientKey, normalizedEmail);
+    if (!allowed) {
+      return NextResponse.json(
+        { error: "요청이 너무 많습니다. 잠시 후 다시 시도해 주세요." },
+        { status: 429 }
+      );
+    }
+  } catch (error) {
+    // IP/email/HMAC digest는 로그에 넣지 않는다. 상세 원인은 서버 로그에서만 확인한다.
+    console.error(
+      "[contact] rate limit 확인 실패:",
+      error instanceof Error ? error.message : "unknown"
+    );
+    return NextResponse.json(
+      { error: "문의 요청을 확인할 수 없습니다. 잠시 후 다시 시도해 주세요." },
+      { status: 503, headers: { "Retry-After": "60" } }
+    );
+  }
 
   const resend = new Resend(apiKey);
 

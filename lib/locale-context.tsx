@@ -20,7 +20,9 @@ interface LocaleContextValue {
   // true가 되기 전에는 렌더링을 시작하면 안 된다(components/Header.tsx 참고). locked
   // Provider는 애초에 기다릴 비동기 확정이 없어 처음부터 true다.
   ready: boolean;
-  setLocale: (locale: Locale) => void;
+  // 로그인 사용자는 Supabase user_metadata 저장까지 성공해야 true를 반환하고 locale을
+  // 커밋한다. Settings는 이 결과를 await해 실제 저장 결과와 toast를 일치시킨다.
+  setLocale: (locale: Locale) => Promise<boolean>;
   t: (key: string, vars?: TranslateVars) => string;
 }
 
@@ -118,26 +120,59 @@ export function LocaleProvider({
   }, [locked]);
 
   async function setLocale(next: Locale) {
-    if (locked) return;
-    setLocaleState(next);
-    window.localStorage.setItem(LOCALE_STORAGE_KEY, next);
+    if (locked) return false;
+    if (next === locale) return true;
 
     const supabase = createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    try {
+      const {
+        data: { user },
+        error: getUserError,
+      } = await supabase.auth.getUser();
 
-    if (!user) return;
+      // 세션 만료나 네트워크 오류는 비로그인 상태와 구분한다. 이 경우 UI/localStorage를
+      // 먼저 바꾸지 않아 서버 metadata와 화면 언어가 어긋나지 않는다.
+      if (getUserError) {
+        if (process.env.NODE_ENV === "development") {
+          console.error("[locale] getUser 실패:", {
+            status: getUserError.status,
+            code: getUserError.code,
+            message: getUserError.message,
+            name: getUserError.name,
+          });
+        }
+        return false;
+      }
 
-    const { error } = await supabase.auth.updateUser({ data: { language: next } });
+      // 실제 변경 버튼이 있는 Settings는 인증 영역이다. 세션이 사라졌는데 user만 null로
+      // 반환되는 경우도 성공으로 간주하거나 localStorage만 바꾸지 않는다.
+      if (!user) return false;
 
-    if (error && process.env.NODE_ENV === "development") {
-      console.error("[locale] updateUser 실패:", {
-        status: error.status,
-        code: error.code,
-        message: error.message,
-        name: error.name,
-      });
+      const { error } = await supabase.auth.updateUser({ data: { language: next } });
+
+      if (error) {
+        if (process.env.NODE_ENV === "development") {
+          console.error("[locale] updateUser 실패:", {
+            status: error.status,
+            code: error.code,
+            message: error.message,
+            name: error.name,
+          });
+        }
+        return false;
+      }
+
+      // metadata 저장 성공 후에만 로컬 상태를 커밋한다. 따라서 실패 시 별도 rollback 없이
+      // UI와 localStorage, user_metadata가 모두 기존 값으로 남는다.
+      window.localStorage.setItem(LOCALE_STORAGE_KEY, next);
+      setLocaleState(next);
+      return true;
+    } catch (error) {
+      // fetch 자체가 reject되는 네트워크 오류도 저장 실패로 취급한다.
+      if (process.env.NODE_ENV === "development") {
+        console.error("[locale] 언어 저장 중 예외:", error);
+      }
+      return false;
     }
   }
 
