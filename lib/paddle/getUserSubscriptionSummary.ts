@@ -1,6 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Plan } from "./getUserPlan";
-import { getConfiguredPaddleProPriceId, PRO_ENTITLEMENT_STATUSES } from "./proPrice";
+import {
+  getConfiguredPaddleProPriceId,
+  hasActiveInternalProEntitlement,
+  PRO_ENTITLEMENT_STATUSES,
+} from "./proPrice";
 
 // app/api/paddle/webhook(lib/paddle/processWebhook.ts)이 Paddle Node SDK의
 // SubscriptionScheduledChangeNotification 인스턴스를 그대로 upsert하는데, 이 클래스는
@@ -17,6 +21,8 @@ export interface ScheduledChange {
 
 export interface UserSubscriptionSummary {
   plan: Plan;
+  // internal은 Pro 기능만 부여하며 실제 Paddle subscription/Portal/cancel 대상이 아니다.
+  entitlementSource: "paddle" | "internal" | null;
   // Paddle 원본 status 문자열. 구독이 아예 없으면 null.
   status: string | null;
   scheduledChange: ScheduledChange | null;
@@ -37,36 +43,54 @@ export interface UserSubscriptionSummary {
 export async function getUserSubscriptionSummary(
   supabase: SupabaseClient
 ): Promise<UserSubscriptionSummary> {
+  const userPromise = supabase.auth.getUser();
   const configuredProPriceId = getConfiguredPaddleProPriceId();
   if (!configuredProPriceId) {
     console.error("[paddle] JobCal Pro price ID가 설정되지 않았거나 형식이 올바르지 않습니다.");
-    return emptySubscriptionSummary();
+  } else {
+    const { data, error } = await supabase
+      .from("paddle_subscriptions")
+      .select("paddle_subscription_id, status, scheduled_change, current_billing_period_starts_at")
+      .in("status", PRO_ENTITLEMENT_STATUSES)
+      .eq("price_id", configuredProPriceId)
+      .limit(1)
+      .maybeSingle();
+
+    // 실제 Paddle 구독이 있으면 internal entitlement보다 우선하여 Portal/결제 상태를
+    // 기존과 동일하게 보여준다.
+    if (!error && data) {
+      return {
+        plan: "pro",
+        entitlementSource: "paddle",
+        status: data.status,
+        scheduledChange: data.scheduled_change,
+        subscriptionId: data.paddle_subscription_id,
+        currentBillingPeriodStartsAt: data.current_billing_period_starts_at,
+      };
+    }
   }
 
-  const { data, error } = await supabase
-    .from("paddle_subscriptions")
-    .select("paddle_subscription_id, status, scheduled_change, current_billing_period_starts_at")
-    .in("status", PRO_ENTITLEMENT_STATUSES)
-    .eq("price_id", configuredProPriceId)
-    .limit(1)
-    .maybeSingle();
-
-  if (error || !data) {
-    return emptySubscriptionSummary();
+  const {
+    data: { user },
+  } = await userPromise;
+  if (hasActiveInternalProEntitlement(user?.app_metadata)) {
+    return {
+      plan: "pro",
+      entitlementSource: "internal",
+      status: null,
+      scheduledChange: null,
+      subscriptionId: null,
+      currentBillingPeriodStartsAt: null,
+    };
   }
 
-  return {
-    plan: "pro",
-    status: data.status,
-    scheduledChange: data.scheduled_change,
-    subscriptionId: data.paddle_subscription_id,
-    currentBillingPeriodStartsAt: data.current_billing_period_starts_at,
-  };
+  return emptySubscriptionSummary();
 }
 
 function emptySubscriptionSummary(): UserSubscriptionSummary {
   return {
     plan: "free",
+    entitlementSource: null,
     status: null,
     scheduledChange: null,
     subscriptionId: null,

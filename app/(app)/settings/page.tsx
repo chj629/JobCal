@@ -720,17 +720,21 @@ export default function SettingsPage() {
 
                   {renderAiUsage()}
 
-                  <button
-                    type="button"
-                    onClick={handleManageSubscriptionClick}
-                    disabled={isPortalLoading}
-                    className="mt-5 inline-flex w-full items-center justify-center gap-1.5 rounded-full border border-neutral-300 bg-white px-6 py-3 text-[13px] font-medium text-[var(--color-settings-ink)] shadow-sm transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {isPortalLoading && (
-                      <MaterialIcon name="progress_activity" size={14} className="animate-spin" />
-                    )}
-                    {isPortalLoading ? t("settings.plan.portalLoading") : t("settings.plan.manageButton")}
-                  </button>
+                  {subscription.entitlementSource === "paddle" && (
+                    <button
+                      type="button"
+                      onClick={handleManageSubscriptionClick}
+                      disabled={isPortalLoading}
+                      className="mt-5 inline-flex w-full items-center justify-center gap-1.5 rounded-full border border-neutral-300 bg-white px-6 py-3 text-[13px] font-medium text-[var(--color-settings-ink)] shadow-sm transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {isPortalLoading && (
+                        <MaterialIcon name="progress_activity" size={14} className="animate-spin" />
+                      )}
+                      {isPortalLoading
+                        ? t("settings.plan.portalLoading")
+                        : t("settings.plan.manageButton")}
+                    </button>
+                  )}
                 </div>
               ) : (
                 <div className="max-w-md rounded-2xl border border-neutral-300 bg-white p-6">

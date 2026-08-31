@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   getConfiguredPaddleProPriceId,
+  hasActiveInternalProEntitlement,
   hasProEntitlement,
   PRO_ENTITLEMENT_STATUSES,
 } from "./proPrice";
@@ -18,6 +19,15 @@ export type Plan = "free" | "pro";
 // Pro 여부를 결정하게 만들 방법 자체가 없다. Route Handler(app/api/ai/analyze-email 등)에서
 // 이 함수를 부르면 서버 세션 기준으로 최종 판정되고, 클라이언트가 이 결과에 영향을 줄 수 없다.
 export async function getUserPlan(supabase: SupabaseClient): Promise<Plan> {
+  // getSession()의 클라이언트 캐시나 사용자가 수정 가능한 user_metadata가 아니라,
+  // Supabase Auth 서버가 검증해 돌려준 auth.users.app_metadata만 확인한다.
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (hasActiveInternalProEntitlement(user?.app_metadata)) {
+    return "pro";
+  }
+
   const configuredProPriceId = getConfiguredPaddleProPriceId();
   if (!configuredProPriceId) {
     // 설정 누락/형식 오류 때 모든 active 구독을 Pro로 인정하는 fallback은 두지 않는다.
