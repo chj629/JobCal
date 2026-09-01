@@ -47,6 +47,46 @@ export const PRIORITY_LABELS: Record<Priority, string> = {
   low: "낮음",
 };
 
+// AI가 추출한 기업명과 기존 기업을 비교할 때만 쓰는 canonical name이다. 저장값/표시명은
+// 절대 바꾸지 않는다. NFKC로 전각 괄호・전각 영숫자・㈱/㈲ 같은 호환 문자를 먼저
+// 통일한 뒤, 일본 법인격 표기가 이름의 앞이나 뒤에 있을 때만 제거한다. 문자열 중간의
+// 같은 글자는 건드리지 않아 서로 다른 일반 기업명을 공격적으로 합치지 않는다.
+const JAPANESE_CORPORATE_DESIGNATORS = [
+  "株式会社",
+  "有限会社",
+  "合同会社",
+  "合資会社",
+  "合名会社",
+  "(株)",
+  "(有)",
+  "(同)",
+  "(資)",
+  "(名)",
+] as const;
+
+export function normalizeCompanyNameForMatching(name: string): string {
+  let normalized = name.normalize("NFKC").toLowerCase().replace(/\s+/gu, "");
+
+  // 잘못 중복 표기된 입력에도 결정적으로 동작하도록 더 제거할 법인격이 없을 때까지
+  // 앞・뒤만 반복한다. 정상 회사명에서는 한 번만 실행된다.
+  let changed = true;
+  while (changed && normalized) {
+    changed = false;
+    for (const designator of JAPANESE_CORPORATE_DESIGNATORS) {
+      if (normalized.startsWith(designator)) {
+        normalized = normalized.slice(designator.length);
+        changed = true;
+      }
+      if (normalized.endsWith(designator)) {
+        normalized = normalized.slice(0, -designator.length);
+        changed = true;
+      }
+    }
+  }
+
+  return normalized;
+}
+
 export interface Company {
   id: string;
   name: string;

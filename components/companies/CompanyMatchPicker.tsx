@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { useCompanies } from "@/lib/companies-context";
-import type { Company } from "@/lib/companies";
+import { normalizeCompanyNameForMatching, type Company } from "@/lib/companies";
 import { useT } from "@/lib/locale-context";
 import MaterialIcon from "@/components/ui/MaterialIcon";
 
@@ -35,9 +35,13 @@ export default function CompanyMatchPicker({
   const { companies } = useCompanies();
 
   const exactMatch = useMemo(() => {
-    const normalized = suggestedName?.trim().toLowerCase();
+    const normalized = normalizeCompanyNameForMatching(suggestedName ?? "");
     if (!normalized) return null;
-    return companies.find((company) => company.name.trim().toLowerCase() === normalized) ?? null;
+    return (
+      companies.find(
+        (company) => normalizeCompanyNameForMatching(company.name) === normalized
+      ) ?? null
+    );
   }, [companies, suggestedName]);
 
   const [selection, setSelection] = useState<Selection>(() =>
@@ -47,9 +51,11 @@ export default function CompanyMatchPicker({
   const [search, setSearch] = useState(suggestedName ?? "");
 
   const matches = useMemo(() => {
-    const query = search.trim().toLowerCase();
+    const query = normalizeCompanyNameForMatching(search);
     if (!query) return [];
-    return companies.filter((company) => company.name.toLowerCase().includes(query));
+    return companies.filter((company) =>
+      normalizeCompanyNameForMatching(company.name).includes(query)
+    );
   }, [companies, search]);
 
   function handleNext() {
