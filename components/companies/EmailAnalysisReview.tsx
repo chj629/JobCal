@@ -19,6 +19,7 @@ import {
 } from "@/lib/companies";
 import {
   DEFAULT_STEP_KEYS,
+  findFailedFallbackStep,
   getStepDisplayName,
   matchDefaultStepKey,
   STEP_STATUS_LABEL_KEYS,
@@ -298,6 +299,19 @@ export default function EmailAnalysisReview({
     }))
   );
   const [memo, setMemo] = useState(analysis.memo ?? "");
+
+  // 모델이 구체적인 failed step을 함께 반환한 경우에는 그 명시적 결과를 우선한다.
+  // unresolved failed만 있을 때 기존 기업의 실제 상태를 보고 fallback하며, 신규 기업이나
+  // 진행 이력이 없는 기업에서는 null로 두어 어떤 step도 만들거나 변경하지 않는다.
+  const shouldApplyUnresolvedFailed =
+    analysis.unresolvedResult?.resultOption === "failed" &&
+    !stepUpdates.some((update) => update.resultOption === "failed");
+  const unresolvedFailedTarget = useMemo(() => {
+    if (!existingCompany || !shouldApplyUnresolvedFailed) return null;
+    return findFailedFallbackStep(
+      steps.filter((step) => step.companyId === existingCompany.id)
+    );
+  }, [existingCompany, shouldApplyUnresolvedFailed, steps]);
 
   // 選考結果: handleRegister에서 stepId가 명확히 매칭된 경우에만 application_steps.step_status에
   // 반영한다(inProgress/passed/failed → 그대로 stepStatus, updateStepStatus의 캐스케이드 재사용).
@@ -709,6 +723,16 @@ export default function EmailAnalysisReview({
       resolvedStepUpdates.push({ step, resultOption: update.resultOption });
     }
 
+    // unresolved 결과는 이름 기반 resolveApplicationStep을 절대 거치지 않는다. 기존 기업의
+    // 실제 step 객체를 helper가 골랐을 때만 failed update로 추가하므로 "選考" 같은 새
+    // 커스텀 전형이 생성될 경로가 없다. 신규 기업의 기본 step은 모두 waiting이라 대상 없음.
+    if (shouldApplyUnresolvedFailed) {
+      const fallbackStep = findFailedFallbackStep(candidateSteps);
+      if (fallbackStep) {
+        resolvedStepUpdates.push({ step: fallbackStep, resultOption: "failed" });
+      }
+    }
+
     // 신규 기업에서 이 AI 리뷰가 사용한 커스텀 전형만 문맥상 위치로 옮긴다. addStep의
     // "항상 마지막에 추가"라는 수동 UX 정책은 그대로 두고, 기존 기업에도 손대지 않는다.
     // 재시도(createdCompanyId)에서도 같은 최종 id 순서를 계산하므로 이 작업은 멱등이다.
@@ -755,7 +779,9 @@ export default function EmailAnalysisReview({
     const effectiveUpdate =
       resolvedUpdates.find((update) => update.resultOption === "inProgress") ??
       resolvedUpdates[resolvedUpdates.length - 1];
-    const effectiveResultOption = effectiveUpdate?.resultOption ?? "inProgress";
+    const effectiveResultOption = shouldApplyUnresolvedFailed
+      ? "failed"
+      : (effectiveUpdate?.resultOption ?? "inProgress");
     await applyResolvedStepUpdates(
       companyId,
       resolvedUpdates,
@@ -955,7 +981,7 @@ export default function EmailAnalysisReview({
             </button>
           </div>
 
-          {stepUpdates.length === 0 ? (
+          {stepUpdates.length === 0 && !shouldApplyUnresolvedFailed ? (
             <p className="rounded-stitch-2xl border border-dashed border-stitch-border py-6 text-center text-[12px] text-secondary">
               {t("companies.steps.empty")}
             </p>
@@ -1031,6 +1057,20 @@ export default function EmailAnalysisReview({
                   )}
                 </div>
               ))}
+              {shouldApplyUnresolvedFailed && (
+                <div className="rounded-stitch-2xl border border-primary-navy/20 bg-primary-navy/5 p-5">
+                  <div className="flex items-start gap-2 text-[12px] leading-relaxed text-secondary">
+                    <MaterialIcon name="info" size={16} className="mt-0.5 shrink-0 text-primary-navy" />
+                    <p>
+                      {unresolvedFailedTarget
+                        ? t("aiEmail.review.unresolvedFailedWithTarget", {
+                            step: getStepDisplayName(unresolvedFailedTarget, t),
+                          })
+                        : t("aiEmail.review.unresolvedFailedCompanyOnly")}
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </section>

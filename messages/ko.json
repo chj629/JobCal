@@ -1054,6 +1054,8 @@
       "resultLabel": "전형 결과",
       "changeSuggestion": "변경 제안",
       "newStep": "신규 전형",
+      "unresolvedFailedWithTarget": "대상 전형이 명시되지 않아 현재 전형 ‘{step}’을 불합격으로 변경합니다.",
+      "unresolvedFailedCompanyOnly": "대상 전형을 특정할 수 없어 전형은 변경하지 않고 기업 상태만 불합격으로 변경합니다.",
       "noChange": "변화 없음",
       "eventNew": "새 일정",
       "eventDateConfirmed": "날짜 확정",

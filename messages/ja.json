@@ -1054,6 +1054,8 @@
       "resultLabel": "選考結果",
       "changeSuggestion": "変更提案",
       "newStep": "新規選考",
+      "unresolvedFailedWithTarget": "対象選考が明記されていないため、現在の選考「{step}」を不合格として更新します。",
+      "unresolvedFailedCompanyOnly": "対象選考を特定できないため、選考は変更せず企業ステータスのみ不合格に更新します。",
       "noChange": "変更なし",
       "eventNew": "新しい予定",
       "eventDateConfirmed": "日時確定",

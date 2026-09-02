@@ -170,3 +170,17 @@ export function getCurrentStep<T extends Pick<ApplicationStep, "stepOrder" | "st
   const allPassed = sorted.every((step) => step.stepStatus === "passed");
   return allPassed ? sorted[sorted.length - 1] : null;
 }
+
+// 전형명이 명시되지 않은 불합격 결과에만 사용하는 deterministic fallback. 미래 waiting은
+// 실제 진행 이력이 아니므로 절대 선택하지 않는다. 정상 데이터에서는 in_progress가 최대
+// 하나지만, 손상된 데이터에서 둘 이상이면 임의 선택하지 않고 null로 안전하게 중단한다.
+export function findFailedFallbackStep(steps: ApplicationStep[]): ApplicationStep | null {
+  const inProgressSteps = steps.filter((step) => step.stepStatus === "in_progress");
+  if (inProgressSteps.length === 1) return inProgressSteps[0];
+  if (inProgressSteps.length > 1) return null;
+
+  const progressedSteps = steps
+    .filter((step) => step.stepStatus === "passed" || step.stepStatus === "failed")
+    .sort((a, b) => b.stepOrder - a.stepOrder || a.id.localeCompare(b.id));
+  return progressedSteps[0] ?? null;
+}

@@ -17,6 +17,10 @@ export interface StepUpdate {
   resultOption: EmailAnalysisResultOption;
 }
 
+export interface UnresolvedEmailAnalysisResult {
+  resultOption: "failed";
+}
+
 export interface ExtractedEvent {
   eventType: ExtractedEventType;
   title: string;
@@ -39,6 +43,9 @@ export interface ExtractedContact {
 export interface EmailAnalysisResult {
   companyName: string | null;
   stepUpdates: StepUpdate[];
+  // 불합격은 확정됐지만 어느 전형의 결과인지 원문에 명시되지 않은 경우. 일반 표현을
+  // 커스텀 stepName으로 발명하지 않고, 기존 기업 선택 뒤 실제 step 상태로 해석한다.
+  unresolvedResult: UnresolvedEmailAnalysisResult | null;
   /** @deprecated Derived from stepUpdates for the current review/registration UI. */
   stepName: string | null;
   /** @deprecated Derived from stepUpdates for the current review/registration UI. */
@@ -56,7 +63,7 @@ export const EMAIL_ANALYSIS_JSON_SCHEMA = {
   schema: {
     type: "object",
     additionalProperties: false,
-    required: ["companyName", "stepUpdates", "events", "contacts", "memo"],
+    required: ["companyName", "stepUpdates", "unresolvedResult", "events", "contacts", "memo"],
     properties: {
       companyName: { type: ["string", "null"] },
       stepUpdates: {
@@ -80,6 +87,21 @@ export const EMAIL_ANALYSIS_JSON_SCHEMA = {
             },
           },
         },
+      },
+      unresolvedResult: {
+        anyOf: [
+          {
+            type: "object",
+            additionalProperties: false,
+            required: ["resultOption"],
+            properties: {
+              resultOption: { type: "string", enum: ["failed"] },
+            },
+          },
+          { type: "null" },
+        ],
+        description:
+          "지원 종료/불합격은 확정됐지만 구체적인 대상 전형명이 원문에 없을 때 { resultOption: 'failed' }, 그 외에는 null",
       },
       events: {
         type: "array",
@@ -170,6 +192,7 @@ export function buildEmailAnalysisPrompt(emailText: string, nowIso: string, loca
   - 예: "エントリーシートを○月○日までに提出してください" → ES/inProgress, "Webテストを受検してください" → Webテスト/inProgress, "一次面接にご参加ください" 또는 현재 지원자의 면접 일정을 제시·조정하는 안내 → 一次面接/inProgress.
   - events에 현재 지원자가 수행해야 하는 schedule/deadline을 추출했고 그 event.stepName이 명확하다면, 같은 전형의 확정 결과(passed/failed/withdrawn)가 별도로 명시되지 않은 한 해당 전형의 inProgress가 stepUpdates에도 있어야 합니다. event만 만들고 현재 행동 대상 전형의 stepUpdate를 누락하지 마세요.
   이메일에 합격/불합격 결과가 명확하면 그 단계는 절대 "inProgress"로 두지 마세요. 단순히 "결과", "면접", "選考" 같은 단어가 있거나, 지원자에게 지금 어떤 행동도 요구하지 않는 일반적인 전형 제도·순서 설명만으로는 update를 만들지 마세요. 특히 "AI一次面接を通過された方にはウェルカム面談を予定しています" 또는 "ES提出者には後日面接をご案内します"처럼 가정·조건부로 미래 절차를 설명한 문장은 현재 지원자의 앞 단계 통과도, 뒤 단계 진행도 확정하지 않으므로 어느 쪽도 stepUpdates에 넣으면 안 됩니다. 각 문장의 대상이 현재 지원자이고 지금 상태나 행동이 실제 확정되었는지 문장 관계로 판단하세요.
+- unresolvedResult: 불합격/채용 종료는 확정됐지만 어느 전형 단계의 결과인지 원문에 명시되지 않은 경우에만 { "resultOption": "failed" }를 반환하세요. 그 외에는 null입니다. "選考", "選考結果", "採用選考", "入社試験"은 이 문맥에서 일반적인 선발・심사・채용 절차 표현일 뿐 구체적인 전형명이 아닙니다. 이런 표현을 stepUpdates[].stepName으로 만들지 말고, 구체적인 書類選考・一次面接・二次面接・最終面接 등의 이름이 없으면 stepUpdates에는 failed 항목을 넣지 않은 채 unresolvedResult로 반환하세요. 반대로 "二次面接の結果、不採用"처럼 구체적인 전형명이 있으면 기존대로 二次面接/failed를 stepUpdates에 넣고 unresolvedResult는 null로 두세요.
 - events: 이 이메일에 포함된 일정을 모두 배열로 추출하세요. 각 항목은 다음 중 하나의 eventType을 가집니다.
   - "schedule": 설명회, 면접 등 특정 일시에 진행되는 일정. startsAt을 채우고, 알 수 있으면 endsAt/location/onlineUrl도 채우세요.
   - "deadline": ES 제출, 응시 마감 등. dueAt을 채우고, 제출 링크가 있으면 onlineUrl도 채우세요.
@@ -204,6 +227,19 @@ function normalizeStepName(rawStepName: string | null, locale: Locale): string |
   if (!rawStepName) return rawStepName;
   const stepKey = matchDefaultStepKey(rawStepName);
   return stepKey ? translate(locale, `applicationSteps.default.${stepKey}`) : rawStepName;
+}
+
+const GENERIC_RECRUITING_RESULT_STEP_NAMES = new Set([
+  "選考",
+  "選考結果",
+  "採用選考",
+  "入社試験",
+]);
+
+function isGenericRecruitingResultStepName(stepName: string): boolean {
+  return GENERIC_RECRUITING_RESULT_STEP_NAMES.has(
+    stepName.normalize("NFKC").replace(/\s+/gu, "")
+  );
 }
 
 // Structured Output이어도 모델이 timezone suffix를 빠뜨릴 수 있다. 날짜+시각까지 있는 ISO
@@ -267,6 +303,7 @@ export function parseEmailAnalysisResult(
         .filter((contact) => contact.name)
     : [];
 
+  let genericFailedResultFound = false;
   const stepUpdates: StepUpdate[] = Array.isArray(obj.stepUpdates)
     ? obj.stepUpdates
         .filter((item): item is Record<string, unknown> => typeof item === "object" && item !== null)
@@ -277,10 +314,23 @@ export function parseEmailAnalysisResult(
           )
             ? (item.resultOption as EmailAnalysisResultOption)
             : "inProgress";
+          if (stepName && resultOption === "failed" && isGenericRecruitingResultStepName(stepName)) {
+            genericFailedResultFound = true;
+            return null;
+          }
           return stepName ? { stepName, resultOption } : null;
         })
         .filter((item): item is StepUpdate => item !== null)
     : [];
+
+  const rawUnresolvedResult =
+    typeof obj.unresolvedResult === "object" && obj.unresolvedResult !== null
+      ? (obj.unresolvedResult as Record<string, unknown>)
+      : null;
+  const unresolvedResult: UnresolvedEmailAnalysisResult | null =
+    genericFailedResultFound || rawUnresolvedResult?.resultOption === "failed"
+      ? { resultOption: "failed" }
+      : null;
 
   // 기존 리뷰/등록 화면은 아직 단일 단계만 처리한다. 진행 중인 단계가 있으면 그것을 우선하고,
   // 없으면 이메일에 나타난 마지막 확정 업데이트를 사용한다. 아무 업데이트도 없으면 과거의
@@ -292,6 +342,7 @@ export function parseEmailAnalysisResult(
   return {
     companyName: toNullableString(obj.companyName),
     stepUpdates,
+    unresolvedResult,
     stepName: legacyStepUpdate?.stepName ?? null,
     resultOption: legacyStepUpdate?.resultOption ?? "inProgress",
     events,
